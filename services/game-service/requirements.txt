@@ -1,0 +1,11 @@
+# Game Service зависимости (Minimal Python 3.13 compatible)
+
+# FastAPI и ASGI сервер
+fastapi
+uvicorn[standard]
+
+# HTTP клиент
+httpx
+
+# База данных (psycopg3 для Python 3.13)
+psycopg[binary]==3.2.9

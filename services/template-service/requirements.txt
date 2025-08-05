@@ -1,0 +1,8 @@
+# Template Service зависимости (Minimal Python 3.13 compatible)
+
+# FastAPI и ASGI сервер
+fastapi
+uvicorn[standard]
+
+# HTTP клиент
+httpx

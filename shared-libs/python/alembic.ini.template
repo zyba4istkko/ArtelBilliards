@@ -1,0 +1,82 @@
+# Базовый шаблон Alembic для всех микросервисов Artel Billiards
+# Скопируйте этот файл в корень каждого сервиса и настройте под конкретный сервис
+
+[alembic]
+# path to migration scripts (относительно корня сервиса)
+script_location = alembic
+
+# template used to generate migration file names
+file_template = %%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s
+
+# sys.path path, will be prepended to sys.path if present.
+prepend_sys_path = .
+
+# timezone to use when rendering the date within the migration file
+timezone = UTC
+
+# max length of characters to apply to the "slug" field
+truncate_slug_length = 40
+
+# set to 'true' to run the environment during the 'revision' command
+revision_environment = false
+
+# set to 'true' to allow .pyc and .pyo files without a source .py file
+sourceless = false
+
+# version number format (uses python strftime syntax)
+version_num_format = %(year)d%(month).2d%(day).2d_%(hour).2d%(minute).2d
+
+# the output encoding used when revision files are written
+output_encoding = utf-8
+
+# DATABASE_URL будет получен из переменных окружения в env.py
+# Для каждого сервиса настройте свою БД:
+# auth-service: postgresql://postgres:password@postgres:5432/auth_db
+# game-service: postgresql://postgres:password@postgres:5432/game_db
+# template-service: postgresql://postgres:password@postgres:5432/template_db
+# stats-service: postgresql://postgres:password@postgres:5432/stats_db
+# friends-service: postgresql://postgres:password@postgres:5432/friends_db
+# notification-service: postgresql://postgres:password@postgres:5432/notification_db
+sqlalchemy.url = driver://user:pass@localhost/dbname
+
+[post_write_hooks]
+# Автоматическое форматирование миграций с помощью black
+hooks = black
+black.type = console_scripts
+black.entrypoint = black
+black.options = -l 88 REVISION_SCRIPT_FILENAME
+
+# Logging configuration
+[loggers]
+keys = root,sqlalchemy,alembic
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = WARN
+handlers = console
+qualname =
+
+[logger_sqlalchemy]
+level = WARN
+handlers =
+qualname = sqlalchemy.engine
+
+[logger_alembic]
+level = INFO
+handlers =
+qualname = alembic
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(levelname)-5.5s [%(name)s] %(message)s
+datefmt = %H:%M:%S

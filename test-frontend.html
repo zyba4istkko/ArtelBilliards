@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artel Billiards - API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .loading {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        h2 {
+            color: #666;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Artel Billiards - API Test</h1>
+        
+        <div class="test-section">
+            <h2>🔍 API Gateway Health</h2>
+            <button class="test-button" onclick="testHealth()">Test API Gateway Health</button>
+            <div id="health-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 Templates</h2>
+            <button class="test-button" onclick="testTemplates()">Get Templates</button>
+            <div id="templates-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🎮 Game Sessions</h2>
+            <button class="test-button" onclick="testCreateSession()">Create Session</button>
+            <button class="test-button" onclick="testGetSessions()">Get Sessions</button>
+            <div id="sessions-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>👤 Auth</h2>
+            <button class="test-button" onclick="testAuth()">Test Auth</button>
+            <div id="auth-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 Full Game Flow</h2>
+            <button class="test-button" onclick="testFullFlow()">Test Full Game Flow</button>
+            <div id="fullflow-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        function showResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.className = `result ${isError ? 'error' : 'success'}`;
+            element.textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+        }
+
+        function showLoading(elementId) {
+            const element = document.getElementById(elementId);
+            element.className = 'result loading';
+            element.textContent = 'Loading...';
+        }
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                return { success: response.ok, data, status: response.status };
+            } catch (error) {
+                return { success: false, data: error.message, status: 0 };
+            }
+        }
+
+        async function testHealth() {
+            showLoading('health-result');
+            const result = await makeRequest(`${API_BASE}/health`);
+            showResult('health-result', result, !result.success);
+        }
+
+        async function testTemplates() {
+            showLoading('templates-result');
+            const result = await makeRequest(`${API_BASE}/api/v1/templates/`);
+            showResult('templates-result', result, !result.success);
+        }
+
+        async function testCreateSession() {
+            showLoading('sessions-result');
+            const sessionData = {
+                game_type_id: 1,
+                name: "Test Session - Kolkhoz",
+                description: "Test session for API testing",
+                max_players: 4,
+                rules: {
+                    point_value_rubles: 100,
+                    payment_direction: "previous_pays_next",
+                    queue_algorithm: "always_random"
+                }
+            };
+            
+            const result = await makeRequest(`${API_BASE}/api/v1/sessions/`, {
+                method: 'POST',
+                body: JSON.stringify(sessionData)
+            });
+            showResult('sessions-result', result, !result.success);
+        }
+
+        async function testGetSessions() {
+            showLoading('sessions-result');
+            const result = await makeRequest(`${API_BASE}/api/v1/sessions/`);
+            showResult('sessions-result', result, !result.success);
+        }
+
+        async function testAuth() {
+            showLoading('auth-result');
+            const result = await makeRequest(`${API_BASE}/auth/me`);
+            showResult('auth-result', result, !result.success);
+        }
+
+        async function testFullFlow() {
+            showLoading('fullflow-result');
+            let log = [];
+            
+            try {
+                // 1. Health check
+                log.push('1. Testing API Gateway Health...');
+                const health = await makeRequest(`${API_BASE}/health`);
+                log.push(`   Health: ${health.success ? '✅ OK' : '❌ FAIL'}`);
+                
+                // 2. Get templates
+                log.push('2. Getting templates...');
+                const templates = await makeRequest(`${API_BASE}/api/v1/templates/`);
+                log.push(`   Templates: ${templates.success ? '✅ OK' : '❌ FAIL'}`);
+                
+                // 3. Create session
+                log.push('3. Creating session...');
+                const sessionData = {
+                    game_type_id: 1,
+                    name: "Full Flow Test Session",
+                    description: "Test session for full flow",
+                    max_players: 4,
+                    rules: {
+                        point_value_rubles: 100,
+                        payment_direction: "previous_pays_next",
+                        queue_algorithm: "always_random"
+                    }
+                };
+                
+                const session = await makeRequest(`${API_BASE}/api/v1/sessions/`, {
+                    method: 'POST',
+                    body: JSON.stringify(sessionData)
+                });
+                log.push(`   Session: ${session.success ? '✅ OK' : '❌ FAIL'}`);
+                
+                if (session.success && session.data.id) {
+                    // 4. Join session
+                    log.push('4. Joining session...');
+                    const joinData = { display_name: "Test Player" };
+                    const join = await makeRequest(`${API_BASE}/api/v1/sessions/${session.data.id}/join`, {
+                        method: 'POST',
+                        body: JSON.stringify(joinData)
+                    });
+                    log.push(`   Join: ${join.success ? '✅ OK' : '❌ FAIL'}`);
+                    
+                    // 5. Create game
+                    log.push('5. Creating game...');
+                    const gameData = { queue_algorithm: "always_random" };
+                    const game = await makeRequest(`${API_BASE}/api/v1/games/sessions/${session.data.id}/games`, {
+                        method: 'POST',
+                        body: JSON.stringify(gameData)
+                    });
+                    log.push(`   Game: ${game.success ? '✅ OK' : '❌ FAIL'}`);
+                    
+                    if (game.success && game.data.id) {
+                        // 6. Add game event
+                        log.push('6. Adding game event...');
+                        const eventData = {
+                            participant_id: "00000000-0000-0000-0000-000000000001",
+                            event_type: "ball_potted",
+                            event_data: { ball_color: "red", points: 100 }
+                        };
+                        const event = await makeRequest(`${API_BASE}/api/v1/games/${game.data.id}/events`, {
+                            method: 'POST',
+                            body: JSON.stringify(eventData)
+                        });
+                        log.push(`   Event: ${event.success ? '✅ OK' : '❌ FAIL'}`);
+                        
+                        // 7. End game
+                        log.push('7. Ending game...');
+                        const endGame = await makeRequest(`${API_BASE}/api/v1/games/${game.data.id}/end`, {
+                            method: 'POST'
+                        });
+                        log.push(`   End Game: ${endGame.success ? '✅ OK' : '❌ FAIL'}`);
+                    }
+                }
+                
+                log.push('\n🎉 Full flow test completed!');
+                
+            } catch (error) {
+                log.push(`❌ Error: ${error.message}`);
+            }
+            
+            showResult('fullflow-result', log.join('\n'));
+        }
+
+        // Auto-test on page load
+        window.onload = function() {
+            testHealth();
+        };
+    </script>
+</body>
+</html> 
