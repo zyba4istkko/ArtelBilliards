@@ -1,0 +1,73 @@
+# Multi-stage Dockerfile для микросервисов Artel Billiards
+# Оптимизированная сборка с минимальным размером образа
+
+# ==================== BUILDER STAGE ====================
+FROM python:3.13-slim as builder
+
+# Устанавливаем системные зависимости для сборки
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    g++ \
+    libpq-dev \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Создаем и активируем виртуальное окружение
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Обновляем pip
+RUN pip install --no-cache-dir --upgrade pip
+
+# Копируем requirements файлы
+COPY shared-libs/python/requirements.txt /tmp/shared-requirements.txt
+COPY requirements.txt /tmp/service-requirements.txt 2>/dev/null || echo "# No service-specific requirements" > /tmp/service-requirements.txt
+
+# Устанавливаем зависимости в виртуальное окружение
+RUN pip install --no-cache-dir -r /tmp/shared-requirements.txt && \
+    pip install --no-cache-dir -r /tmp/service-requirements.txt
+
+# ==================== PRODUCTION STAGE ====================
+FROM python:3.13-slim
+
+# Устанавливаем только runtime зависимости
+RUN apt-get update && apt-get install -y \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Копируем виртуальное окружение из builder stage
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Создаем пользователя для безопасности
+RUN groupadd -r appuser && useradd -r -g appuser -s /bin/false appuser
+
+# Создаем рабочую директорию
+WORKDIR /app
+
+# Создаем необходимые директории
+RUN mkdir -p /app/logs /app/static /app/media && \
+    chown -R appuser:appuser /app
+
+# Копируем код приложения (будет выполнено в конкретных сервисах)
+# COPY src/ /app/src/
+# COPY shared-libs/ /app/shared-libs/
+
+# Устанавливаем владельца файлов
+# RUN chown -R appuser:appuser /app
+
+# Переключаемся на пользователя приложения
+USER appuser
+
+# Экспозим порт (будет переопределен в конкретных сервисах)
+EXPOSE 8000
+
+# Health check (будет переопределен в конкретных сервисах)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Команда по умолчанию (будет переопределена в конкретных сервисах)
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

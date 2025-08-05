@@ -1,0 +1,30 @@
+# Auth Service зависимости - совместимые с Python 3.13
+
+# FastAPI и ASGI сервер
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# База данных (Пробуем psycopg3 для Python 3.13)
+psycopg[binary]==3.2.9
+
+# Старые драйверы не совместимы с Python 3.13
+# psycopg2-binary==2.9.9 - undefined symbol error
+# asyncpg==0.30.0 - installation issues
+
+# Пока откладываем SQLAlchemy из-за проблем совместимости с Python 3.13
+# sqlalchemy==2.0.42
+# alembic==1.14.0
+
+# JWT и безопасность
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.18
+
+# HTTP клиент
+httpx==0.28.1
+
+# Валидация (упрощенная версия)
+typing-extensions==4.12.2
+
+# Переменные окружения
+python-dotenv==1.0.1

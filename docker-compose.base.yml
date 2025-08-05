@@ -1,0 +1,86 @@
+version: '3.8'
+
+# Базовая инфраструктура для Artel Billiards
+# Содержит только основные сервисы: БД, кеш, очереди, сети
+# Используется как основа для dev и prod окружений
+
+services:
+  # ==================== INFRASTRUCTURE ====================
+  
+  # PostgreSQL с микросервисными базами данных
+  postgres:
+    image: postgres:17
+    container_name: artel_postgres
+    environment:
+      POSTGRES_DB: artel_billiards
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - artel_network
+
+  # Redis для кеширования и real-time статусов
+  redis:
+    image: redis:7-alpine
+    container_name: artel_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - artel_network
+
+  # RabbitMQ для асинхронных сообщений
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: artel_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password
+    ports:
+      - "5672:5672"
+      - "15672:15672"  # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - artel_network
+
+# Общие volumes
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+
+# Общая сеть для всех сервисов
+networks:
+  artel_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1

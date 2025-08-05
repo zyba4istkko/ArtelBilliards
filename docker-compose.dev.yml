@@ -1,0 +1,210 @@
+version: '3.8'
+
+# Development конфигурация для Artel Billiards
+# Минимальный набор сервисов для быстрой разработки и тестирования
+# Использование: docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml up
+
+services:
+  # ==================== DEVELOPMENT SERVICES ====================
+
+  # Auth Service - аутентификация и авторизация
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: artel_auth_service_dev
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/auth_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:password@rabbitmq:5672
+      - JWT_SECRET_KEY=dev-secret-key-change-in-production
+      - ENVIRONMENT=development
+      - SERVICE_NAME=auth-service
+      - SERVICE_PORT=8001
+      - DEBUG=true
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./services/auth-service:/app
+      - ./shared-libs:/app/shared-libs
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - artel_network
+
+  # Game Service - управление играми и сессиями
+  game-service:
+    build:
+      context: ./services/game-service
+      dockerfile: Dockerfile
+    container_name: artel_game_service_dev
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/game_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:password@rabbitmq:5672
+      - JWT_SECRET_KEY=dev-secret-key-change-in-production
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - TEMPLATE_SERVICE_URL=http://template-service:8003
+      - ENVIRONMENT=development
+      - SERVICE_NAME=game-service
+      - SERVICE_PORT=8002
+      - DEBUG=true
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    volumes:
+      - ./services/game-service:/app
+      - ./shared-libs:/app/shared-libs
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - artel_network
+
+  # Template Service - управление шаблонами игр
+  template-service:
+    build:
+      context: ./services/template-service
+      dockerfile: Dockerfile
+    container_name: artel_template_service_dev
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/template_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:password@rabbitmq:5672
+      - JWT_SECRET_KEY=dev-secret-key-change-in-production
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - GAME_SERVICE_URL=http://game-service:8002
+      - ENVIRONMENT=development
+      - SERVICE_NAME=template-service
+      - SERVICE_PORT=8003
+      - DEBUG=true
+    ports:
+      - "8003:8003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    volumes:
+      - ./services/template-service:/app
+      - ./shared-libs:/app/shared-libs
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - artel_network
+
+  # API Gateway - единая точка входа (заменяет nginx в dev)
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: artel_api_gateway_dev
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - GAME_SERVICE_URL=http://game-service:8002
+      - TEMPLATE_SERVICE_URL=http://template-service:8003
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:password@rabbitmq:5672
+      - ENVIRONMENT=development
+      - SERVICE_NAME=api-gateway
+      - SERVICE_PORT=8000
+      - DEBUG=true
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth-service
+      - game-service
+      - template-service
+    volumes:
+      - ./api-gateway:/app
+      - ./shared-libs:/app/shared-libs
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - artel_network
+
+  # React Frontend (Development with hot reload)
+  frontend:
+    build:
+      context: ./react-app
+      dockerfile: Dockerfile.dev
+    container_name: artel_frontend_dev
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+      - VITE_WEBSOCKET_URL=ws://localhost:8000
+    ports:
+      - "5173:5173"
+    # volumes временно отключены для стабильности
+    # volumes:
+    #   - ./react-app/src:/app/src
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+    networks:
+      - artel_network
+
+  # ==================== DEVELOPMENT TOOLS ====================
+
+  # Prometheus - базовый мониторинг
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: artel_prometheus_dev
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data_dev:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - artel_network
+
+  # Grafana - визуализация метрик
+  grafana:
+    image: grafana/grafana:latest
+    container_name: artel_grafana_dev
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data_dev:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - artel_network
+
+# Development specific volumes
+volumes:
+  prometheus_data_dev:
+    driver: local
+  grafana_data_dev:
+    driver: local
+
+# Inherit networks from base
