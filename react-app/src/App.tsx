@@ -1,34 +1,67 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { ThemeProvider, createTheme } from '@mui/material/styles'
+import CssBaseline from '@mui/material/CssBaseline'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Toaster } from 'sonner'
+
+// Layout
+import AppLayout from './components/layout/AppLayout'
+
+// Pages
+import HomePage from './pages/HomePage'
+import LoginPage from './pages/LoginPage'
+import TemplatesPage from './pages/TemplatesPage'
+import SessionPage from './pages/SessionPage'
+import GamePage from './pages/GamePage'
+import StatsPage from './pages/StatsPage'
+import ProfilePage from './pages/ProfilePage'
+import NotFoundPage from './pages/NotFoundPage'
+
+// Create Material UI theme
+const theme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+  },
+})
+
+// Create a client for React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<AppLayout />}>
+              <Route index element={<HomePage />} />
+              <Route path="templates" element={<TemplatesPage />} />
+              <Route path="session/:sessionId?" element={<SessionPage />} />
+              <Route path="game/:gameId" element={<GamePage />} />
+              <Route path="stats" element={<StatsPage />} />
+              <Route path="profile" element={<ProfilePage />} />
+            </Route>
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </Router>
+        <Toaster position="top-right" />
+      </QueryClientProvider>
+    </ThemeProvider>
   )
 }
 

@@ -22,6 +22,12 @@ services:
       - SERVICE_NAME=auth-service
       - SERVICE_PORT=8001
       - DEBUG=true
+      # Telegram Bot Configuration (TEST BOT)
+      - TELEGRAM_BOT_TOKEN=8251521770:AAElpo_X1rJnX2y26-NxzDqz7tDga2m6XLw
+      - TELEGRAM_BOT_USERNAME=artelTestBot
+      - TELEGRAM_WEBHOOK_SECRET=telegram-webhook-secret-dev
+      # CORS for frontend
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8000,https://telegram.org
     ports:
       - "8001:8001"
     depends_on:
@@ -207,4 +213,11 @@ volumes:
   grafana_data_dev:
     driver: local
 
-# Inherit networks from base
+# Networks definition
+networks:
+  artel_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1

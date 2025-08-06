@@ -33,15 +33,15 @@ class Settings:
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     
     # CORS
-    ALLOWED_ORIGINS: List[str] = [
-        "http://localhost:3000",  # React dev server
-        "http://localhost:8000",  # API Gateway
-        "https://telegram.org",   # Telegram Mini Apps
-    ]
+    ALLOWED_ORIGINS: List[str] = (
+        os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8000,https://telegram.org")
+        .split(",")
+    )
     
     # Telegram настройки
-    TELEGRAM_BOT_TOKEN: Optional[str] = None
-    TELEGRAM_WEBHOOK_SECRET: Optional[str] = None
+    TELEGRAM_BOT_TOKEN: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")
+    TELEGRAM_BOT_USERNAME: Optional[str] = os.getenv("TELEGRAM_BOT_USERNAME")
+    TELEGRAM_WEBHOOK_SECRET: Optional[str] = os.getenv("TELEGRAM_WEBHOOK_SECRET")
     
     # Google OAuth настройки
     GOOGLE_CLIENT_ID: Optional[str] = None
