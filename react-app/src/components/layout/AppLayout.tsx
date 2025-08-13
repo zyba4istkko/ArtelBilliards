@@ -1,7 +1,7 @@
-import { AppBar, Toolbar, Typography, Button, Box, Container, IconButton, Menu, MenuItem } from '@mui/material'
+import { AppBar, Toolbar, Typography, Button, Box, IconButton, Menu, MenuItem } from '@mui/material'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
-import { Home, Description, BarChart, Person, AccountCircle, Login } from '@mui/icons-material'
+import { Home, Description, BarChart, Person, AccountCircle, Login, Dashboard } from '@mui/icons-material'
 import { useAuthStore, useUser, useIsAuthenticated } from '../../store/authStore'
 
 function AppLayout() {
@@ -51,6 +51,7 @@ function AppLayout() {
 
   // Защищенные страницы - только для авторизованных
   const protectedNavItems = [
+    { path: '/app/dashboard', label: 'Дашборд', icon: Dashboard },
     { path: '/app/templates', label: 'Шаблоны', icon: Description },
     { path: '/app/stats', label: 'Статистика', icon: BarChart },
   ]

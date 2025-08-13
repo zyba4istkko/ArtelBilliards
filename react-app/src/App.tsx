@@ -12,6 +12,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import DashboardPage from './pages/DashboardPage'
 import TemplatesPage from './pages/TemplatesPage'
 import SessionPage from './pages/SessionPage'
 import GamePage from './pages/GamePage'
@@ -59,6 +60,7 @@ function App() {
                 </ProtectedRoute>
               }
             >
+              <Route path="dashboard" element={<DashboardPage />} />
               <Route path="templates" element={<TemplatesPage />} />
               <Route path="session/:sessionId?" element={<SessionPage />} />
               <Route path="game/:gameId" element={<GamePage />} />
