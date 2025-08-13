@@ -138,6 +138,7 @@ function TemplatesPage() {
   }
 
   const createCustomTemplate = () => {
+    console.log('🎯 Opening custom template modal')
     setCreateModalOpen(true)
   }
 
@@ -150,6 +151,8 @@ function TemplatesPage() {
   }
 
   const saveCustomTemplate = async () => {
+    console.log('🎯 Saving custom template:', customTemplate)
+    
     if (!customTemplate.name.trim()) {
       toast.error('Введите название шаблона!')
       return
@@ -499,7 +502,10 @@ function TemplatesPage() {
           <Box sx={{ mb: 4 }}>
             <GameTypeSelector 
               value={customTemplate.gameType}
-              onChange={(gameType: GameType) => setCustomTemplate({ ...customTemplate, gameType })}
+              onChange={(gameType: GameType) => {
+                console.log('🎯 GameTypeSelector onChange:', gameType)
+                setCustomTemplate({ ...customTemplate, gameType })
+              }}
             />
           </Box>
 
