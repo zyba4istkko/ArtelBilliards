@@ -1,270 +1,280 @@
 """
-Template Service - Управление шаблонами игр
+Template Service - Business logic for templates
 """
 
-from datetime import datetime
 from typing import List, Optional, Dict, Any
 from uuid import UUID
-
-from ..models.database import GameTemplate, TemplateCategory, SYSTEM_TEMPLATES, SYSTEM_CATEGORIES
+from ..core.database import get_db_session_context
+from ..models.database import TemplateCategory, GameTemplate, TemplateRating, TemplateFavorite
 from ..models.schemas import (
-    GameTemplateCreate, GameTemplateUpdate, GameTemplateResponse, 
-    GameTemplateListResponse, GameTemplateSearchRequest,
-    TemplateCategoryResponse, GameType, TemplateStatsResponse,
-    TemplateValidationRequest, TemplateValidationResponse
+    TemplateCategoryCreate, TemplateCategoryUpdate, TemplateCategoryResponse,
+    GameTemplateCreate, GameTemplateUpdate, GameTemplateResponse,
+    TemplateRatingCreate, TemplateRatingUpdate, TemplateRatingResponse,
+    TemplateFavoriteCreate, TemplateFavoriteResponse,
+    GameTemplateSearchRequest
 )
-
+from ..repositories.template_repository import TemplateRepository
 
 class TemplateService:
-    """Сервис для управления шаблонами игр (stub implementation)"""
-    
+    """Сервис для работы с шаблонами"""
+
     @staticmethod
-    async def get_templates(
-        search_request: GameTemplateSearchRequest = None,
-        user_id: Optional[UUID] = None,
-        page: int = 1,
-        page_size: int = 20
-    ) -> GameTemplateListResponse:
-        """Получение списка шаблонов с фильтрацией (stub)"""
-        
-        # Применяем фильтры к системным шаблонам
-        filtered_templates = SYSTEM_TEMPLATES.copy()
-        
-        if search_request:
-            if search_request.game_type:
-                filtered_templates = [
-                    t for t in filtered_templates 
-                    if t.game_type == search_request.game_type
-                ]
+    async def create_category(category_data: TemplateCategoryCreate) -> TemplateCategoryResponse:
+        """Создать категорию"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
             
-            if search_request.query:
-                query_lower = search_request.query.lower()
-                filtered_templates = [
-                    t for t in filtered_templates 
-                    if query_lower in t.name.lower() or 
-                       (t.description and query_lower in t.description.lower())
-                ]
+            # Проверяем, не существует ли уже категория с таким именем
+            existing = await repo.get_category_by_name(category_data.name)
+            if existing:
+                raise ValueError(f"Категория с названием '{category_data.name}' уже существует")
             
-            if search_request.category_id:
-                filtered_templates = [
-                    t for t in filtered_templates 
-                    if t.category_id == search_request.category_id
-                ]
-        
-        # Пагинация
-        start_idx = (page - 1) * page_size
-        end_idx = start_idx + page_size
-        paginated_templates = filtered_templates[start_idx:end_idx]
-        
-        # Конвертируем в response модели
-        template_responses = []
-        for template in paginated_templates:
-            template_responses.append(
-                await TemplateService._convert_to_response(template, user_id)
-            )
-        
-        # Получаем категории
-        categories = [
-            TemplateCategoryResponse(
-                id=cat.id,
-                name=cat.name,
-                description=cat.description,
-                sort_order=cat.sort_order,
-                templates_count=len([t for t in SYSTEM_TEMPLATES if t.category_id == cat.id])
-            )
-            for cat in SYSTEM_CATEGORIES
-        ]
-        
-        return GameTemplateListResponse(
-            templates=template_responses,
-            total=len(filtered_templates),
-            page=page,
-            page_size=page_size,
-            categories=categories
-        )
-    
+            # Создаем новую категорию
+            category = TemplateCategory(**category_data.dict())
+            created_category = await repo.create_category(category)
+            
+            return TemplateCategoryResponse.from_orm(created_category)
+
     @staticmethod
-    async def get_template_by_id(template_id: UUID, user_id: Optional[UUID] = None) -> Optional[GameTemplateResponse]:
-        """Получение шаблона по ID (stub)"""
-        
-        # Ищем в системных шаблонах
-        template = next((t for t in SYSTEM_TEMPLATES if t.id == str(template_id)), None)
-        
-        if not template:
+    async def get_category(category_id: int) -> Optional[TemplateCategoryResponse]:
+        """Получить категорию по ID"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            category = await repo.get_category_by_id(category_id)
+            return TemplateCategoryResponse.from_orm(category) if category else None
+
+    @staticmethod
+    async def get_all_categories() -> List[TemplateCategoryResponse]:
+        """Получить все категории"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            categories = await repo.get_all_categories()
+            return [TemplateCategoryResponse.from_orm(cat) for cat in categories]
+
+    @staticmethod
+    async def update_category(category_id: int, category_data: TemplateCategoryUpdate) -> Optional[TemplateCategoryResponse]:
+        """Обновить категорию"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            
+            # Проверяем существование категории
+            existing = await repo.get_category_by_id(category_id)
+            if not existing:
+                return None
+            
+            # Обновляем категорию
+            updated_category = await repo.update_category(category_id, **category_data.dict(exclude_unset=True))
+            return TemplateCategoryResponse.from_orm(updated_category) if updated_category else None
+
+    @staticmethod
+    async def delete_category(category_id: int) -> bool:
+        """Удалить категорию"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            return await repo.delete_category(category_id)
+
+    @staticmethod
+    async def create_template(template_data: GameTemplateCreate) -> GameTemplateResponse:
+        """Создать шаблон"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            
+            # Проверяем существование категории
+            category = await repo.get_category_by_id(template_data.category_id)
+            if not category:
+                raise ValueError(f"Категория с ID {template_data.category_id} не найдена")
+            
+            # Создаем шаблон
+            template = GameTemplate(**template_data.dict())
+            created_template = await repo.create_template(template)
+            
+            # Загружаем связанные данные
+            await db.refresh(created_template, ['category'])
+            
+            return GameTemplateResponse.from_orm(created_template)
+
+    @staticmethod
+    async def get_template(template_id: UUID) -> Optional[GameTemplateResponse]:
+        """Получить шаблон по ID"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            template = await repo.get_template_by_id(template_id)
+            return GameTemplateResponse.from_orm(template) if template else None
+
+    @staticmethod
+    async def get_templates_by_category(category_id: int, limit: int = 50, offset: int = 0) -> List[GameTemplateResponse]:
+        """Получить шаблоны по категории"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            templates = await repo.get_templates_by_category(category_id, limit, offset)
+            return [GameTemplateResponse.from_orm(template) for template in templates]
+
+    @staticmethod
+    async def search_templates(search_params: GameTemplateSearchRequest) -> List[GameTemplateResponse]:
+        """Поиск шаблонов"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            templates = await repo.search_templates(search_params.dict(), search_params.limit, search_params.offset)
+            return [GameTemplateResponse.from_orm(template) for template in templates]
+
+    @staticmethod
+    async def get_public_templates(limit: int = 50, offset: int = 0) -> List[GameTemplateResponse]:
+        """Получить публичные шаблоны"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            templates = await repo.get_public_templates(limit, offset)
+            return [GameTemplateResponse.from_orm(template) for template in templates]
+
+    @staticmethod
+    async def get_system_templates() -> List[GameTemplateResponse]:
+        """Получить системные шаблоны"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            templates = await repo.get_system_templates()
+            return [GameTemplateResponse.from_orm(template) for template in templates]
+
+    @staticmethod
+    async def update_template(template_id: UUID, template_data: GameTemplateUpdate) -> Optional[GameTemplateResponse]:
+        """Обновить шаблон"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            
+            # Проверяем существование шаблона
+            existing = await repo.get_template_by_id(template_id)
+            if not existing:
+                return None
+            
+            # Обновляем шаблон
+            updated_template = await repo.update_template(template_id, **template_data.dict(exclude_unset=True))
+            if updated_template:
+                # Загружаем связанные данные
+                await db.refresh(updated_template, ['category'])
+                return GameTemplateResponse.from_orm(updated_template)
             return None
-        
-        return await TemplateService._convert_to_response(template, user_id)
-    
+
     @staticmethod
-    async def create_template(
-        template_data: GameTemplateCreate, 
-        creator_user_id: UUID
-    ) -> GameTemplateResponse:
-        """Создание нового шаблона (stub)"""
-        
-        # Создаем новый шаблон
-        new_template = GameTemplate(
-            creator_user_id=str(creator_user_id),
-            name=template_data.name,
-            description=template_data.description,
-            game_type=template_data.game_type,
-            rules=template_data.rules,
-            settings=template_data.settings,
-            category_id=template_data.category_id,
-            is_public=template_data.is_public,
-            tags=template_data.tags
-        )
-        
-        return await TemplateService._convert_to_response(new_template, creator_user_id)
-    
+    async def delete_template(template_id: UUID) -> bool:
+        """Удалить шаблон"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            return await repo.delete_template(template_id)
+
     @staticmethod
-    async def update_template(
-        template_id: UUID,
-        template_data: GameTemplateUpdate,
-        user_id: UUID
-    ) -> Optional[GameTemplateResponse]:
-        """Обновление шаблона (stub)"""
-        
-        # В реальной реализации здесь была бы проверка прав и обновление в БД
-        # Пока возвращаем исходный шаблон
-        return await TemplateService.get_template_by_id(template_id, user_id)
-    
+    async def increment_usage_count(template_id: UUID) -> bool:
+        """Увеличить счетчик использования"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            return await repo.increment_usage_count(template_id)
+
+    # Rating operations
     @staticmethod
-    async def delete_template(template_id: UUID, user_id: UUID) -> bool:
-        """Удаление шаблона (stub)"""
-        
-        # В реальной реализации здесь была бы проверка прав и удаление из БД
-        return True
-    
-    @staticmethod
-    async def get_popular_templates(
-        game_type: Optional[GameType] = None,
-        limit: int = 10
-    ) -> List[GameTemplateResponse]:
-        """Получение популярных шаблонов (stub)"""
-        
-        templates = SYSTEM_TEMPLATES.copy()
-        
-        if game_type:
-            templates = [t for t in templates if t.game_type == game_type]
-        
-        # Сортируем по рейтингу и использованию
-        templates.sort(key=lambda t: (t.rating, t.usage_count), reverse=True)
-        
-        popular_templates = []
-        for template in templates[:limit]:
-            popular_templates.append(
-                await TemplateService._convert_to_response(template)
+    async def create_rating(rating_data: TemplateRatingCreate, user_id: UUID) -> TemplateRatingResponse:
+        """Создать рейтинг"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            
+            # Проверяем существование шаблона
+            template = await repo.get_template_by_id(rating_data.template_id)
+            if not template:
+                raise ValueError(f"Шаблон с ID {rating_data.template_id} не найден")
+            
+            # Проверяем, не оценивал ли уже пользователь этот шаблон
+            existing_rating = await repo.get_rating_by_user_and_template(user_id, rating_data.template_id)
+            if existing_rating:
+                raise ValueError("Пользователь уже оценил этот шаблон")
+            
+            # Создаем рейтинг
+            rating = TemplateRating(
+                template_id=rating_data.template_id,
+                user_id=user_id,
+                rating=rating_data.rating,
+                comment=rating_data.comment
             )
-        
-        return popular_templates
-    
+            created_rating = await repo.create_rating(rating)
+            
+            # Обновляем средний рейтинг шаблона
+            new_avg_rating = await repo.calculate_template_rating(rating_data.template_id)
+            await repo.update_template(rating_data.template_id, rating=new_avg_rating)
+            
+            return TemplateRatingResponse.from_orm(created_rating)
+
     @staticmethod
-    async def get_user_templates(
-        user_id: UUID,
-        page: int = 1,
-        page_size: int = 20
-    ) -> GameTemplateListResponse:
-        """Получение шаблонов пользователя (stub)"""
-        
-        # В stub версии возвращаем пустой список пользовательских шаблонов
-        return GameTemplateListResponse(
-            templates=[],
-            total=0,
-            page=page,
-            page_size=page_size,
-            categories=[]
-        )
-    
-    @staticmethod
-    async def validate_template(
-        validation_request: TemplateValidationRequest
-    ) -> TemplateValidationResponse:
-        """Валидация правил шаблона (stub)"""
-        
-        errors = []
-        warnings = []
-        
-        rules = validation_request.rules
-        
-        # Базовая валидация
-        if not rules.get("game_type"):
-            errors.append("game_type is required")
-        
-        if rules.get("point_value_rubles", 0) <= 0:
-            errors.append("point_value_rubles must be greater than 0")
-        
-        if rules.get("max_players", 0) > 8:
-            errors.append("max_players cannot exceed 8")
-        
-        # Специфическая валидация для Колхоз
-        if validation_request.game_type == GameType.KOLKHOZ:
-            balls = rules.get("balls", [])
-            if not balls:
-                errors.append("balls configuration is required for Kolkhoz")
-            elif len(balls) < 2:
-                warnings.append("Recommend at least 2 balls for interesting gameplay")
-        
-        return TemplateValidationResponse(
-            is_valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings,
-            normalized_rules=rules if len(errors) == 0 else None
-        )
-    
-    @staticmethod
-    async def get_template_stats(template_id: UUID) -> Optional[TemplateStatsResponse]:
-        """Получение статистики использования шаблона (stub)"""
-        
-        template = next((t for t in SYSTEM_TEMPLATES if t.id == str(template_id)), None)
-        
-        if not template:
+    async def update_rating(rating_id: UUID, rating_data: TemplateRatingUpdate, user_id: UUID) -> Optional[TemplateRatingResponse]:
+        """Обновить рейтинг"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            
+            # Получаем существующий рейтинг
+            existing_rating = await repo.get_rating_by_user_and_template(user_id, rating_id)
+            if not existing_rating:
+                return None
+            
+            # Обновляем рейтинг
+            updated_rating = await repo.update_rating(rating_id, **rating_data.dict(exclude_unset=True))
+            if updated_rating:
+                # Обновляем средний рейтинг шаблона
+                new_avg_rating = await repo.calculate_template_rating(updated_rating.template_id)
+                await repo.update_template(updated_rating.template_id, rating=new_avg_rating)
+                
+                return TemplateRatingResponse.from_orm(updated_rating)
             return None
-        
-        return TemplateStatsResponse(
-            template_id=UUID(template.id),
-            usage_count=template.usage_count,
-            average_rating=template.rating,
-            ratings_count=int(template.usage_count * 0.15),  # 15% пользователей оставляют рейтинг
-            favorites_count=int(template.usage_count * 0.08),  # 8% добавляют в избранное
-            last_used=datetime.now(),
-            popular_settings={
-                "most_used_point_value": template.rules.get("point_value_rubles"),
-                "most_used_max_players": template.rules.get("max_players"),
-                "preferred_queue_algorithm": template.rules.get("queue_algorithm")
-            }
-        )
-    
+
     @staticmethod
-    async def _convert_to_response(
-        template: GameTemplate, 
-        user_id: Optional[UUID] = None
-    ) -> GameTemplateResponse:
-        """Конвертация модели в response (stub)"""
-        
-        # Получаем название категории
-        category_name = None
-        if template.category_id:
-            category = next((c for c in SYSTEM_CATEGORIES if c.id == template.category_id), None)
-            if category:
-                category_name = category.name
-        
-        return GameTemplateResponse(
-            id=UUID(template.id),
-            creator_user_id=UUID(template.creator_user_id),
-            name=template.name,
-            description=template.description,
-            game_type=template.game_type,
-            rules=template.rules,
-            settings=template.settings,
-            category_id=template.category_id,
-            category_name=category_name,
-            is_public=template.is_public,
-            is_system=template.is_system,
-            is_favorite=False,  # В реальной версии проверяем по user_id
-            tags=template.tags,
-            usage_count=template.usage_count,
-            rating=template.rating,
-            created_at=template.created_at,
-            updated_at=template.updated_at
-        )
+    async def get_template_ratings(template_id: UUID) -> List[TemplateRatingResponse]:
+        """Получить все рейтинги шаблона"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            ratings = await repo.get_template_ratings(template_id)
+            return [TemplateRatingResponse.from_orm(rating) for rating in ratings]
+
+    # Favorite operations
+    @staticmethod
+    async def add_to_favorites(template_id: UUID, user_id: UUID) -> TemplateFavoriteResponse:
+        """Добавить в избранное"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            
+            # Проверяем существование шаблона
+            template = await repo.get_template_by_id(template_id)
+            if not template:
+                raise ValueError(f"Шаблон с ID {template_id} не найден")
+            
+            # Проверяем, не в избранном ли уже
+            if await repo.is_favorite(user_id, template_id):
+                raise ValueError("Шаблон уже в избранном")
+            
+            # Добавляем в избранное
+            favorite = TemplateFavorite(template_id=template_id, user_id=user_id)
+            created_favorite = await repo.add_to_favorites(favorite)
+            
+            return TemplateFavoriteResponse.from_orm(created_favorite)
+
+    @staticmethod
+    async def remove_from_favorites(template_id: UUID, user_id: UUID) -> bool:
+        """Убрать из избранного"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            return await repo.remove_from_favorites(user_id, template_id)
+
+    @staticmethod
+    async def is_favorite(template_id: UUID, user_id: UUID) -> bool:
+        """Проверить, в избранном ли шаблон"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            return await repo.is_favorite(user_id, template_id)
+
+    @staticmethod
+    async def get_user_favorites(user_id: UUID) -> List[TemplateFavoriteResponse]:
+        """Получить избранные шаблоны пользователя"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            favorites = await repo.get_user_favorites(user_id)
+            return [TemplateFavoriteResponse.from_orm(fav) for fav in favorites]
+
+    # Statistics
+    @staticmethod
+    async def get_template_stats(template_id: UUID) -> Dict[str, Any]:
+        """Получить статистику шаблона"""
+        async with get_db_session_context() as db:
+            repo = TemplateRepository(db)
+            return await repo.get_template_stats(template_id)

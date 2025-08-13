@@ -7,6 +7,7 @@ import { Toaster } from 'sonner'
 // Layout
 import AppLayout from './components/layout/AppLayout'
 import ProtectedRoute from './components/ProtectedRoute'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 // Pages
 import HomePage from './pages/HomePage'
@@ -65,7 +66,11 @@ function App() {
                 <AppLayout />
               </ProtectedRoute>
             }>
-              <Route index element={<TemplatesPage />} />
+              <Route index element={
+                <ErrorBoundary>
+                  <TemplatesPage />
+                </ErrorBoundary>
+              } />
             </Route>
             
             <Route path="/session" element={

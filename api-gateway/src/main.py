@@ -299,7 +299,7 @@ async def proxy_games(request: Request, path: str):
 @app.api_route("/api/v1/templates", methods=["GET", "POST"])
 async def proxy_templates_root(request: Request):
     """Proxy requests to Template Service - Templates API root"""
-    url = f"{TEMPLATE_SERVICE_URL}/api/v1/templates"
+    url = f"{TEMPLATE_SERVICE_URL}/api/v1/templates/"
     
     # Forward headers
     headers = dict(request.headers)

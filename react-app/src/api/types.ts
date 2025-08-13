@@ -49,15 +49,20 @@ export interface BaseGameRules {
   min_players: number
   queue_algorithm: QueueAlgorithm
   balls: BallConfig[]
+  point_value_rubles?: number
+  payment_direction?: string
+  allow_queue_change?: boolean
+  calculate_net_result?: boolean
+  time_limit_minutes?: number
 }
 
 export interface KolkhozRules extends BaseGameRules {
   game_type: 'kolkhoz'
-  stake_per_shot: number
-  winner_takes_all: boolean
-  miss_penalty: number
-  foul_penalty: number
-  max_shots_per_turn: number
+  stake_per_shot?: number
+  winner_takes_all?: boolean
+  miss_penalty?: number
+  foul_penalty?: number
+  max_shots_per_turn?: number
 }
 
 export interface GameTemplate {
@@ -78,6 +83,18 @@ export interface GameTemplate {
   rating: number
   created_at: string
   updated_at: string
+}
+
+export interface GameTemplateCreate {
+  name: string
+  description: string
+  game_type: GameType
+  rules: KolkhozRules | BaseGameRules
+  settings: Record<string, any>
+  category_id: number
+  is_public: boolean
+  tags: string[]
+  creator_user_id: string
 }
 
 export interface TemplateCategory {

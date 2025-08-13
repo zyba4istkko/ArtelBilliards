@@ -88,6 +88,14 @@ services:
       dockerfile: Dockerfile
     container_name: artel_template_service_dev
     environment:
+      # Database configuration for migrations
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=template_db
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - DB_ECHO=false
+      # Legacy DATABASE_URL for compatibility
       - DATABASE_URL=postgresql://postgres:password@postgres:5432/template_db
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://admin:password@rabbitmq:5672

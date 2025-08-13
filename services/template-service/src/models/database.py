@@ -1,87 +1,100 @@
 """
-Template Service Database Models (Stub for Python 3.13 compatibility)
+Template Service Database Models - SQLAlchemy
 """
 
 from datetime import datetime
-from decimal import Decimal
-from uuid import uuid4
 from typing import Optional
+from uuid import uuid4
+from sqlalchemy import Column, String, Integer, Boolean, Float, Text, DateTime, ForeignKey, JSON
+from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
-# Stub models for Python 3.13 compatibility
-# These would normally be SQLAlchemy models
+Base = declarative_base()
 
-class TemplateCategory:
-    """Категории шаблонов (stub)"""
-    def __init__(self, id: int, name: str, description: str, sort_order: int = 0):
-        self.id = id
-        self.name = name
-        self.description = description
-        self.sort_order = sort_order
+class TemplateCategory(Base):
+    """Категория шаблонов"""
+    __tablename__ = "template_categories"
 
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False, index=True)
+    description = Column(Text)
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-class GameTemplate:
-    """Шаблоны игр (stub)"""
-    def __init__(
-        self, 
-        id: str = None,
-        creator_user_id: str = None,
-        name: str = "",
-        description: str = None,
-        game_type: str = "kolkhoz",
-        rules: dict = None,
-        settings: dict = None,
-        category_id: int = None,
-        is_public: bool = False,
-        is_system: bool = False,
-        tags: list = None,
-        usage_count: int = 0,
-        rating: float = 0.0
-    ):
-        self.id = id or str(uuid4())
-        self.creator_user_id = creator_user_id or "00000000-0000-0000-0000-000000000000"
-        self.name = name
-        self.description = description
-        self.game_type = game_type
-        self.rules = rules or {}
-        self.settings = settings or {}
-        self.category_id = category_id
-        self.is_public = is_public
-        self.is_system = is_system
-        self.tags = tags or []
-        self.usage_count = usage_count
-        self.rating = rating
-        self.created_at = datetime.now()
-        self.updated_at = datetime.now()
+    # Связи
+    templates = relationship("GameTemplate", back_populates="category")
 
+class GameTemplate(Base):
+    """Шаблон игры"""
+    __tablename__ = "game_templates"
 
-class TemplateFavorite:
-    """Избранные шаблоны (stub)"""
-    def __init__(self, user_id: str, template_id: str):
-        self.id = str(uuid4())
-        self.user_id = user_id
-        self.template_id = template_id
-        self.created_at = datetime.now()
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
+    creator_user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    name = Column(String(200), nullable=False, index=True)
+    description = Column(Text)
+    game_type = Column(String(50), nullable=False, index=True)
+    rules = Column(JSONB, nullable=False)
+    settings = Column(JSONB)
+    category_id = Column(Integer, ForeignKey("template_categories.id"), nullable=False)
+    is_public = Column(Boolean, default=True, index=True)
+    is_system = Column(Boolean, default=False, index=True)
+    tags = Column(JSONB, default=list)
+    usage_count = Column(Integer, default=0, index=True)
+    rating = Column(Float, default=0.0, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Связи
+    category = relationship("TemplateCategory", back_populates="templates")
+    ratings = relationship("TemplateRating", back_populates="template")
+    favorites = relationship("TemplateFavorite", back_populates="template")
 
-class TemplateRating:
-    """Рейтинги шаблонов (stub)"""
-    def __init__(self, user_id: str, template_id: str, rating: int, comment: str = None):
-        self.id = str(uuid4())
-        self.user_id = user_id
-        self.template_id = template_id
-        self.rating = rating
-        self.comment = comment
-        self.created_at = datetime.now()
+class TemplateRating(Base):
+    """Рейтинг шаблона"""
+    __tablename__ = "template_ratings"
 
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    template_id = Column(UUID(as_uuid=True), ForeignKey("game_templates.id"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    rating = Column(Integer, nullable=False)  # 1-5
+    comment = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-# Predefined system templates (stub data)
+    # Связи
+    template = relationship("GameTemplate", back_populates="ratings")
+
+class TemplateFavorite(Base):
+    """Избранные шаблоны пользователей"""
+    __tablename__ = "template_favorites"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    template_id = Column(UUID(as_uuid=True), ForeignKey("game_templates.id"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Связи
+    template = relationship("GameTemplate", back_populates="favorites")
+
+# Initial data for system categories
+SYSTEM_CATEGORIES = [
+    {"name": "Колхоз", "description": "Шаблоны для игры Колхоз", "sort_order": 1},
+    {"name": "Американка", "description": "Шаблоны для Американки", "sort_order": 2},
+    {"name": "Московская пирамида", "description": "Шаблоны для Московской пирамиды", "sort_order": 3},
+    {"name": "Турниры", "description": "Шаблоны для турнирных игр", "sort_order": 4},
+    {"name": "Обучение", "description": "Упрощенные шаблоны для новичков", "sort_order": 5},
+    {"name": "Пользовательские", "description": "Созданные пользователями", "sort_order": 6}
+]
+
+# Initial data for system templates (will be inserted via migrations)
 SYSTEM_TEMPLATES = [
-    GameTemplate(
-        id="11111111-1111-1111-1111-111111111111",
-        name="Колхоз стандартный (50₽ за очко)",
-        description="Стандартные правила игры Колхоз с оплатой 50 рублей за очко",
-        game_type="kolkhoz",
-        rules={
+    {
+        "name": "Колхоз стандартный (50₽ за очко)",
+        "description": "Стандартные правила игры Колхоз с оплатой 50 рублей за очко",
+        "game_type": "kolkhoz",
+        "rules": {
             "game_type": "kolkhoz",
             "max_players": 6,
             "min_players": 2,
@@ -100,25 +113,24 @@ SYSTEM_TEMPLATES = [
             "queue_algorithm": "random_no_repeat",
             "calculate_net_result": True
         },
-        settings={
+        "settings": {
             "ui_theme": "classic",
             "show_running_total": True,
             "enable_sound_effects": True,
             "auto_calculate_results": True
         },
-        category_id=1,
-        is_public=True,
-        is_system=True,
-        tags=["стандарт", "колхоз", "средний"],
-        usage_count=1250,
-        rating=4.8
-    ),
-    GameTemplate(
-        id="22222222-2222-2222-2222-222222222222",
-        name="Колхоз бюджетный (25₽ за очко)",
-        description="Бюджетный вариант игры Колхоз для начинающих",
-        game_type="kolkhoz",
-        rules={
+        "category_id": 1,
+        "is_public": True,
+        "is_system": True,
+        "tags": ["стандарт", "колхоз", "средний"],
+        "usage_count": 1250,
+        "rating": 4.8
+    },
+    {
+        "name": "Колхоз бюджетный (25₽ за очко)",
+        "description": "Бюджетный вариант игры Колхоз для начинающих",
+        "game_type": "kolkhoz",
+        "rules": {
             "game_type": "kolkhoz",
             "max_players": 4,
             "min_players": 2,
@@ -134,24 +146,23 @@ SYSTEM_TEMPLATES = [
             "queue_algorithm": "always_random",
             "calculate_net_result": True
         },
-        settings={
+        "settings": {
             "ui_theme": "modern",
             "show_running_total": True,
             "enable_tutorials": True
         },
-        category_id=1,
-        is_public=True,
-        is_system=True,
-        tags=["бюджет", "колхоз", "новички"],
-        usage_count=890,
-        rating=4.5
-    ),
-    GameTemplate(
-        id="33333333-3333-3333-3333-333333333333",
-        name="Колхоз премиум (200₽ за очко)",
-        description="Премиум версия игры Колхоз с высокими ставками",
-        game_type="kolkhoz",
-        rules={
+        "category_id": 1,
+        "is_public": True,
+        "is_system": True,
+        "tags": ["бюджет", "колхоз", "новички"],
+        "usage_count": 890,
+        "rating": 4.5
+    },
+    {
+        "name": "Колхоз премиум (200₽ за очко)",
+        "description": "Премиум версия игры Колхоз с высокими ставками",
+        "game_type": "kolkhoz",
+        "rules": {
             "game_type": "kolkhoz",
             "max_players": 6,
             "min_players": 2,
@@ -171,29 +182,18 @@ SYSTEM_TEMPLATES = [
             "queue_algorithm": "random_no_repeat",
             "calculate_net_result": True
         },
-        settings={
+        "settings": {
             "ui_theme": "premium",
             "show_running_total": True,
             "require_confirmation": True,
             "show_money_warnings": True,
             "enable_advanced_stats": True
         },
-        category_id=1,
-        is_public=True,
-        is_system=True,
-        tags=["премиум", "колхоз", "высокие ставки"],
-        usage_count=450,
-        rating=4.9
-    )
-]
-
-
-# Predefined categories (stub data)
-SYSTEM_CATEGORIES = [
-    TemplateCategory(1, "Колхоз", "Шаблоны для игры Колхоз", 1),
-    TemplateCategory(2, "Американка", "Шаблоны для Американки", 2),
-    TemplateCategory(3, "Московская пирамида", "Шаблоны для Московской пирамиды", 3),
-    TemplateCategory(4, "Турниры", "Шаблоны для турнирных игр", 4),
-    TemplateCategory(5, "Обучение", "Упрощенные шаблоны для новичков", 5),
-    TemplateCategory(6, "Пользовательские", "Созданные пользователями", 6)
+        "category_id": 1,
+        "is_public": True,
+        "is_system": True,
+        "tags": ["премиум", "колхоз", "высокие ставки"],
+        "usage_count": 450,
+        "rating": 4.9
+    }
 ]
