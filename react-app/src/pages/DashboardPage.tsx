@@ -106,8 +106,6 @@ function DashboardPage() {
     }
   }
 
-
-
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 3 }}>
       <Container maxWidth="lg">
