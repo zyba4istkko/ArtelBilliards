@@ -166,8 +166,6 @@ class GameTemplateResponse(GameTemplateBase):
     """Схема ответа для шаблона"""
     id: UUID
     creator_user_id: UUID
-    usage_count: int
-    rating: float
     created_at: datetime
     updated_at: datetime
     category: TemplateCategoryResponse
@@ -191,8 +189,6 @@ class GameTemplateSearchRequest(BaseModel):
     is_public: Optional[bool] = None
     is_system: Optional[bool] = None
     tags: Optional[List[str]] = None
-    min_rating: Optional[float] = Field(None, ge=0, le=5)
-    max_rating: Optional[float] = Field(None, ge=0, le=5)
     limit: int = Field(50, ge=1, le=100)
     offset: int = Field(0, ge=0)
 
@@ -216,54 +212,6 @@ class TemplateFavoriteResponse(TemplateFavoriteBase):
 
     class Config:
         from_attributes = True
-
-
-# Template Rating Models
-class TemplateRatingBase(BaseModel):
-    """Базовая схема рейтинга"""
-    rating: int = Field(..., ge=1, le=5, description="Оценка от 1 до 5")
-    comment: Optional[str] = Field(None, description="Комментарий")
-
-
-class TemplateRatingCreate(TemplateRatingBase):
-    """Схема для создания рейтинга"""
-    template_id: UUID = Field(..., description="ID шаблона")
-
-
-class TemplateRatingUpdate(TemplateRatingBase):
-    """Схема для обновления рейтинга"""
-    rating: Optional[int] = Field(None, ge=1, le=5)
-    comment: Optional[str] = None
-
-
-class TemplateRatingResponse(TemplateRatingBase):
-    """Схема ответа для рейтинга"""
-    id: UUID
-    template_id: UUID
-    user_id: UUID
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class TemplateRatingRequest(BaseModel):
-    """Схема запроса рейтинга"""
-    template_id: UUID = Field(..., description="ID шаблона")
-    rating: int = Field(..., ge=1, le=5, description="Оценка от 1 до 5")
-    comment: Optional[str] = Field(None, description="Комментарий")
-
-
-# Template Statistics Models
-class TemplateStatsResponse(BaseModel):
-    template_id: UUID
-    usage_count: int
-    average_rating: float
-    ratings_count: int
-    favorites_count: int
-    last_used: Optional[datetime]
-    popular_settings: Dict[str, Any]
 
 
 # Error Models

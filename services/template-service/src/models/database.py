@@ -41,30 +41,12 @@ class GameTemplate(Base):
     is_public = Column(Boolean, default=True, index=True)
     is_system = Column(Boolean, default=False, index=True)
     tags = Column(JSONB, default=list)
-    usage_count = Column(Integer, default=0, index=True)
-    rating = Column(Float, default=0.0, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Связи
     category = relationship("TemplateCategory", back_populates="templates")
-    ratings = relationship("TemplateRating", back_populates="template")
     favorites = relationship("TemplateFavorite", back_populates="template")
-
-class TemplateRating(Base):
-    """Рейтинг шаблона"""
-    __tablename__ = "template_ratings"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    template_id = Column(UUID(as_uuid=True), ForeignKey("game_templates.id"), nullable=False, index=True)
-    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
-    rating = Column(Integer, nullable=False)  # 1-5
-    comment = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Связи
-    template = relationship("GameTemplate", back_populates="ratings")
 
 class TemplateFavorite(Base):
     """Избранные шаблоны пользователей"""

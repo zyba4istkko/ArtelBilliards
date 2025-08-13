@@ -9,7 +9,6 @@ from ..core.database import get_db_session
 from ..models.schemas import (
     TemplateCategoryCreate, TemplateCategoryUpdate, TemplateCategoryResponse,
     GameTemplateCreate, GameTemplateUpdate, GameTemplateResponse,
-    TemplateRatingCreate, TemplateRatingUpdate, TemplateRatingResponse,
     TemplateFavoriteCreate, TemplateFavoriteResponse,
     GameTemplateSearchRequest, SuccessResponse, ErrorResponse, PaginatedResponse
 )
@@ -154,48 +153,6 @@ async def delete_template(template_id: UUID, db=Depends(get_db_session)):
         raise HTTPException(status_code=404, detail="Шаблон не найден")
     return SuccessResponse(message="Шаблон успешно удален")
 
-@router.post("/{template_id}/usage", response_model=SuccessResponse)
-async def increment_usage_count(template_id: UUID, db=Depends(get_db_session)):
-    """Увеличить счетчик использования шаблона"""
-    success = await TemplateService.increment_usage_count(template_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Шаблон не найден")
-    return SuccessResponse(message="Счетчик использования обновлен")
-
-# Rating endpoints
-@router.post("/{template_id}/ratings", response_model=TemplateRatingResponse)
-async def create_rating(
-    template_id: UUID,
-    rating_data: TemplateRatingCreate,
-    user_id: UUID = Query(..., description="ID пользователя"),  # В реальном приложении получаем из JWT
-    db=Depends(get_db_session)
-):
-    """Создать рейтинг для шаблона"""
-    try:
-        return await TemplateService.create_rating(rating_data, user_id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка создания рейтинга: {str(e)}")
-
-@router.put("/ratings/{rating_id}", response_model=TemplateRatingResponse)
-async def update_rating(
-    rating_id: UUID,
-    rating_data: TemplateRatingUpdate,
-    user_id: UUID = Query(..., description="ID пользователя"),
-    db=Depends(get_db_session)
-):
-    """Обновить рейтинг"""
-    rating = await TemplateService.update_rating(rating_id, rating_data, user_id)
-    if not rating:
-        raise HTTPException(status_code=404, detail="Рейтинг не найден")
-    return rating
-
-@router.get("/{template_id}/ratings", response_model=List[TemplateRatingResponse])
-async def get_template_ratings(template_id: UUID, db=Depends(get_db_session)):
-    """Получить все рейтинги шаблона"""
-    return await TemplateService.get_template_ratings(template_id)
-
 # Favorite endpoints
 @router.post("/{template_id}/favorites", response_model=TemplateFavoriteResponse)
 async def add_to_favorites(
@@ -237,12 +194,6 @@ async def check_favorite(
 async def get_user_favorites(user_id: UUID, db=Depends(get_db_session)):
     """Получить избранные шаблоны пользователя"""
     return await TemplateService.get_user_favorites(user_id)
-
-# Statistics endpoints
-@router.get("/{template_id}/stats", response_model=dict)
-async def get_template_stats(template_id: UUID, db=Depends(get_db_session)):
-    """Получить статистику шаблона"""
-    return await TemplateService.get_template_stats(template_id)
 
 # Health check
 @router.get("/health", response_model=dict)
