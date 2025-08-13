@@ -1,261 +1,142 @@
-import { useState, useEffect } from 'react'
-import { Card, CardContent, Button, TextField, Container, Typography, Grid, Box, Avatar, Switch, FormControlLabel, MenuItem } from '@mui/material'
-import { Person, Settings, Notifications } from '@mui/icons-material'
-import { useAuthStore } from '../store/authStore'
+import { useState } from 'react'
+import { 
+  Container, 
+  Card, 
+  CardContent, 
+  Typography, 
+  Button, 
+  Box, 
+  Avatar,
+  Alert,
+  Divider
+} from '@mui/material'
+import { Settings, Person, Lock } from '@mui/icons-material'
+import { useNavigate } from 'react-router-dom'
+import { useUser, useIsAuthenticated } from '../store/authStore'
 
 function ProfilePage() {
-  const { user, isAuthenticated } = useAuthStore()
-  const [isEditing, setIsEditing] = useState(false)
-  
-  // Используем реальные данные пользователя или дефолтные значения
-  const [profile, setProfile] = useState({
-    name: user?.first_name || user?.username || 'Игрок',
-    email: user?.email || 'Не указано',
-    level: 5,
-    experience: 750,
-    nextLevelExp: 1000
-  })
+  const navigate = useNavigate()
+  const user = useUser()
+  const isAuthenticated = useIsAuthenticated()
 
-  // Обновляем профиль при изменении данных пользователя
-  useEffect(() => {
-    if (user) {
-      setProfile(prev => ({
-        ...prev,
-        name: user.first_name || user.username || 'Игрок',
-        email: user.email || 'Не указано'
-      }))
-    }
-  }, [user])
-
-  const [preferences, setPreferences] = useState({
-    difficulty: 'medium',
-    soundEnabled: true,
-    notifications: true,
-    emailNotifications: false,
-    achievementNotifications: true
-  })
-
-  const handleSaveProfile = () => {
-    setIsEditing(false)
-    // TODO: Save to API
-  }
-
-  // Если не авторизован, показываем сообщение
+  // Если пользователь не авторизован, показываем приглашение войти
   if (!isAuthenticated) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Typography variant="h4" textAlign="center">
-          Для просмотра профиля необходимо войти в систему
-        </Typography>
+      <Container maxWidth="sm" sx={{ py: 4 }}>
+        <Card>
+          <CardContent sx={{ textAlign: 'center', py: 6 }}>
+            <Avatar sx={{ width: 80, height: 80, mx: 'auto', mb: 3, bgcolor: 'primary.main' }}>
+              <Person sx={{ fontSize: 40 }} />
+            </Avatar>
+            
+            <Typography variant="h4" component="h1" gutterBottom>
+              Профиль пользователя
+            </Typography>
+            
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Для просмотра профиля необходимо войти в систему
+            </Typography>
+            
+            <Alert severity="info" sx={{ mb: 3 }}>
+              Войдите в аккаунт, чтобы получить доступ к настройкам профиля, 
+              статистике игр и другим персональным данным.
+            </Alert>
+            
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+              <Button 
+                variant="contained" 
+                size="large"
+                onClick={() => navigate('/login')}
+                sx={{ minWidth: 120 }}
+              >
+                Войти
+              </Button>
+              
+              <Button 
+                variant="outlined" 
+                size="large"
+                onClick={() => navigate('/register')}
+                sx={{ minWidth: 120 }}
+              >
+                Регистрация
+              </Button>
+            </Box>
+            
+            <Divider sx={{ my: 3 }} />
+            
+            <Button 
+              variant="text" 
+              onClick={() => navigate('/')}
+              sx={{ color: 'text.secondary' }}
+            >
+              Вернуться на главную
+            </Button>
+          </CardContent>
+        </Card>
       </Container>
     )
   }
 
+  // Если пользователь авторизован, показываем профиль
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h3" component="h1" textAlign="center" gutterBottom fontWeight="bold">
-        Мой профиль
+    <Container maxWidth="md" sx={{ py: 4 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Профиль
       </Typography>
-
-      {/* Profile Info */}
-      <Card sx={{ mb: 4 }}>
-        <CardContent sx={{ p: 4 }}>
-          <Box display="flex" alignItems="center" gap={4} mb={4}>
-            <Avatar
-              sx={{ width: 96, height: 96, bgcolor: 'primary.main' }}
-            >
-              <Person sx={{ fontSize: 48 }} />
+      
+      <Card>
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+            <Avatar sx={{ width: 80, height: 80, mr: 3, bgcolor: 'primary.main' }}>
+              {user?.first_name?.[0] || user?.username?.[0] || 'U'}
             </Avatar>
             
-            <Box flex={1}>
-              {isEditing ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <TextField
-                    label="Имя"
-                    value={profile.name}
-                    onChange={(e) => setProfile({...profile, name: e.target.value})}
-                    fullWidth
-                  />
-                  <TextField
-                    label="Email"
-                    type="email"
-                    value={profile.email}
-                    onChange={(e) => setProfile({...profile, email: e.target.value})}
-                    fullWidth
-                  />
-                </Box>
-              ) : (
-                <Box>
-                  <Typography variant="h4" fontWeight="bold" gutterBottom>
-                    {profile.name}
-                  </Typography>
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    {profile.email}
-                  </Typography>
-                  <Box mt={2}>
-                    <Typography variant="body2" color="text.secondary">
-                      Уровень {profile.level}
-                    </Typography>
-                    <Box sx={{ width: '100%', bgcolor: 'grey.200', borderRadius: 1, height: 8, mt: 1 }}>
-                      <Box 
-                        sx={{ 
-                          width: `${(profile.experience / profile.nextLevelExp) * 100}%`,
-                          bgcolor: 'primary.main',
-                          height: 8,
-                          borderRadius: 1
-                        }}
-                      />
-                    </Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {profile.experience}/{profile.nextLevelExp} XP
-                    </Typography>
-                  </Box>
-                </Box>
+            <Box>
+              <Typography variant="h5" component="h2">
+                {user?.first_name && user?.last_name 
+                  ? `${user.first_name} ${user.last_name}`
+                  : user?.username || 'Пользователь'
+                }
+              </Typography>
+              
+              {user?.username && (
+                <Typography variant="body2" color="text.secondary">
+                  @{user.username}
+                </Typography>
               )}
-            </Box>
-            
-            <Box display="flex" gap={1}>
-              {isEditing ? (
-                <>
-                  <Button variant="contained" color="success" onClick={handleSaveProfile}>
-                    Сохранить
-                  </Button>
-                  <Button variant="outlined" onClick={() => setIsEditing(false)}>
-                    Отмена
-                  </Button>
-                </>
-              ) : (
-                <Button variant="contained" onClick={() => setIsEditing(true)}>
-                  Редактировать
-                </Button>
+              
+              {user?.email && (
+                <Typography variant="body2" color="text.secondary">
+                  {user.email}
+                </Typography>
               )}
             </Box>
           </Box>
+          
+          <Alert severity="info">
+            Страница настроек профиля находится в разработке. 
+            Здесь будут доступны настройки аккаунта, игровые предпочтения и статистика.
+          </Alert>
+          
+          <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+            <Button 
+              variant="outlined" 
+              startIcon={<Settings />}
+              disabled
+            >
+              Настройки (скоро)
+            </Button>
+            
+            <Button 
+              variant="outlined" 
+              startIcon={<Lock />}
+              disabled
+            >
+              Безопасность (скоро)
+            </Button>
+          </Box>
         </CardContent>
       </Card>
-
-      <Grid container spacing={3}>
-        {/* Game Preferences */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent sx={{ p: 3 }}>
-              <Box display="flex" alignItems="center" gap={1} mb={3}>
-                <Settings color="primary" />
-                <Typography variant="h5" fontWeight="bold">
-                  Настройки игры
-                </Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <TextField
-                  select
-                  label="Уровень сложности"
-                  value={preferences.difficulty}
-                  onChange={(e) => setPreferences({...preferences, difficulty: e.target.value})}
-                  fullWidth
-                >
-                  <MenuItem value="easy">Легкий</MenuItem>
-                  <MenuItem value="medium">Средний</MenuItem>
-                  <MenuItem value="hard">Сложный</MenuItem>
-                </TextField>
-                
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={preferences.soundEnabled}
-                      onChange={(e) => setPreferences({...preferences, soundEnabled: e.target.checked})}
-                    />
-                  }
-                  label="Звуки"
-                />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Notifications */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent sx={{ p: 3 }}>
-              <Box display="flex" alignItems="center" gap={1} mb={3}>
-                <Notifications color="warning" />
-                <Typography variant="h5" fontWeight="bold">
-                  Уведомления
-                </Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={preferences.notifications}
-                      onChange={(e) => setPreferences({...preferences, notifications: e.target.checked})}
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography variant="body1" fontWeight="medium">
-                        Уведомления о играх
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Получать уведомления о новых играх
-                      </Typography>
-                    </Box>
-                  }
-                />
-                
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={preferences.emailNotifications}
-                      onChange={(e) => setPreferences({...preferences, emailNotifications: e.target.checked})}
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography variant="body1" fontWeight="medium">
-                        Email уведомления
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Получать уведомления на email
-                      </Typography>
-                    </Box>
-                  }
-                />
-                
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={preferences.achievementNotifications}
-                      onChange={(e) => setPreferences({...preferences, achievementNotifications: e.target.checked})}
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography variant="body1" fontWeight="medium">
-                        Достижения
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Уведомления о новых достижениях
-                      </Typography>
-                    </Box>
-                  }
-                />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Actions */}
-      <Box display="flex" gap={2} justifyContent="center" mt={4}>
-        <Button variant="contained" size="large">
-          Сохранить все настройки
-        </Button>
-        <Button color="error" variant="outlined" size="large">
-          Выйти из аккаунта
-        </Button>
-      </Box>
     </Container>
   )
 }

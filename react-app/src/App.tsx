@@ -42,6 +42,12 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            {/* Public routes */}
+            <Route path="/profile" element={<AppLayout />}>
+              <Route index element={<ProfilePage />} />
+            </Route>
+            
+            {/* Protected routes */}
             <Route 
               path="/" 
               element={
@@ -55,7 +61,6 @@ function App() {
               <Route path="session/:sessionId?" element={<SessionPage />} />
               <Route path="game/:gameId" element={<GamePage />} />
               <Route path="stats" element={<StatsPage />} />
-              <Route path="profile" element={<ProfilePage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
