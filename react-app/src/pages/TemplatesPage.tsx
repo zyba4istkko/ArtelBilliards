@@ -99,6 +99,10 @@ function TemplatesPage() {
     loadTemplates()
   }, [])
 
+  useEffect(() => {
+    console.log('🎯 createModalOpen changed to:', createModalOpen)
+  }, [createModalOpen])
+
   const loadTemplates = async () => {
     try {
       setLoading(true)
@@ -139,7 +143,9 @@ function TemplatesPage() {
 
   const createCustomTemplate = () => {
     console.log('🎯 Opening custom template modal')
+    console.log('🎯 Current createModalOpen state:', createModalOpen)
     setCreateModalOpen(true)
+    console.log('🎯 setCreateModalOpen(true) called')
   }
 
   const selectTemplate = () => {
@@ -456,6 +462,11 @@ function TemplatesPage() {
           title="Создать свой шаблон"
           size="large"
         >
+          {/* DEBUG INFO */}
+          <Box sx={{ p: 2, bgcolor: 'red', color: 'white', mb: 2 }}>
+            DEBUG: Модальное окно открыто! createModalOpen = {createModalOpen.toString()}
+          </Box>
+          
           {/* Basic Info */}
           <Box sx={{ mb: 4 }}>
             <Typography variant="h6" color={tokens.colors.mint} fontWeight={700} gutterBottom sx={{ fontSize: '1.125rem' }}>
@@ -500,6 +511,14 @@ function TemplatesPage() {
 
           {/* Game Type Selector */}
           <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" color={tokens.colors.mint} fontWeight={700} gutterBottom sx={{ fontSize: '1.125rem' }}>
+              Тип игры (DEBUG: {customTemplate.gameType})
+            </Typography>
+            <Box sx={{ p: 2, bgcolor: tokens.colors.gray700, borderRadius: '14px', mb: 2 }}>
+              <Typography color={tokens.colors.white}>
+                DEBUG: Этот блок должен быть виден. Если видно - проблема в GameTypeSelector.
+              </Typography>
+            </Box>
             <GameTypeSelector 
               value={customTemplate.gameType}
               onChange={(gameType: GameType) => {

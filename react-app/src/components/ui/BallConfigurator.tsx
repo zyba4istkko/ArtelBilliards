@@ -1,5 +1,5 @@
 import { Box, Grid, Typography, TextField } from '@mui/material'
-import Ball from './Ball'
+import { Ball } from './Ball'
 import { settingBlockStyles } from '../../styles/template-styles'
 import tokens from '../../styles/design-tokens'
 
