@@ -14,7 +14,13 @@ interface OptionSelectorProps {
   row?: boolean
 }
 
-function OptionSelector({ label, value, onChange, options, row = false }: OptionSelectorProps) {
+export function OptionSelector({ 
+  label, 
+  value, 
+  onChange, 
+  options, 
+  row = false 
+}: OptionSelectorProps) {
   return (
     <Box>
       <Typography 
@@ -62,5 +68,3 @@ function OptionSelector({ label, value, onChange, options, row = false }: Option
     </Box>
   )
 }
-
-export default OptionSelector

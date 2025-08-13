@@ -9,7 +9,7 @@ interface PriceSelectorProps {
   customPlaceholder?: string
 }
 
-function PriceSelector({ label, value, onChange, options, customPlaceholder = "Свой" }: PriceSelectorProps) {
+export function PriceSelector({ label, value, onChange, options, customPlaceholder = "Введите другую сумму..." }: PriceSelectorProps) {
   const isCustomValue = !options.some(option => option.value === value)
   
   return (
@@ -95,5 +95,3 @@ function PriceSelector({ label, value, onChange, options, customPlaceholder = "�
     </Box>
   )
 }
-
-export default PriceSelector

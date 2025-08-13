@@ -16,7 +16,7 @@ const ballColors: Record<string, string> = {
   red: '#f44336'
 }
 
-function Ball({ color, size = 32 }: BallProps) {
+export function Ball({ color, size = 32 }: BallProps) {
   return (
     <Box 
       sx={{ 
@@ -42,5 +42,3 @@ function Ball({ color, size = 32 }: BallProps) {
     />
   )
 }
-
-export default Ball
