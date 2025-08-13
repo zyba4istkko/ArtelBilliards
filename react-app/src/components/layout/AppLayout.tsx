@@ -2,7 +2,7 @@ import { AppBar, Toolbar, Typography, Button, Box, Container, IconButton, Menu, 
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { Home, Description, BarChart, Person, AccountCircle } from '@mui/icons-material'
-import { useAuthStore, useUser } from '../store/authStore'
+import { useAuthStore, useUser } from '../../store/authStore'
 
 function AppLayout() {
   const navigate = useNavigate()
