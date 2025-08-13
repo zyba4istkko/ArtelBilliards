@@ -2,11 +2,14 @@ import { AppBar, Toolbar, Typography, Button, Box, Container, IconButton, Menu, 
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { Home, Description, BarChart, Person, AccountCircle } from '@mui/icons-material'
+import { useAuthStore, useUser } from '../store/authStore'
 
 function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const user = useUser()
+  const { logout } = useAuthStore()
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
@@ -16,9 +19,15 @@ function AppLayout() {
     setAnchorEl(null)
   }
 
-  const handleLogout = () => {
-    // TODO: Implement logout
-    navigate('/login')
+  const handleLogout = async () => {
+    try {
+      await logout()
+      navigate('/login')
+    } catch (error) {
+      console.error('Logout error:', error)
+      // В любом случае перенаправляем на логин
+      navigate('/login')
+    }
     handleMenuClose()
   }
 
@@ -37,6 +46,13 @@ function AppLayout() {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             🎱 Artel Billiards
           </Typography>
+          
+          {/* User info */}
+          {user && (
+            <Typography variant="body2" sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}>
+              {user.first_name || user.username || 'Пользователь'}
+            </Typography>
+          )}
           
           {/* Navigation buttons */}
           <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1 }}>

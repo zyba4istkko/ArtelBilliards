@@ -157,6 +157,20 @@ class ApiClient {
   }
 
   // Auth methods - используем authClient
+  async login(credentials: { login: string; password: string }) {
+    try {
+      const response = await this.authClient.post('/auth/login', credentials)
+
+      const authData = response.data
+      this.setTokens(authData)
+      
+      return authData
+    } catch (error: any) {
+      console.error('Login error:', error)
+      throw new Error(error.response?.data?.detail || 'Ошибка входа')
+    }
+  }
+
   async loginWithTelegram(initData, startParam) {
     try {
       const response = await this.authClient.post('/auth/telegram', {

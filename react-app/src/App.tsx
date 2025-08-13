@@ -6,6 +6,7 @@ import { Toaster } from 'sonner'
 
 // Layout
 import AppLayout from './components/layout/AppLayout'
+import ProtectedRoute from './components/ProtectedRoute'
 
 // Pages
 import HomePage from './pages/HomePage'
@@ -40,7 +41,15 @@ function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={<AppLayout />}>
+            <Route path="/register" element={<RegisterPage />} />
+            <Route 
+              path="/" 
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<HomePage />} />
               <Route path="templates" element={<TemplatesPage />} />
               <Route path="session/:sessionId?" element={<SessionPage />} />
