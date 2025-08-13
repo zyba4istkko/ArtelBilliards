@@ -67,21 +67,21 @@ function DashboardPage() {
       icon: '🎮',
       title: 'Быстрая игра',
       description: 'Начни игру с готовыми настройками',
-      action: () => navigate('/app/session'),
+      action: () => navigate('/session'),
       color: 'primary'
     },
     {
       icon: '📋',
       title: 'Шаблоны игр',
       description: 'Выбери из готовых настроек',
-      action: () => navigate('/app/templates'),
+      action: () => navigate('/templates'),
       color: 'secondary'
     },
     {
       icon: '📊',
       title: 'Статистика',
       description: 'Посмотри свой прогресс',
-      action: () => navigate('/app/stats'),
+      action: () => navigate('/stats'),
       color: 'tertiary'
     },
     {

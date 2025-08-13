@@ -53,18 +53,59 @@ function App() {
             
             {/* Protected routes - требуют авторизации */}
             <Route 
-              path="/app" 
+              path="/dashboard" 
               element={
                 <ProtectedRoute>
                   <AppLayout />
                 </ProtectedRoute>
               }
             >
-              <Route path="dashboard" element={<DashboardPage />} />
-              <Route path="templates" element={<TemplatesPage />} />
-              <Route path="session/:sessionId?" element={<SessionPage />} />
-              <Route path="game/:gameId" element={<GamePage />} />
-              <Route path="stats" element={<StatsPage />} />
+              <Route index element={<DashboardPage />} />
+            </Route>
+            
+            <Route 
+              path="/templates" 
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<TemplatesPage />} />
+            </Route>
+            
+            <Route 
+              path="/session" 
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path=":sessionId?" element={<SessionPage />} />
+              <Route index element={<SessionPage />} />
+            </Route>
+            
+            <Route 
+              path="/game" 
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path=":gameId" element={<GamePage />} />
+            </Route>
+            
+            <Route 
+              path="/stats" 
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<StatsPage />} />
             </Route>
             
             <Route path="*" element={<NotFoundPage />} />

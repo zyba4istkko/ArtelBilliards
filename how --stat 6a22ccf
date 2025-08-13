@@ -1,0 +1,10 @@
+[33m6a22ccf[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Merge pull request #9 from zyba4istkko/telegram-google-auth
+[33m3ddc64e[m[33m ([m[1;31morigin/telegram-google-auth[m[33m, [m[1;32mtelegram-google-auth[m[33m)[m feat: implement working authentication system
+[33m774bbfa[m Update header: show login button for unauthenticated users, user info for authenticated
+[33m5665ec9[m Fix import path in AppLayout for Docker build
+[33m0cca4eb[m Add ProtectedRoute and auth integration - fix auto-login issue
+[33mebf7c57[m Resolve merge conflicts: remove .pyc files
+[33m29cda4a[m Add .gitignore and remove .pyc files
+[33mec7db16[m Merge pull request #8 from zyba4istkko/авторизация-в-телеге
+[33mbfbe186[m[33m ([m[1;31morigin/авторизация-в-телеге[m[33m, [m[1;32mавторизация-в-телеге[m[33m)[m авторизация в телего
+[33m2e9a64f[m Merge pull request #7 from zyba4istkko/авторизация-в-телеге

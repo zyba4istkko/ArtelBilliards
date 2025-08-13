@@ -51,9 +51,9 @@ function AppLayout() {
 
   // Защищенные страницы - только для авторизованных
   const protectedNavItems = [
-    { path: '/app/dashboard', label: 'Дашборд', icon: Dashboard },
-    { path: '/app/templates', label: 'Шаблоны', icon: Description },
-    { path: '/app/stats', label: 'Статистика', icon: BarChart },
+    { path: '/dashboard', label: 'Дашборд', icon: Dashboard },
+    { path: '/templates', label: 'Шаблоны', icon: Description },
+    { path: '/stats', label: 'Статистика', icon: BarChart },
   ]
 
   // Объединяем элементы навигации в зависимости от авторизации
