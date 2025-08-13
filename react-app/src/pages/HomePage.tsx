@@ -1,9 +1,18 @@
 import { Box, Button, Container, Typography, Grid, Card, CardContent, Chip } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
-import { PlayArrow, TrendingUp, Groups, BarChart, Timeline, EmojiEvents, KeyboardArrowDown } from '@mui/icons-material'
+import { PlayArrow, TrendingUp, Groups, BarChart, Timeline, EmojiEvents, KeyboardArrowDown, Delete } from '@mui/icons-material'
+import { useUser, useIsAuthenticated } from '../store/authStore'
 
 function HomePage() {
   const navigate = useNavigate()
+  const user = useUser()
+  const isAuthenticated = useIsAuthenticated()
+
+  // DEBUG функции
+  const clearLocalStorage = () => {
+    localStorage.clear()
+    window.location.reload()
+  }
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId)
@@ -86,6 +95,31 @@ function HomePage() {
 
   return (
     <Box sx={{ bgcolor: '#0a0a0a', color: 'white', minHeight: '100vh' }}>
+      {/* DEBUG: Блок отладки */}
+      {import.meta.env.DEV && (
+        <Box sx={{ bgcolor: '#ff4444', p: 2, m: 2, borderRadius: 1 }}>
+          <Typography variant="h6" sx={{ mb: 1 }}>🔧 DEBUG INFO</Typography>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            isAuthenticated: {isAuthenticated ? 'true' : 'false'}
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            user: {user ? JSON.stringify(user) : 'null'}
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            localStorage: {Object.keys(localStorage).join(', ') || 'пуст'}
+          </Typography>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<Delete />}
+            onClick={clearLocalStorage}
+            sx={{ bgcolor: '#333', '&:hover': { bgcolor: '#555' } }}
+          >
+            Очистить localStorage
+          </Button>
+        </Box>
+      )}
+
       {/* Hero Section */}
       <Box
         sx={{

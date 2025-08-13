@@ -1,11 +1,12 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { ThemeProvider, createTheme } from '@mui/material/styles'
+import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 
 // Layout
 import AppLayout from './components/layout/AppLayout'
+import ProtectedRoute from './components/ProtectedRoute'
 
 // Pages
 import HomePage from './pages/HomePage'
@@ -39,15 +40,31 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <Router>
           <Routes>
+            {/* Auth routes - без layout */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            
+            {/* Public routes - доступны всем с layout */}
             <Route path="/" element={<AppLayout />}>
               <Route index element={<HomePage />} />
+              <Route path="profile" element={<ProfilePage />} />
+            </Route>
+            
+            {/* Protected routes - требуют авторизации */}
+            <Route 
+              path="/app" 
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route path="templates" element={<TemplatesPage />} />
               <Route path="session/:sessionId?" element={<SessionPage />} />
               <Route path="game/:gameId" element={<GamePage />} />
               <Route path="stats" element={<StatsPage />} />
-              <Route path="profile" element={<ProfilePage />} />
             </Route>
+            
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Router>

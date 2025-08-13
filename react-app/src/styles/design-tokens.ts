@@ -1,11 +1,10 @@
-// Colors derived from the agreed palette and neutrals
 export const colors = {
   // Core brand palette
-  coral: '#E27D60', // secondary/accent
-  peach: '#E8A87C', // highlight
+  coral: '#E27D60',      // secondary/accent
+  peach: '#E8A87C',      // highlight
   rosePurple: '#C38D9E', // special
-  darkTeal: '#41B3A3', // primary/cta
-  mint: '#85DCCB', // approximation of #85DCB (corrected to valid hex)
+  darkTeal: '#41B3A3',   // primary/cta
+  mint: '#85DCCB',       // accent light
 
   // Neutrals
   black: '#0a0a0a',
@@ -25,76 +24,104 @@ export const colors = {
   warning: '#f59e0b',
   error: '#ef4444',
   info: '#0ea5e9',
+
+  // Extended status for auth
+  online: '#22c55e',     // green for online
+  offline: '#6b7280',    // gray for offline
+  inGame: '#f59e0b',     // orange for "in game"
+  away: '#8b5cf6',       // purple for "away"
 }
 
 export const typography = {
-  fontFamily: `'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'`,
-  h1: { size: 48, lineHeight: 56, weight: 800 },
-  h2: { size: 32, lineHeight: 40, weight: 800 },
-  h3: { size: 24, lineHeight: 32, weight: 700 },
-  h4: { size: 20, lineHeight: 28, weight: 700 },
-  body: { size: 16, lineHeight: 24, weight: 400 },
-  small: { size: 14, lineHeight: 20, weight: 400 },
-  tiny: { size: 12, lineHeight: 16, weight: 400 },
+  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  
+  // Font sizes
+  fontSize: {
+    xs: '0.75rem',      // 12px
+    sm: '0.875rem',     // 14px
+    base: '1rem',       // 16px
+    lg: '1.125rem',     // 18px
+    xl: '1.25rem',      // 20px
+    '2xl': '1.5rem',    // 24px
+    '3xl': '1.875rem',  // 30px
+    '4xl': '2.25rem',   // 36px
+  },
+  
+  // Font weights
+  fontWeight: {
+    normal: '400',
+    medium: '500',
+    semibold: '600',
+    bold: '700',
+  },
+  
+  // Line heights
+  lineHeight: {
+    tight: '1.25',
+    normal: '1.5',
+    relaxed: '1.75',
+  }
 }
 
 export const spacing = {
-  unit: 8,
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  '2xl': 32,
-  '3xl': 48,
+  // Base spacing scale
+  xs: '0.25rem',      // 4px
+  sm: '0.5rem',       // 8px
+  md: '1rem',         // 16px
+  lg: '1.5rem',       // 24px
+  xl: '2rem',         // 32px
+  '2xl': '3rem',      // 48px
+  '3xl': '4rem',      // 64px
+  
+  // Specific use cases
+  inputPadding: '0.75rem 1rem',
+  buttonPadding: '0.75rem 1.5rem',
+  cardPadding: '1.5rem',
 }
 
-export const radii = {
-  xs: 6,
-  sm: 10,
-  md: 14,
-  lg: 18,
-  xl: 24,
-  pill: 999,
+export const borderRadius = {
+  none: '0',
+  sm: '0.375rem',     // 6px
+  md: '0.5rem',       // 8px
+  lg: '0.75rem',      // 12px
+  xl: '1rem',         // 16px
+  '2xl': '1.5rem',    // 24px
+  full: '9999px',
 }
 
 export const shadows = {
-  sm: '0 1px 2px rgba(0,0,0,0.08)',
-  md: '0 6px 16px rgba(0,0,0,0.16)',
-  lg: '0 12px 28px rgba(0,0,0,0.22)',
-  glowMint: `0 10px 20px rgba(133, 220, 203, 0.25)`,
-  glowCoral: `0 10px 20px rgba(226, 125, 96, 0.25)`,
+  sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+  md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+  lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+  xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+  inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
 }
 
 export const transitions = {
-  fast: '150ms ease-in-out',
-  normal: '250ms ease-in-out',
-  slow: '400ms ease-in-out',
+  fast: '150ms ease',
+  normal: '300ms ease',
+  slow: '500ms ease',
+  
+  // Specific transitions
+  button: '150ms ease-in-out',
+  modal: '300ms ease-out',
+  tooltip: '100ms ease',
 }
 
 export const breakpoints = {
-  xs: 0,
-  sm: 600,
-  md: 900,
-  lg: 1200,
-  xl: 1536,
+  sm: '640px',
+  md: '768px',
+  lg: '1024px',
+  xl: '1280px',
+  '2xl': '1536px',
 }
 
-export interface DesignTokens {
-  colors: typeof colors
-  typography: typeof typography
-  spacing: typeof spacing
-  radii: typeof radii
-  shadows: typeof shadows
-  transitions: typeof transitions
-  breakpoints: typeof breakpoints
-}
-
-export const tokens: DesignTokens = {
+// Export default tokens object
+const tokens = {
   colors,
   typography,
   spacing,
-  radii,
+  borderRadius,
   shadows,
   transitions,
   breakpoints,

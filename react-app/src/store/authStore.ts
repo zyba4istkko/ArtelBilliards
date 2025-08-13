@@ -12,6 +12,7 @@ interface AuthState {
   error: string | null
 
   // Actions
+  login: (login: string, password: string) => Promise<void>
   loginWithTelegram: () => Promise<void>
   loginWithGoogle: (idToken: string) => Promise<void>
   logout: (allSessions?: boolean) => Promise<void>
@@ -28,6 +29,31 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+
+      // Login with email/username and password
+      login: async (login: string, password: string) => {
+        try {
+          set({ isLoading: true, error: null })
+
+          const response: AuthResponse = await apiClient.login({ login, password })
+          
+          set({
+            user: response.user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null
+          })
+
+        } catch (error: any) {
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: error.message || 'Ошибка входа'
+          })
+          throw error
+        }
+      },
 
       // Login with Telegram
       loginWithTelegram: async () => {

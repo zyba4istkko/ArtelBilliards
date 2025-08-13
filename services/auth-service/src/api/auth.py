@@ -12,7 +12,7 @@ from ..core.config import settings
 from ..models.schemas import (
     TelegramAuthRequest, GoogleAuthRequest, EmailAuthRequest,
     AuthResponse, RefreshTokenRequest, LogoutRequest,
-    ErrorResponse, UserResponse
+    ErrorResponse, UserResponse, RegisterRequest
 )
 from ..services.auth import AuthService
 from ..services.telegram import TelegramAuthService
@@ -76,15 +76,15 @@ async def telegram_auth(
         
         # Генерируем токены
         access_token = jwt_manager.create_access_token(
-            data={"user_id": str(user.id)}
+            data={"user_id": str(user['id'])}
         )
         refresh_token = jwt_manager.create_refresh_token(
-            data={"user_id": str(user.id)}
+            data={"user_id": str(user['id'])}
         )
         
         # Создаем сессию с токенами
         session = await auth_service.create_session(
-            user_id=user.id,
+            user_id=user['id'],
             access_token=access_token,
             refresh_token=refresh_token,
             ip_address=http_request.client.host,
@@ -97,7 +97,7 @@ async def telegram_auth(
         
         # Логируем успешный вход
         await auth_service.log_auth_event(
-            user_id=user.id,
+            user_id=user['id'],
             action="telegram_login",
             ip_address=http_request.client.host,
             user_agent=http_request.headers.get("user-agent"),
@@ -110,7 +110,7 @@ async def telegram_auth(
             refresh_token=refresh_token,
             token_type="bearer",
             expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            user=UserResponse.from_orm(user)
+            user=UserResponse(**user)
         )
         
     except Exception as e:
@@ -157,15 +157,15 @@ async def google_auth(
         
         # Генерируем токены
         access_token = jwt_manager.create_access_token(
-            data={"user_id": str(user.id)}
+            data={"user_id": str(user['id'])}
         )
         refresh_token = jwt_manager.create_refresh_token(
-            data={"user_id": str(user.id)}
+            data={"user_id": str(user['id'])}
         )
         
         # Создаем сессию с токенами
         session = await auth_service.create_session(
-            user_id=user.id,
+            user_id=user['id'],
             access_token=access_token,
             refresh_token=refresh_token,
             ip_address=http_request.client.host,
@@ -175,7 +175,7 @@ async def google_auth(
         
         # Логируем успешный вход
         await auth_service.log_auth_event(
-            user_id=user.id,
+            user_id=user['id'],
             action="google_login",
             ip_address=http_request.client.host,
             user_agent=http_request.headers.get("user-agent"),
@@ -188,7 +188,7 @@ async def google_auth(
             refresh_token=refresh_token,
             token_type="bearer",
             expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            user=UserResponse.from_orm(user)
+            user=UserResponse(**user)
         )
         
     except Exception as e:
@@ -262,7 +262,7 @@ async def refresh_token(
             refresh_token=new_refresh_token,
             token_type="bearer",
             expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            user=UserResponse.from_orm(user)
+            user=UserResponse(**user)
         )
         
     except Exception as e:
@@ -333,11 +333,213 @@ async def get_current_user(
                 detail="User not found"
             )
         
-        return UserResponse.from_orm(user)
+        return UserResponse(**user)
         
     except Exception as e:
         logger.error(f"Get current user error: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
+        )
+
+
+@router.post("/register", response_model=AuthResponse)
+async def register_user(
+    request: RegisterRequest,
+    http_request: Request,
+    auth_service: AuthService = Depends(get_auth_service),
+    jwt_manager: JWTManager = Depends(get_jwt_manager)
+):
+    """Регистрация нового пользователя с email/password"""
+    try:
+        # Проверяем что пользователь с таким username не существует
+        existing_user = await auth_service.get_user_by_username(request.username)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already exists"
+            )
+        
+        # Проверяем email если он указан
+        if request.email:
+            existing_email = await auth_service.get_user_by_email(request.email)
+            if existing_email:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email already exists"
+                )
+        
+        # Импортируем UserCreate
+        from ..models.schemas import UserCreate
+        
+        # Создаем пользователя
+        user_data = UserCreate(
+            username=request.username,
+            email=request.email,
+            password=request.password,
+            first_name=request.first_name,
+            last_name=request.last_name,
+            language_code=request.language_code,
+            timezone=request.timezone
+        )
+        
+        user = await auth_service.create_user(user_data)
+        
+        # Генерируем токены
+        access_token = jwt_manager.create_access_token(
+            data={"user_id": str(user['id'])}
+        )
+        refresh_token = jwt_manager.create_refresh_token(
+            data={"user_id": str(user['id'])}
+        )
+        
+        # Создаем сессию
+        session = await auth_service.create_session(
+            user_id=user['id'],
+            access_token=access_token,
+            refresh_token=refresh_token,
+            ip_address=http_request.client.host,
+            user_agent=http_request.headers.get("user-agent"),
+            device_info={
+                "platform": "web"
+            }
+        )
+        
+        # Логируем регистрацию
+        await auth_service.log_auth_event(
+            user_id=user['id'],
+            action="register",
+            ip_address=http_request.client.host,
+            user_agent=http_request.headers.get("user-agent"),
+            success=True,
+            provider="email"
+        )
+        
+        return AuthResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            user=UserResponse(**user)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Registration error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration failed"
+        )
+
+
+@router.post("/login", response_model=AuthResponse)
+async def login_user(
+    request: EmailAuthRequest,
+    http_request: Request,
+    auth_service: AuthService = Depends(get_auth_service),
+    jwt_manager: JWTManager = Depends(get_jwt_manager)
+):
+    """Логин пользователя с email/username и password"""
+    try:
+        # Ищем пользователя по email или username
+        user = None
+        if "@" in request.email:
+            user = await auth_service.get_user_by_email(request.email)
+        else:
+            user = await auth_service.get_user_by_username(request.email)
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials"
+            )
+        
+        # Проверяем пароль
+        from ..core.security import password_manager
+        
+        # Отладочная информация
+        logger.info(f"User object type: {type(user)}")
+        logger.info(f"User object: {user}")
+        
+        # Преобразуем Record в словарь
+        user_dict = dict(user)
+        logger.info(f"User dict: {user_dict}")
+        logger.info(f"Password hash: {user_dict.get('password_hash')}")
+        
+        if not password_manager.verify_password(request.password, user_dict.get('password_hash')):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials"
+            )
+        
+        # Проверяем что пользователь активен
+        if not user_dict.get('is_active'):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account is disabled"
+            )
+        
+        # Генерируем токены
+        access_token = jwt_manager.create_access_token(
+            data={"user_id": str(user_dict['id'])}
+        )
+        refresh_token = jwt_manager.create_refresh_token(
+            data={"user_id": str(user_dict['id'])}
+        )
+        
+        # Создаем сессию
+        session = await auth_service.create_session(
+            user_id=user_dict['id'],
+            access_token=access_token,
+            refresh_token=refresh_token,
+            ip_address=http_request.client.host,
+            user_agent=http_request.headers.get("user-agent"),
+            device_info={
+                "platform": "web"
+            }
+        )
+        
+        # Обновляем время последнего входа
+        await auth_service.update_last_login(user_dict['id'])
+        
+        # Логируем успешный вход
+        await auth_service.log_auth_event(
+            user_id=user_dict['id'],
+            action="login",
+            ip_address=http_request.client.host,
+            user_agent=http_request.headers.get("user-agent"),
+            success=True,
+            provider="email"
+        )
+        
+        return AuthResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            user=UserResponse(**user_dict)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        
+        # Логируем неудачный вход
+        if 'user' in locals() and user:
+            user_dict = dict(user)
+            await auth_service.log_auth_event(
+                user_id=user_dict['id'],
+                action="login",
+                ip_address=http_request.client.host,
+                user_agent=http_request.headers.get("user-agent"),
+                success=False,
+                error_message=str(e),
+                provider="email"
+            )
+        
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed"
         )

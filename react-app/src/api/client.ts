@@ -2,10 +2,10 @@ import axios from 'axios'
 import { toast } from 'sonner'
 
 // API Base URLs для разных сервисов
-const AUTH_SERVICE_URL = 'http://localhost:8001'     // Auth Service
-const TEMPLATE_SERVICE_URL = 'http://localhost:8003' // Template Service  
-const GAME_SERVICE_URL = 'http://localhost:8002'     // Game Service
-const API_GATEWAY_URL = 'http://localhost:8000'      // API Gateway (если будет работать)
+const AUTH_SERVICE_URL = 'http://localhost:8000'        // Auth через API Gateway
+const TEMPLATE_SERVICE_URL = 'http://localhost:8000'    // Template через API Gateway  
+const GAME_SERVICE_URL = 'http://localhost:8000'        // Game через API Gateway
+const API_GATEWAY_URL = 'http://localhost:8000'         // API Gateway
 
 class ApiClient {
   private authClient: any
@@ -157,6 +157,26 @@ class ApiClient {
   }
 
   // Auth methods - используем authClient
+  async login(credentials: { login: string; password: string }) {
+    try {
+      // Адаптируем поля для backend API (email вместо login)
+      const requestData = {
+        email: credentials.login,
+        password: credentials.password
+      }
+      
+      const response = await this.authClient.post('/auth/login', requestData)
+
+      const authData = response.data
+      this.setTokens(authData)
+      
+      return authData
+    } catch (error: any) {
+      console.error('Login error:', error)
+      throw new Error(error.response?.data?.detail || 'Ошибка входа')
+    }
+  }
+
   async loginWithTelegram(initData, startParam) {
     try {
       const response = await this.authClient.post('/auth/telegram', {
