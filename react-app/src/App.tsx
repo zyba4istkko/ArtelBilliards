@@ -52,59 +52,44 @@ function App() {
             </Route>
             
             {/* Protected routes - требуют авторизации */}
-            <Route 
-              path="/dashboard" 
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }>
               <Route index element={<DashboardPage />} />
             </Route>
             
-            <Route 
-              path="/templates" 
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
+            <Route path="/templates" element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }>
               <Route index element={<TemplatesPage />} />
             </Route>
             
-            <Route 
-              path="/session" 
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path=":sessionId?" element={<SessionPage />} />
+            <Route path="/session" element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }>
               <Route index element={<SessionPage />} />
+              <Route path=":sessionId" element={<SessionPage />} />
             </Route>
             
-            <Route 
-              path="/game" 
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path=":gameId" element={<GamePage />} />
+            <Route path="/game/:gameId" element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<GamePage />} />
             </Route>
             
-            <Route 
-              path="/stats" 
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
+            <Route path="/stats" element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }>
               <Route index element={<StatsPage />} />
             </Route>
             
