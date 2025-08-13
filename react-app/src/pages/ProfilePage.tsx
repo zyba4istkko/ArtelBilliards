@@ -1,16 +1,31 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, Button, TextField, Container, Typography, Grid, Box, Avatar, Switch, FormControlLabel, MenuItem } from '@mui/material'
 import { Person, Settings, Notifications } from '@mui/icons-material'
+import { useAuthStore } from '../store/authStore'
 
 function ProfilePage() {
+  const { user, isAuthenticated } = useAuthStore()
   const [isEditing, setIsEditing] = useState(false)
+  
+  // Используем реальные данные пользователя или дефолтные значения
   const [profile, setProfile] = useState({
-    name: 'Игрок',
-    email: 'player@example.com',
+    name: user?.first_name || user?.username || 'Игрок',
+    email: user?.email || 'Не указано',
     level: 5,
     experience: 750,
     nextLevelExp: 1000
   })
+
+  // Обновляем профиль при изменении данных пользователя
+  useEffect(() => {
+    if (user) {
+      setProfile(prev => ({
+        ...prev,
+        name: user.first_name || user.username || 'Игрок',
+        email: user.email || 'Не указано'
+      }))
+    }
+  }, [user])
 
   const [preferences, setPreferences] = useState({
     difficulty: 'medium',
@@ -23,6 +38,17 @@ function ProfilePage() {
   const handleSaveProfile = () => {
     setIsEditing(false)
     // TODO: Save to API
+  }
+
+  // Если не авторизован, показываем сообщение
+  if (!isAuthenticated) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Typography variant="h4" textAlign="center">
+          Для просмотра профиля необходимо войти в систему
+        </Typography>
+      </Container>
+    )
   }
 
   return (

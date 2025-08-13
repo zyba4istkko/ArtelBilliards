@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Card, CardContent, Button, Container, Typography, Box, Avatar, Alert, CircularProgress } from '@mui/material'
+import { Card, CardContent, Button, Container, Typography, Box, Avatar, Alert, CircularProgress, Link } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { Telegram, Google } from '@mui/icons-material'
 import { useAuthStore, useIsAuthenticated, useAuthLoading, useAuthError } from '../store/authStore'
@@ -167,6 +167,23 @@ function LoginPage() {
                   </Button>
                 </>
               )}
+
+              {/* Registration Link */}
+              <Box textAlign="center" mt={2}>
+                <Typography variant="body2" color="text.secondary">
+                  Нет аккаунта?{' '}
+                  <Link 
+                    href="/register" 
+                    sx={{ 
+                      color: 'primary.main', 
+                      textDecoration: 'none',
+                      '&:hover': { textDecoration: 'underline' }
+                    }}
+                  >
+                    Зарегистрироваться
+                  </Link>
+                </Typography>
+              </Box>
 
             </Box>
           </CardContent>

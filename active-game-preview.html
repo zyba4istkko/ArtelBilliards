@@ -1,0 +1,1733 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artel Billiards - Игра #2</title>
+    <style>
+        /* Design Tokens */
+        :root {
+            /* Colors */
+            --color-primary: #41B3A3;
+            --color-mint: #85DCCB;
+            --color-coral: #E27D60;
+            --color-peach: #E8A87C;
+            --color-rose-purple: #C38D9E;
+            
+            --color-black: #0a0a0a;
+            --color-gray-900: #121212;
+            --color-gray-800: #1a1a1a;
+            --color-gray-700: #2a2a2a;
+            --color-gray-600: #333333;
+            --color-gray-300: #b0b0b0;
+            --color-white: #ffffff;
+            
+            --color-success: #22c55e;
+            --color-warning: #f59e0b;
+            --color-error: #ef4444;
+            
+            /* Typography */
+            --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            
+            /* Spacing */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --spacing-xl: 24px;
+            --spacing-2xl: 32px;
+            --spacing-3xl: 48px;
+            
+            /* Radii */
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 18px;
+            --radius-xl: 24px;
+            --radius-pill: 999px;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+            --shadow-md: 0 6px 16px rgba(0,0,0,0.16);
+            --shadow-lg: 0 12px 28px rgba(0,0,0,0.22);
+            --shadow-glow-mint: 0 10px 20px rgba(133, 220, 203, 0.25);
+            --shadow-glow-coral: 0 10px 20px rgba(226, 125, 96, 0.25);
+            
+            /* Transitions */
+            --transition-fast: 150ms ease-in-out;
+            --transition-normal: 250ms ease-in-out;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-family);
+            background: var(--color-black);
+            color: var(--color-white);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--color-gray-800);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-gray-600);
+            border-radius: 3px;
+            transition: background var(--transition-fast);
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-gray-500);
+        }
+        
+        /* Firefox */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--color-gray-600) var(--color-gray-800);
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+        }
+        
+        /* Header */
+        .header {
+            background: var(--color-gray-800);
+            border-bottom: 1px solid var(--color-gray-600);
+            padding: var(--spacing-lg) 0;
+            margin-bottom: var(--spacing-lg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-lg);
+        }
+        
+        .game-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+        
+        .back-button {
+            background: none;
+            border: none;
+            color: var(--color-mint);
+            font-size: 18px;
+            cursor: pointer;
+            padding: var(--spacing-sm);
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+        }
+        
+        .back-button:hover {
+            background: var(--color-gray-700);
+        }
+        
+        .game-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--color-white);
+        }
+        
+        .game-subtitle {
+            font-size: 12px;
+            color: var(--color-gray-300);
+        }
+        
+        /* Timer */
+        .timer {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            background: var(--color-gray-700);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: var(--radius-pill);
+        }
+        
+        .timer-icon {
+            color: var(--color-mint);
+        }
+        
+        .timer-text {
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            color: var(--color-white);
+        }
+        
+        /* Current Player */
+        .current-player {
+            background: var(--color-gray-800);
+            border: 2px solid var(--color-mint);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+            text-align: center;
+            box-shadow: var(--shadow-glow-mint);
+        }
+        
+        .current-player-title {
+            font-size: 14px;
+            color: var(--color-gray-300);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .current-player-name {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--color-mint);
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .current-player-score {
+            font-size: 14px;
+            color: var(--color-white);
+        }
+        
+        /* Players Section */
+        .players-section {
+            background: var(--color-gray-800);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--color-mint);
+            margin-bottom: var(--spacing-lg);
+            text-align: center;
+        }
+        
+        .players-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+        
+        .player-card {
+            background: var(--color-gray-700);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            transition: all var(--transition-normal);
+            min-height: 90px;
+        }
+        
+        .player-card:hover {
+            border-color: var(--color-gray-500);
+            background: var(--color-gray-600);
+        }
+        
+        .player-balls-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md) var(--spacing-sm);
+            align-items: center;
+            align-content: center;
+            flex: 1;
+            justify-content: flex-start;
+            margin-left: var(--spacing-md);
+        }
+        
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        
+        .player-avatar-main {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--color-coral), var(--color-peach));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--color-white);
+        }
+        
+        .player-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .player-name-main {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--color-white);
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .player-points {
+            font-size: 12px;
+            color: var(--color-mint);
+            font-weight: 600;
+        }
+        
+        .player-money {
+            font-size: 11px;
+            color: var(--color-gray-300);
+        }
+        
+        .add-score-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--color-success);
+            border: none;
+            color: var(--color-white);
+            font-size: 24px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            align-self: center;
+        }
+        
+        .add-score-btn:hover {
+            background: #16a34a;
+            transform: scale(1.1);
+            box-shadow: var(--shadow-glow-mint);
+        }
+        
+        .add-score-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .player-balls {
+            display: flex;
+            gap: var(--spacing-xs);
+            margin-top: var(--spacing-xs);
+            flex-wrap: wrap;
+        }
+        
+        .ball-icon-small {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        
+        .ball-icon-small.red { color: #f44336; }
+        .ball-icon-small.yellow { color: #ffeb3b; }
+        .ball-icon-small.green { color: #4caf50; }
+        .ball-icon-small.brown { color: #8d6e63; }
+        .ball-icon-small.blue { color: #2196f3; }
+        .ball-icon-small.pink { color: #e91e63; }
+        .ball-icon-small.black { color: #212121; }
+        .ball-icon-small.white { color: #ffffff; border: 1px solid var(--color-gray-600); }
+        
+        .ball-icon-medium {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            position: relative;
+            box-shadow: inset -2px -2px 6px rgba(0,0,0,0.3), inset 2px 2px 6px rgba(255,255,255,0.1);
+        }
+        
+        .ball-icon-medium::after {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 8px;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), transparent 60%);
+            border-radius: 50%;
+        }
+        
+        .ball-icon-medium.red { background: #f44336; color: transparent; }
+        .ball-icon-medium.yellow { background: #ffeb3b; color: transparent; }
+        .ball-icon-medium.green { background: #4caf50; color: transparent; }
+        .ball-icon-medium.brown { background: #8d6e63; color: transparent; }
+        .ball-icon-medium.blue { background: #2196f3; color: transparent; }
+        .ball-icon-medium.pink { background: #e91e63; color: transparent; }
+        .ball-icon-medium.black { background: #212121; color: transparent; border: 1px solid var(--color-gray-600); }
+        .ball-icon-medium.white { background: #ffffff; color: transparent; border: 1px solid var(--color-gray-600); }
+        
+        .foul-icon-medium {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+            color: #e91e63;
+        }
+        
+        /* Action Section */
+        .action-section {
+            background: var(--color-gray-800);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .action-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--color-mint);
+            margin-bottom: var(--spacing-lg);
+            text-align: center;
+        }
+        
+        .ball-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .ball-button {
+            background: var(--color-gray-700);
+            border: 2px solid var(--color-gray-600);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            text-align: center;
+        }
+        
+        .ball-button:hover {
+            border-color: var(--color-mint);
+            transform: translateY(-2px);
+        }
+        
+        .ball-button:active {
+            transform: translateY(0);
+            background: var(--color-mint);
+            color: var(--color-black);
+        }
+        
+        .ball-icon {
+            font-size: 20px;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .ball-name {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--color-white);
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .ball-points {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--color-mint);
+        }
+        
+        /* Special Actions */
+        .special-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .special-button {
+            background: var(--color-gray-700);
+            border: 2px solid var(--color-gray-600);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            text-align: center;
+            color: var(--color-white);
+            font-family: var(--font-family);
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .special-button.foul {
+            border-color: var(--color-error);
+            color: var(--color-error);
+        }
+        
+        .special-button.foul:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--color-error);
+        }
+        
+        .special-button.miss:hover {
+            background: var(--color-gray-600);
+            border-color: var(--color-mint);
+        }
+        
+        .special-button.switch:hover {
+            background: var(--color-gray-600);
+            border-color: var(--color-warning);
+        }
+        
+        /* Game Log */
+        .game-log {
+            background: var(--color-gray-800);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .log-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--color-mint);
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .log-entries {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm);
+            border-bottom: 1px solid var(--color-gray-600);
+            transition: all var(--transition-fast);
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .log-entry:hover {
+            background: var(--color-gray-700);
+        }
+        
+        .log-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .log-icon {
+            font-size: 14px;
+        }
+        
+        .log-text {
+            color: var(--color-white);
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .log-player {
+            color: var(--color-mint);
+            font-weight: 600;
+        }
+        
+        .log-time {
+            font-size: 11px;
+            color: var(--color-gray-300);
+            font-family: 'Courier New', monospace;
+        }
+        
+
+        
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--color-gray-800);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-3xl);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-white);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .modal-text {
+            color: var(--color-gray-300);
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: var(--spacing-md);
+        }
+        
+        .modal-button {
+            flex: 1;
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: var(--radius-pill);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            border: none;
+            font-family: var(--font-family);
+        }
+        
+        .modal-button.cancel {
+            background: var(--color-gray-700);
+            color: var(--color-white);
+        }
+        
+        .modal-button.confirm {
+            background: var(--color-error);
+            color: var(--color-white);
+        }
+        
+        /* Score Modal */
+        .score-modal-content {
+            background: var(--color-gray-800);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            max-width: 600px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-xl);
+            border-bottom: 1px solid var(--color-gray-600);
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--color-gray-300);
+            font-size: 24px;
+            cursor: pointer;
+            padding: var(--spacing-xs);
+            transition: all var(--transition-fast);
+        }
+        
+        .close-modal:hover {
+            color: var(--color-white);
+        }
+        
+        .score-options {
+            padding: var(--spacing-xl);
+        }
+        
+        .options-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--color-mint);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .ball-buttons-modal {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .ball-button-modal {
+            background: var(--color-gray-700);
+            border: 2px solid var(--color-gray-600);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            text-align: center;
+        }
+        
+        .ball-button-modal:hover {
+            border-color: var(--color-mint);
+            transform: translateY(-2px);
+        }
+        
+        .ball-button-modal.selected {
+            border-color: var(--color-mint);
+            background: rgba(133, 220, 203, 0.2);
+        }
+        
+        .ball-button-modal .ball-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin: 0 auto var(--spacing-xs);
+            background: currentColor;
+            position: relative;
+            box-shadow: inset -2px -2px 8px rgba(0,0,0,0.3), inset 2px 2px 8px rgba(255,255,255,0.1);
+        }
+        
+        .ball-button-modal .ball-icon::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 6px;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), transparent 60%);
+            border-radius: 50%;
+        }
+        
+        .foul-icon {
+            width: 24px;
+            height: 24px;
+            margin: 0 auto var(--spacing-xs);
+            color: #e91e63;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .ball-button-modal .ball-name {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--color-white);
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .ball-button-modal .ball-points {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--color-mint);
+        }
+        
+        .special-actions-modal {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .special-button-modal {
+            background: var(--color-gray-700);
+            border: 2px solid var(--color-gray-600);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            text-align: center;
+            color: var(--color-white);
+            font-family: var(--font-family);
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .special-button-modal.foul {
+            border-color: var(--color-error);
+            color: var(--color-error);
+        }
+        
+        .special-button-modal.foul:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        .special-button-modal.miss:hover {
+            background: var(--color-gray-600);
+            border-color: var(--color-mint);
+        }
+        
+        .special-button-modal.selected {
+            background: rgba(133, 220, 203, 0.2);
+            border-color: var(--color-mint);
+        }
+        
+        .tag-section {
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .tag-label {
+            display: block;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--color-white);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .tag-input {
+            width: 100%;
+            background: var(--color-gray-700);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md) var(--spacing-lg);
+            color: var(--color-white);
+            font-family: var(--font-family);
+            transition: all var(--transition-fast);
+        }
+        
+        .tag-input:focus {
+            outline: none;
+            border-color: var(--color-mint);
+            box-shadow: 0 0 0 2px rgba(133, 220, 203, 0.2);
+        }
+        
+        .tag-input::placeholder {
+            color: var(--color-gray-300);
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: var(--spacing-md);
+        }
+        
+        .action-btn {
+            flex: 1;
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: var(--radius-pill);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            border: none;
+            font-family: var(--font-family);
+            font-size: 16px;
+        }
+        
+        .action-btn.cancel {
+            background: var(--color-gray-700);
+            color: var(--color-white);
+            border: 1px solid var(--color-gray-600);
+        }
+        
+        .action-btn.cancel:hover {
+            background: var(--color-gray-600);
+        }
+        
+        .action-btn.confirm {
+            background: var(--color-success);
+            color: var(--color-white);
+        }
+        
+        .action-btn.confirm:hover {
+            background: #16a34a;
+        }
+        
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .tag-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: var(--spacing-sm);
+        }
+        
+        .tag-option {
+            background: var(--color-gray-700);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-sm) var(--spacing-md);
+            color: var(--color-white);
+            font-family: var(--font-family);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        
+        .tag-option:hover {
+            background: var(--color-gray-600);
+            border-color: var(--color-mint);
+        }
+        
+        .tag-option.selected {
+            background: rgba(133, 220, 203, 0.2);
+            border-color: var(--color-mint);
+            color: var(--color-mint);
+        }
+        
+        .log-author {
+            font-size: 10px;
+            color: var(--color-gray-400);
+            display: block;
+            margin-top: 2px;
+        }
+        
+        .log-meta {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .edit-log-btn {
+            background: none;
+            border: none;
+            color: var(--color-gray-400);
+            font-size: 12px;
+            cursor: pointer;
+            padding: var(--spacing-xs);
+            border-radius: var(--radius-xs);
+            transition: all var(--transition-fast);
+        }
+        
+        .edit-log-btn:hover {
+            background: var(--color-gray-700);
+            color: var(--color-mint);
+        }
+        
+        /* End Game Section */
+        .end-game-section {
+            background: var(--color-gray-800);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            margin-top: var(--spacing-lg);
+            text-align: center;
+        }
+        
+        .end-game-btn {
+            background: var(--color-gray-700);
+            color: var(--color-white);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-pill);
+            padding: var(--spacing-lg) var(--spacing-3xl);
+            font-family: var(--font-family);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .end-game-btn:hover {
+            background: var(--color-gray-600);
+            border-color: var(--color-gray-500);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .end-game-btn:active {
+            transform: translateY(0);
+        }
+        
+        .tag-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: var(--spacing-sm);
+        }
+        
+        .tag-option {
+            background: var(--color-gray-700);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-sm) var(--spacing-md);
+            color: var(--color-white);
+            font-family: var(--font-family);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        
+        .tag-option:hover {
+            background: var(--color-gray-600);
+            border-color: var(--color-mint);
+        }
+        
+        .tag-option.selected {
+            background: rgba(133, 220, 203, 0.2);
+            border-color: var(--color-mint);
+            color: var(--color-mint);
+        }
+        
+        .ball-button-modal.foul-button {
+            border-color: var(--color-gray-600);
+        }
+        
+        .ball-button-modal.foul-button:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--color-mint);
+        }
+        
+        .ball-button-modal.foul-button.selected {
+            border-color: var(--color-mint);
+            background: rgba(133, 220, 203, 0.2);
+        }
+        
+        .log-author {
+            font-size: 10px;
+            color: var(--color-gray-400);
+            display: block;
+            margin-top: 2px;
+        }
+        
+        .log-meta {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .edit-log-btn {
+            background: none;
+            border: none;
+            color: var(--color-gray-400);
+            font-size: 12px;
+            cursor: pointer;
+            padding: var(--spacing-xs);
+            border-radius: var(--radius-xs);
+            transition: all var(--transition-fast);
+        }
+        
+        .edit-log-btn:hover {
+            background: var(--color-gray-700);
+            color: var(--color-mint);
+        }
+        
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .container {
+                padding: var(--spacing-md);
+            }
+            
+            .header-content {
+                padding: 0 var(--spacing-md);
+            }
+            
+            .game-info {
+                gap: var(--spacing-md);
+            }
+            
+            .game-title {
+                font-size: 16px;
+            }
+            
+            .players-list {
+                gap: var(--spacing-sm);
+            }
+            
+            .player-card {
+                padding: var(--spacing-md);
+            }
+            
+            .player-info {
+                gap: var(--spacing-sm);
+            }
+            
+            .player-avatar-main {
+                width: 32px;
+                height: 32px;
+                font-size: 12px;
+            }
+            
+            .player-name-main {
+                font-size: 13px;
+                max-width: 100px;
+            }
+            
+            .player-points {
+                font-size: 11px;
+            }
+            
+            .player-money {
+                font-size: 10px;
+            }
+            
+            .player-card {
+                gap: var(--spacing-sm);
+            }
+            
+            .player-balls-section {
+                gap: var(--spacing-sm) var(--spacing-xs);
+                margin-left: var(--spacing-sm);
+            }
+            
+            .ball-icon-medium {
+                width: 24px;
+                height: 24px;
+                font-size: 12px;
+            }
+            
+            .ball-icon-medium::after {
+                top: 4px;
+                left: 6px;
+                width: 6px;
+                height: 6px;
+            }
+            
+            .foul-icon-medium {
+                width: 28px;
+                height: 28px;
+                font-size: 18px;
+            }
+            
+            .add-score-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 18px;
+            }
+            
+            .player-balls {
+                gap: 2px;
+            }
+            
+            .ball-icon-small {
+                width: 12px;
+                height: 12px;
+                font-size: 8px;
+            }
+            
+            .tag-options {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-xs);
+            }
+            
+            .log-author {
+                font-size: 9px;
+            }
+            
+            .edit-log-btn {
+                padding: 2px;
+                font-size: 10px;
+            }
+            
+            .ball-buttons {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .special-actions {
+                grid-template-columns: 1fr;
+            }
+            
+
+            
+            .log-entry {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-xs);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="game-info">
+                <button class="back-button">← Назад</button>
+                <div>
+                    <div class="game-title">🎱 Колхоз - Игра #2</div>
+                    <div class="game-subtitle">3 игрока • До последнего шара</div>
+                </div>
+            </div>
+            
+            <div class="timer">
+                <span class="timer-icon">⏱️</span>
+                <span class="timer-text" id="gameTimer">05:42</span>
+            </div>
+        </div>
+    </header>
+
+          <main class="container">
+
+        <!-- Players Cards -->
+        <div class="players-section">
+            <h2 class="section-title">Игроки</h2>
+            
+            <div class="players-list">
+                <div class="player-card" data-player="0">
+                    <div class="player-info">
+                        <div class="player-avatar-main">Т</div>
+                        <div class="player-details">
+                            <div class="player-name-main">Ты</div>
+                            <div class="player-points">11 очков</div>
+                            <div class="player-money">+70 ₽</div>
+                        </div>
+                    </div>
+                    <div class="player-balls-section" id="playerBalls0">
+                        <div class="ball-icon-medium red">⚫</div>
+                        <div class="ball-icon-medium yellow">⚫</div>
+                        <div class="foul-icon-medium">✕</div>
+                    </div>
+                    <button class="add-score-btn" onclick="openScoreModal(0)">+</button>
+                </div>
+                
+                <div class="player-card" data-player="1">
+                    <div class="player-info">
+                        <div class="player-avatar-main">И</div>
+                        <div class="player-details">
+                            <div class="player-name-main">Игорь</div>
+                            <div class="player-points">18 очков</div>
+                            <div class="player-money">+180 ₽</div>
+                        </div>
+                    </div>
+                    <div class="player-balls-section" id="playerBalls1">
+                        <div class="ball-icon-medium white">⚫</div>
+                        <div class="ball-icon-medium black">⚫</div>
+                        <div class="ball-icon-medium yellow">⚫</div>
+                        <div class="ball-icon-medium green">⚫</div>
+                        <div class="ball-icon-medium blue">⚫</div>
+                        <div class="ball-icon-medium pink">⚫</div>
+                        <div class="ball-icon-medium brown">⚫</div>
+                        <div class="ball-icon-medium red">⚫</div>
+                    </div>
+                    <button class="add-score-btn" onclick="openScoreModal(1)">+</button>
+                </div>
+                
+                <div class="player-card" data-player="2">
+                    <div class="player-info">
+                        <div class="player-avatar-main">А</div>
+                        <div class="player-details">
+                            <div class="player-name-main">Александр Длинноеимя</div>
+                            <div class="player-points">12 очков</div>
+                            <div class="player-money">+80 ₽</div>
+                        </div>
+                    </div>
+                    <div class="player-balls-section" id="playerBalls2">
+                        <div class="ball-icon-medium green">⚫</div>
+                        <div class="ball-icon-medium brown">⚫</div>
+                        <div class="ball-icon-medium pink">⚫</div>
+                        <div class="foul-icon-medium">✕</div>
+                    </div>
+                    <button class="add-score-btn" onclick="openScoreModal(2)">+</button>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Game Log -->
+        <div class="game-log">
+            <h3 class="log-title">События игры</h3>
+            
+            <div class="log-entries" id="logEntries">
+                <div class="log-entry" data-log-id="1">
+                    <div class="log-info">
+                        <span class="log-icon" style="color: #2196f3;">⚫</span>
+                        <span class="log-text"><span class="log-player">Игорь</span> забил синий шар (+5)</span>
+                        <span class="log-author">Добавил: Игорь</span>
+                    </div>
+                    <div class="log-meta">
+                        <span class="log-time">05:42</span>
+                        <button class="edit-log-btn" onclick="editLogEntry(1)">✏️</button>
+                    </div>
+                </div>
+                
+                <div class="log-entry" data-log-id="2">
+                    <div class="log-info">
+                        <span class="log-icon">🔄</span>
+                        <span class="log-text">Ход перешел к <span class="log-player">Игорь</span></span>
+                        <span class="log-author">Добавил: Система</span>
+                    </div>
+                    <div class="log-meta">
+                        <span class="log-time">05:40</span>
+                    </div>
+                </div>
+                
+                <div class="log-entry" data-log-id="3">
+                    <div class="log-info">
+                        <span class="log-icon" style="color: #f44336;">⚫</span>
+                        <span class="log-text"><span class="log-player">Ты</span> забил красный шар (+1)</span>
+                        <span class="log-author">Добавил: Ты</span>
+                    </div>
+                    <div class="log-meta">
+                        <span class="log-time">05:38</span>
+                        <button class="edit-log-btn" onclick="editLogEntry(3)">✏️</button>
+                    </div>
+                </div>
+                
+                <div class="log-entry" data-log-id="6">
+                    <div class="log-info">
+                        <span class="log-icon" style="color: #ef4444;">❌</span>
+                        <span class="log-text"><span class="log-player">Ты</span> совершил штраф (-1, -50₽)</span>
+                        <span class="log-author">Добавил: Ты</span>
+                    </div>
+                    <div class="log-meta">
+                        <span class="log-time">05:36</span>
+                        <button class="edit-log-btn" onclick="editLogEntry(6)">✏️</button>
+                    </div>
+                </div>
+                
+                <div class="log-entry" data-log-id="4">
+                    <div class="log-info">
+                        <span class="log-icon" style="color: #e91e63;">⚫</span>
+                        <span class="log-text"><span class="log-player">Александр</span> забил розовый шар (+6)</span>
+                        <span class="log-author">Добавил: Александр</span>
+                    </div>
+                    <div class="log-meta">
+                        <span class="log-time">05:37</span>
+                        <button class="edit-log-btn" onclick="editLogEntry(4)">✏️</button>
+                    </div>
+                </div>
+                
+                <div class="log-entry" data-log-id="5">
+                    <div class="log-info">
+                        <span class="log-icon" style="color: #ef4444;">❌</span>
+                        <span class="log-text"><span class="log-player">Александр</span> совершил штраф (-1, -50₽)</span>
+                        <span class="log-author">Добавил: Александр</span>
+                    </div>
+                    <div class="log-meta">
+                        <span class="log-time">05:35</span>
+                        <button class="edit-log-btn" onclick="editLogEntry(5)">✏️</button>
+                    </div>
+                </div>
+                
+                <div class="log-entry">
+                    <div class="log-info">
+                        <span class="log-icon">🎯</span>
+                        <span class="log-text">Игра началась! Первый ход: <span class="log-player">Ты</span></span>
+                    </div>
+                    <span class="log-time">05:00</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- End Game Section -->
+        <div class="end-game-section">
+            <button class="end-game-btn" onclick="showEndGameModal()">🏁 Завершить игру</button>
+        </div>
+    </main>
+
+    <!-- Score Modal -->
+    <div class="modal-overlay" id="scoreModal">
+        <div class="score-modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalPlayerName">Игорь</h3>
+                <button class="close-modal" onclick="closeScoreModal()">×</button>
+            </div>
+            
+            <div class="score-options">
+                <h4 class="options-title">Забитый шар</h4>
+                
+                <div class="ball-buttons-modal">
+                    <div class="ball-button-modal" onclick="selectBall(1, 'Красный')">
+                        <div class="ball-icon" style="color: #f44336;"></div>
+                        <div class="ball-name">Красный</div>
+                        <div class="ball-points">+1</div>
+                    </div>
+                    
+                    <div class="ball-button-modal" onclick="selectBall(2, 'Желтый')">
+                        <div class="ball-icon" style="color: #ffeb3b;"></div>
+                        <div class="ball-name">Желтый</div>
+                        <div class="ball-points">+2</div>
+                    </div>
+                    
+                    <div class="ball-button-modal" onclick="selectBall(3, 'Зеленый')">
+                        <div class="ball-icon" style="color: #4caf50;"></div>
+                        <div class="ball-name">Зеленый</div>
+                        <div class="ball-points">+3</div>
+                    </div>
+                    
+                    <div class="ball-button-modal" onclick="selectBall(4, 'Коричневый')">
+                        <div class="ball-icon" style="color: #8d6e63;"></div>
+                        <div class="ball-name">Коричневый</div>
+                        <div class="ball-points">+4</div>
+                    </div>
+                    
+                    <div class="ball-button-modal" onclick="selectBall(5, 'Синий')">
+                        <div class="ball-icon" style="color: #2196f3;"></div>
+                        <div class="ball-name">Синий</div>
+                        <div class="ball-points">+5</div>
+                    </div>
+                    
+                    <div class="ball-button-modal" onclick="selectBall(6, 'Розовый')">
+                        <div class="ball-icon" style="color: #e91e63;"></div>
+                        <div class="ball-name">Розовый</div>
+                        <div class="ball-points">+6</div>
+                    </div>
+                    
+                    <div class="ball-button-modal" onclick="selectBall(7, 'Черный')">
+                        <div class="ball-icon" style="color: #212121; border: 1px solid #666;"></div>
+                        <div class="ball-name">Черный</div>
+                        <div class="ball-points">+7</div>
+                    </div>
+                    
+                    <div class="ball-button-modal foul-button" onclick="selectAction('foul')">
+                        <div class="foul-icon">✕</div>
+                        <div class="ball-name">Штраф</div>
+                        <div class="ball-points">-50₽</div>
+                    </div>
+                </div>
+                
+                <div class="tag-section">
+                    <label class="tag-label">Описание (необязательно)</label>
+                    <div class="tag-options">
+                        <button class="tag-option" onclick="selectTag('Стандарт')">Стандарт</button>
+                        <button class="tag-option" onclick="selectTag('Подстава')">Подстава</button>
+                        <button class="tag-option" onclick="selectTag('Серия')">Серия</button>
+                        <button class="tag-option" onclick="selectTag('От борта')">От борта</button>
+                        <button class="tag-option" onclick="selectTag('Сложный')">Сложный</button>
+                        <button class="tag-option" onclick="selectTag('Случайный')">Случайный</button>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="action-btn cancel" onclick="closeScoreModal()">Отмена</button>
+                    <button class="action-btn confirm" onclick="confirmScore()" id="confirmBtn" disabled>Добавить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- End Game Modal -->
+    <div class="modal-overlay" id="endGameModal">
+        <div class="modal-content">
+            <h3 class="modal-title">Завершить игру?</h3>
+            <p class="modal-text">Игра будет завершена и результаты сохранены. Вы вернетесь к обзору сессии.</p>
+            <div class="modal-buttons">
+                <button class="modal-button cancel" onclick="hideEndGameModal()">Отмена</button>
+                <button class="modal-button confirm" onclick="endGame()">Завершить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let gameStartTime = Date.now() - (5 * 60 + 42) * 1000; // 5:42 elapsed
+        let players = [
+            { name: 'Ты', avatar: 'Т', points: 11, money: 70 },
+            { name: 'Игорь', avatar: 'И', points: 18, money: 180 },
+            { name: 'Александр', avatar: 'А', points: 12, money: 80 }
+        ];
+
+        // Modal state
+        let selectedPlayer = null;
+        let selectedAction = null;
+        let selectedBall = null;
+        let selectedTag = null;
+        let editingLogId = null;
+        let logIdCounter = 7;
+
+        // Timer update
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - gameStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('gameTimer').textContent = 
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        setInterval(updateTimer, 1000);
+
+        // Open score modal for player
+        function openScoreModal(playerIndex) {
+            selectedPlayer = playerIndex;
+            document.getElementById('modalPlayerName').textContent = players[playerIndex].name;
+            document.getElementById('scoreModal').classList.add('active');
+            resetModalState();
+        }
+
+        // Close score modal
+        function closeScoreModal() {
+            document.getElementById('scoreModal').classList.remove('active');
+            resetModalState();
+        }
+
+        // Reset modal state
+        function resetModalState() {
+            selectedAction = null;
+            selectedBall = null;
+            selectedTag = null;
+            editingLogId = null;
+            document.getElementById('confirmBtn').disabled = true;
+            
+            // Remove selected classes
+            document.querySelectorAll('.ball-button-modal.selected').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.querySelectorAll('.tag-option.selected').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+        }
+
+        // Select ball
+        function selectBall(points, ballName) {
+            // Remove previous selection
+            document.querySelectorAll('.ball-button-modal.selected').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.querySelectorAll('.special-button-modal.selected').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+
+            // Add selection to clicked ball
+            event.target.closest('.ball-button-modal').classList.add('selected');
+            
+            selectedAction = 'ball';
+            selectedBall = { points, name: ballName };
+            document.getElementById('confirmBtn').disabled = false;
+        }
+
+        // Select action (foul)
+        function selectAction(action) {
+            // Remove previous selection
+            document.querySelectorAll('.ball-button-modal.selected').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+
+            // Add selection to clicked action
+            event.target.closest('.ball-button-modal').classList.add('selected');
+            
+            selectedAction = action;
+            selectedBall = null;
+            document.getElementById('confirmBtn').disabled = false;
+        }
+
+        // Select tag
+        function selectTag(tag) {
+            // Remove previous tag selection
+            document.querySelectorAll('.tag-option.selected').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+
+            // Add selection to clicked tag
+            event.target.classList.add('selected');
+            
+            selectedTag = tag;
+        }
+
+        // Confirm score
+        function confirmScore() {
+            if (!selectedAction || selectedPlayer === null) return;
+
+            const player = players[selectedPlayer];
+            const currentPlayerName = players[selectedPlayer].name;
+            
+            if (selectedAction === 'ball' && selectedBall) {
+                // Add points for ball
+                player.points += selectedBall.points;
+                player.money += selectedBall.points * 10;
+                
+                // Add ball to player's collection
+                addBallToPlayer(selectedPlayer, selectedBall.name);
+                
+                let logText = `${player.name} забил ${selectedBall.name.toLowerCase()} шар (+${selectedBall.points})`;
+                if (selectedTag) {
+                    logText += ` [${selectedTag}]`;
+                }
+                addLogEntry(logText, '⚫', getBallColor(selectedBall.name), currentPlayerName);
+                
+            } else if (selectedAction === 'foul') {
+                // Add foul
+                player.points -= 1;
+                player.money -= 50;
+                
+                // Add foul icon to player's collection
+                addFoulToPlayer(selectedPlayer);
+                
+                let logText = `${player.name} совершил штраф (-1, -50₽)`;
+                if (selectedTag) {
+                    logText += ` [${selectedTag}]`;
+                }
+                addLogEntry(logText, '❌', '#ef4444', currentPlayerName);
+            }
+
+            updatePlayerCards();
+            closeScoreModal();
+        }
+
+        // Get ball color for log
+        function getBallColor(ballName) {
+            const colors = {
+                'Желтый': '#ffeb3b',
+                'Зеленый': '#4caf50',
+                'Коричневый': '#8d6e63',
+                'Синий': '#2196f3',
+                'Розовый': '#e91e63',
+                'Черный': '#212121',
+                'Красный': '#f44336'
+            };
+            return colors[ballName] || '#ffffff';
+        }
+
+        // Update player cards
+        function updatePlayerCards() {
+            const playerCards = document.querySelectorAll('.player-card');
+            players.forEach((player, index) => {
+                const card = playerCards[index];
+                const points = card.querySelector('.player-points');
+                const money = card.querySelector('.player-money');
+                points.textContent = `${player.points} очков`;
+                money.textContent = `${player.money >= 0 ? '+' : ''}${player.money} ₽`;
+            });
+        }
+
+        // Add ball to player's collection
+        function addBallToPlayer(playerIndex, ballName) {
+            const ballsContainer = document.getElementById(`playerBalls${playerIndex}`);
+            const ballElement = document.createElement('div');
+            ballElement.className = `ball-icon-medium ${getBallClass(ballName)}`;
+            ballElement.textContent = '⚫';
+            ballsContainer.appendChild(ballElement);
+        }
+
+        // Add foul to player's collection
+        function addFoulToPlayer(playerIndex) {
+            const ballsContainer = document.getElementById(`playerBalls${playerIndex}`);
+            const foulElement = document.createElement('div');
+            foulElement.className = 'foul-icon-medium';
+            foulElement.textContent = '✕';
+            ballsContainer.appendChild(foulElement);
+        }
+
+        // Get ball CSS class
+        function getBallClass(ballName) {
+            const classes = {
+                'Красный': 'red',
+                'Желтый': 'yellow',
+                'Зеленый': 'green',
+                'Коричневый': 'brown',
+                'Синий': 'blue',
+                'Розовый': 'pink',
+                'Черный': 'black',
+                'Белый': 'white'
+            };
+            return classes[ballName] || 'white';
+        }
+
+        // Edit log entry
+        function editLogEntry(logId) {
+            const logEntry = document.querySelector(`[data-log-id="${logId}"]`);
+            if (!logEntry) return;
+            
+            // Get the ball info from the log entry
+            const logText = logEntry.querySelector('.log-text').textContent;
+            const playerName = logEntry.querySelector('.log-player').textContent;
+            
+            // Find player index
+            const playerIndex = players.findIndex(p => p.name === playerName);
+            if (playerIndex === -1) return;
+            
+            editingLogId = logId;
+            openScoreModal(playerIndex);
+            
+            // Pre-select the action based on log content
+            if (logText.includes('забил')) {
+                // Try to identify the ball
+                const ballNames = ['красный', 'желтый', 'зеленый', 'коричневый', 'синий', 'розовый', 'черный'];
+                const foundBall = ballNames.find(ball => logText.includes(ball));
+                if (foundBall) {
+                    const ballName = foundBall.charAt(0).toUpperCase() + foundBall.slice(1);
+                    const points = getBallPoints(ballName);
+                    setTimeout(() => selectBall(points, ballName), 100);
+                }
+            } else if (logText.includes('штраф')) {
+                setTimeout(() => selectAction('foul'), 100);
+            }
+        }
+
+        // Get ball points by name
+        function getBallPoints(ballName) {
+            const points = {
+                'Красный': 1, 'Желтый': 2, 'Зеленый': 3, 'Коричневый': 4,
+                'Синий': 5, 'Розовый': 6, 'Черный': 7
+            };
+            return points[ballName] || 1;
+        }
+
+        // Add log entry
+        function addLogEntry(text, icon = '⚫', color = null, addedBy = 'Система') {
+            const logEntries = document.getElementById('logEntries');
+            const now = new Date();
+            const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            const logId = logIdCounter++;
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.setAttribute('data-log-id', logId);
+            entry.innerHTML = `
+                <div class="log-info">
+                    <span class="log-icon" ${color ? `style="color: ${color};"` : ''}>${icon}</span>
+                    <span class="log-text">${text}</span>
+                    <span class="log-author">Добавил: ${addedBy}</span>
+                </div>
+                <div class="log-meta">
+                    <span class="log-time">${timeString}</span>
+                    ${addedBy !== 'Система' ? `<button class="edit-log-btn" onclick="editLogEntry(${logId})">✏️</button>` : ''}
+                </div>
+            `;
+            
+            logEntries.insertBefore(entry, logEntries.firstChild);
+            
+            // Limit log entries
+            while (logEntries.children.length > 15) {
+                logEntries.removeChild(logEntries.lastChild);
+            }
+        }
+
+        // End game modal functions
+        function showEndGameModal() {
+            document.getElementById('endGameModal').classList.add('active');
+        }
+
+        function hideEndGameModal() {
+            document.getElementById('endGameModal').classList.remove('active');
+        }
+
+        function endGame() {
+            // Find winner
+            const winner = players.reduce((prev, current) => 
+                prev.points > current.points ? prev : current
+            );
+            
+            alert(`🎱 Игра завершена!\n\nПобедитель: ${winner.name} (${winner.points} очков)\n\nВозвращение к сессии...`);
+            hideEndGameModal();
+            // В реальном приложении здесь был бы переход к странице сессии
+        }
+
+        // Initialize
+        updateTimer();
+    </script>
+</body>
+</html>

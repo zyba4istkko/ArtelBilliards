@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artel Billiards - Статистика Игрока</title>
+    <style>
+        /* Design Tokens */
+        :root {
+            /* Colors */
+            --color-primary: #41B3A3;
+            --color-mint: #85DCCB;
+            --color-coral: #E27D60;
+            --color-peach: #E8A87C;
+            --color-rose-purple: #C38D9E;
+            
+            --color-black: #0a0a0a;
+            --color-gray-900: #121212;
+            --color-gray-800: #1a1a1a;
+            --color-gray-700: #2a2a2a;
+            --color-gray-600: #333333;
+            --color-gray-300: #b0b0b0;
+            --color-white: #ffffff;
+            
+            --color-success: #22c55e;
+            --color-warning: #f59e0b;
+            --color-error: #ef4444;
+            
+            /* Typography */
+            --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            
+            /* Spacing */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --spacing-xl: 24px;
+            --spacing-2xl: 32px;
+            --spacing-3xl: 48px;
+            
+            /* Radii */
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 18px;
+            --radius-xl: 24px;
+            --radius-pill: 999px;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+            --shadow-md: 0 6px 16px rgba(0,0,0,0.16);
+            --shadow-lg: 0 12px 28px rgba(0,0,0,0.22);
+            --shadow-glow-mint: 0 10px 20px rgba(133, 220, 203, 0.25);
+            --shadow-glow-coral: 0 10px 20px rgba(226, 125, 96, 0.25);
+            
+            /* Transitions */
+            --transition-fast: 150ms ease-in-out;
+            --transition-normal: 250ms ease-in-out;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-family);
+            background: var(--color-black);
+            color: var(--color-white);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--color-gray-800);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-gray-600);
+            border-radius: 3px;
+            transition: background var(--transition-fast);
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-gray-500);
+        }
+        
+        /* Firefox */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--color-gray-600) var(--color-gray-800);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-xl);
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: var(--spacing-3xl);
+        }
+
+        .player-avatar-large {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--color-mint);
+            color: var(--color-black);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0 auto var(--spacing-lg);
+        }
+
+        .player-name-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-white);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .player-subtitle {
+            color: var(--color-gray-300);
+            font-size: 1.1rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-xl);
+            margin-bottom: var(--spacing-3xl);
+        }
+
+        .stat-card {
+            background: var(--color-gray-800);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            text-align: center;
+            transition: all var(--transition-normal);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-mint);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .stat-label {
+            color: var(--color-gray-300);
+            font-size: 0.9rem;
+        }
+
+        /* Sessions Section */
+        .section {
+            margin-bottom: var(--spacing-3xl);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-mint);
+            margin-bottom: var(--spacing-xl);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .sessions-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+        }
+
+        .session-card {
+            background: var(--color-gray-800);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            transition: all var(--transition-normal);
+        }
+
+        .session-card:hover {
+            border-color: var(--color-mint);
+            box-shadow: var(--shadow-glow-mint);
+        }
+
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .session-info {
+            flex: 1;
+        }
+
+        .session-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--color-white);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .session-meta {
+            color: var(--color-gray-300);
+            font-size: 0.9rem;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .session-result {
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--radius-pill);
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .session-result.win {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--color-success);
+            border: 1px solid var(--color-success);
+        }
+
+        .session-result.loss {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--color-error);
+            border: 1px solid var(--color-error);
+        }
+
+        .session-result.draw {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--color-warning);
+            border: 1px solid var(--color-warning);
+        }
+
+        .session-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .session-stat {
+            text-align: center;
+        }
+
+        .session-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-mint);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .session-stat-label {
+            color: var(--color-gray-300);
+            font-size: 0.8rem;
+        }
+
+        /* Balls Section */
+        .session-balls {
+            border-top: 1px solid var(--color-gray-600);
+            padding-top: var(--spacing-lg);
+        }
+
+        .balls-title {
+            color: var(--color-mint);
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .balls-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+            align-items: center;
+        }
+
+        .ball-icon-stat {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            box-shadow: 
+                inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+                inset 2px 2px 4px rgba(255, 255, 255, 0.1);
+        }
+
+        .ball-icon-stat.red { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); color: white; }
+        .ball-icon-stat.yellow { background: linear-gradient(135deg, #ffeb3b 0%, #fbc02d 100%); color: black; }
+        .ball-icon-stat.green { background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); color: white; }
+        .ball-icon-stat.brown { background: linear-gradient(135deg, #8d6e63 0%, #5d4037 100%); color: white; }
+        .ball-icon-stat.blue { background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); color: white; }
+        .ball-icon-stat.pink { background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%); color: white; }
+        .ball-icon-stat.black { background: linear-gradient(135deg, #424242 0%, #212121 100%); color: white; }
+        .ball-icon-stat.white { background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%); color: black; }
+
+        .foul-icon-stat {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            background: var(--color-error);
+            color: white;
+        }
+
+        .balls-summary {
+            margin-left: var(--spacing-md);
+            color: var(--color-gray-300);
+            font-size: 0.9rem;
+        }
+
+        /* Ball Statistics Grid */
+        .ball-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--spacing-lg);
+        }
+
+        .ball-stat-card {
+            background: var(--color-gray-700);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            text-align: center;
+        }
+
+        .ball-stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin: 0 auto var(--spacing-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 700;
+            box-shadow: 
+                inset -4px -4px 8px rgba(0, 0, 0, 0.3),
+                inset 4px 4px 8px rgba(255, 255, 255, 0.1);
+        }
+
+        .ball-stat-icon.red { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); color: white; }
+        .ball-stat-icon.yellow { background: linear-gradient(135deg, #ffeb3b 0%, #fbc02d 100%); color: black; }
+        .ball-stat-icon.green { background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); color: white; }
+        .ball-stat-icon.brown { background: linear-gradient(135deg, #8d6e63 0%, #5d4037 100%); color: white; }
+        .ball-stat-icon.blue { background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); color: white; }
+        .ball-stat-icon.pink { background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%); color: white; }
+        .ball-stat-icon.black { background: linear-gradient(135deg, #424242 0%, #212121 100%); color: white; }
+
+        .ball-stat-name {
+            font-weight: 600;
+            color: var(--color-white);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .ball-stat-count {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-mint);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .ball-stat-percentage {
+            color: var(--color-gray-300);
+            font-size: 0.8rem;
+        }
+
+        /* Filter Buttons */
+        .filter-buttons {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: var(--color-gray-700);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-pill);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            color: var(--color-white);
+            font-family: var(--font-family);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .filter-btn:hover {
+            border-color: var(--color-mint);
+        }
+
+        .filter-btn.active {
+            background: var(--color-mint);
+            color: var(--color-black);
+            border-color: var(--color-mint);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: var(--spacing-lg);
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .session-header {
+                flex-direction: column;
+                gap: var(--spacing-md);
+                align-items: flex-start;
+            }
+
+            .session-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .ball-stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .filter-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="player-avatar-large">А</div>
+            <h1 class="player-name-title">Александр Петров</h1>
+            <p class="player-subtitle">Статистика игрока за все время</p>
+        </div>
+
+        <!-- Overall Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-value">45</div>
+                <div class="stat-label">Всего сессий</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">🏆</div>
+                <div class="stat-value">28</div>
+                <div class="stat-label">Побед</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">🎱</div>
+                <div class="stat-value">342</div>
+                <div class="stat-label">Забито шаров</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-value">+2,340 ₽</div>
+                <div class="stat-label">Общий выигрыш</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-value">7.6</div>
+                <div class="stat-label">Среднее за сессию</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">❌</div>
+                <div class="stat-value">23</div>
+                <div class="stat-label">Всего штрафов</div>
+            </div>
+        </div>
+
+        <!-- Ball Statistics -->
+        <div class="section">
+            <h2 class="section-title">
+                🎱 Статистика по шарам
+            </h2>
+            
+            <div class="ball-stats-grid">
+                <div class="ball-stat-card">
+                    <div class="ball-stat-icon red">1</div>
+                    <div class="ball-stat-name">Красный</div>
+                    <div class="ball-stat-count">89</div>
+                    <div class="ball-stat-percentage">26% от всех</div>
+                </div>
+                
+                <div class="ball-stat-card">
+                    <div class="ball-stat-icon yellow">2</div>
+                    <div class="ball-stat-name">Желтый</div>
+                    <div class="ball-stat-count">52</div>
+                    <div class="ball-stat-percentage">15% от всех</div>
+                </div>
+                
+                <div class="ball-stat-card">
+                    <div class="ball-stat-icon green">3</div>
+                    <div class="ball-stat-name">Зеленый</div>
+                    <div class="ball-stat-count">48</div>
+                    <div class="ball-stat-percentage">14% от всех</div>
+                </div>
+                
+                <div class="ball-stat-card">
+                    <div class="ball-stat-icon brown">4</div>
+                    <div class="ball-stat-name">Коричневый</div>
+                    <div class="ball-stat-count">41</div>
+                    <div class="ball-stat-percentage">12% от всех</div>
+                </div>
+                
+                <div class="ball-stat-card">
+                    <div class="ball-stat-icon blue">5</div>
+                    <div class="ball-stat-name">Синий</div>
+                    <div class="ball-stat-count">38</div>
+                    <div class="ball-stat-percentage">11% от всех</div>
+                </div>
+                
+                <div class="ball-stat-card">
+                    <div class="ball-stat-icon pink">6</div>
+                    <div class="ball-stat-name">Розовый</div>
+                    <div class="ball-stat-count">35</div>
+                    <div class="ball-stat-percentage">10% от всех</div>
+                </div>
+                
+                <div class="ball-stat-card">
+                    <div class="ball-stat-icon black">7</div>
+                    <div class="ball-stat-name">Черный</div>
+                    <div class="ball-stat-count">39</div>
+                    <div class="ball-stat-percentage">11% от всех</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Session History -->
+        <div class="section">
+            <h2 class="section-title">
+                📊 История сессий
+            </h2>
+            
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="filterSessions('all')">Все сессии</button>
+                <button class="filter-btn" onclick="filterSessions('wins')">Только победы</button>
+                <button class="filter-btn" onclick="filterSessions('recent')">Последние 10</button>
+                <button class="filter-btn" onclick="filterSessions('kolkhoz')">Колхоз</button>
+                <button class="filter-btn" onclick="filterSessions('americana')">Американка</button>
+            </div>
+            
+            <div class="sessions-list" id="sessionsList">
+                <!-- Session 1 -->
+                <div class="session-card" data-type="kolkhoz" data-result="win">
+                    <div class="session-header">
+                        <div class="session-info">
+                            <div class="session-title">🎱 Колхоз #1247</div>
+                            <div class="session-meta">23 декабря 2024 • 3 игрока • 45 мин</div>
+                        </div>
+                        <div class="session-result win">Победа</div>
+                    </div>
+                    
+                    <div class="session-stats">
+                        <div class="session-stat">
+                            <div class="session-stat-value">18</div>
+                            <div class="session-stat-label">Очки</div>
+                        </div>
+                        <div class="session-stat">
+                            <div class="session-stat-value">+540 ₽</div>
+                            <div class="session-stat-label">Выигрыш</div>
+                        </div>
+                        <div class="session-stat">
+                            <div class="session-stat-value">2</div>
+                            <div class="session-stat-label">Штрафы</div>
+                        </div>
+                        <div class="session-stat">
+                            <div class="session-stat-value">-100 ₽</div>
+                            <div class="session-stat-label">Штрафов</div>
+                        </div>
+                    </div>
+                    
+                    <div class="session-balls">
+                        <div class="balls-title">Забитые шары:</div>
+                        <div class="balls-display">
+                            <div class="ball-icon-stat red">1</div>
+                            <div class="ball-icon-stat red">1</div>
+                            <div class="ball-icon-stat yellow">2</div>
+                            <div class="ball-icon-stat green">3</div>
+                            <div class="ball-icon-stat brown">4</div>
+                            <div class="ball-icon-stat blue">5</div>
+                            <div class="ball-icon-stat pink">6</div>
+                            <div class="ball-icon-stat black">7</div>
+                            <div class="foul-icon-stat">✕</div>
+                            <div class="foul-icon-stat">✕</div>
+                            <div class="balls-summary">10 шаров • 2 штрафа</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Session 2 -->
+                <div class="session-card" data-type="americana" data-result="loss">
+                    <div class="session-header">
+                        <div class="session-info">
+                            <div class="session-title">🔴 Американка #1246</div>
+                            <div class="session-meta">22 декабря 2024 • 2 игрока • 32 мин</div>
+                        </div>
+                        <div class="session-result loss">Поражение</div>
+                    </div>
+                    
+                    <div class="session-stats">
+                        <div class="session-stat">
+                            <div class="session-stat-value">12</div>
+                            <div class="session-stat-label">Очки</div>
+                        </div>
+                        <div class="session-stat">
+                            <div class="session-stat-value">-180 ₽</div>
+                            <div class="session-stat-label">Проигрыш</div>
+                        </div>
+                        <div class="session-stat">
+                            <div class="session-stat-value">1</div>
+                            <div class="session-stat-label">Штрафы</div>
+                        </div>
+                        <div class="session-stat">
+                            <div class="session-stat-value">-50 ₽</div>
+                            <div class="session-stat-label">Штрафов</div>
+                        </div>
+                    </div>
+                    
+                    <div class="session-balls">
+                        <div class="balls-title">Забитые шары:</div>
+                        <div class="balls-display">
+                            <div class="ball-icon-stat red">1</div>
+                            <div class="ball-icon-stat yellow">2</div>
+                            <div class="ball-icon-stat green">3</div>
+                            <div class="ball-icon-stat brown">4</div>
+                            <div class="ball-icon-stat blue">5</div>
+                            <div class="foul-icon-stat">✕</div>
+                            <div class="balls-summary">5 шаров • 1 штраф</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Session 3 -->
+                <div class="session-card" data-type="kolkhoz" data-result="win">
+                    <div class="session-header">
+                        <div class="session-info">
+                            <div class="session-title">🎱 Колхоз #1245</div>
+                            <div class="session-meta">21 декабря 2024 • 4 игрока • 58 мин</div>
+                        </div>
+                        <div class="session-result win">Победа</div>
+                    </div>
+                    
+                    <div class="session-stats">
+                        <div class="session-stat">
+                            <div class="session-stat-value">24</div>
+                            <div class="session-stat-label">Очки</div>
+                        </div>
+                        <div class="session-stat">
+                            <div class="session-stat-value">+720 ₽</div>
+                            <div class="session-stat-label">Выигрыш</div>
+                        </div>
+                        <div class="session-stat">
+                            <div class="session-stat-value">0</div>
+                            <div class="session-stat-label">Штрафы</div>
+                        </div>
+                        <div class="session-stat">
+                            <div class="session-stat-value">0 ₽</div>
+                            <div class="session-stat-label">Штрафов</div>
+                        </div>
+                    </div>
+                    
+                    <div class="session-balls">
+                        <div class="balls-title">Забитые шары:</div>
+                        <div class="balls-display">
+                            <div class="ball-icon-stat red">1</div>
+                            <div class="ball-icon-stat red">1</div>
+                            <div class="ball-icon-stat red">1</div>
+                            <div class="ball-icon-stat yellow">2</div>
+                            <div class="ball-icon-stat yellow">2</div>
+                            <div class="ball-icon-stat green">3</div>
+                            <div class="ball-icon-stat green">3</div>
+                            <div class="ball-icon-stat brown">4</div>
+                            <div class="ball-icon-stat blue">5</div>
+                            <div class="ball-icon-stat pink">6</div>
+                            <div class="ball-icon-stat pink">6</div>
+                            <div class="ball-icon-stat black">7</div>
+                            <div class="balls-summary">12 шаров • 0 штрафов</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Session 4 -->
+                <div class="session-card" data-type="americana" data-result="draw">
+                    <div class="session-header">
+                        <div class="session-info">
+                            <div class="session-title">🔴 Американка #1244</div>
+                            <div class="session-meta">20 декабря 2024 • 2 игрока • 28 мин</div>
+                        </div>
+                        <div class="session-result draw">Ничья</div>
+                    </div>
+                    
+                    <div class="session-stats">
+                        <div class="session-stat">
+                            <div class="session-stat-value">15</div>
+                            <div class="session-stat-label">Очки</div>
+                        </div>
+                        <div class="session-stat">
+                            <div class="session-stat-value">0 ₽</div>
+                            <div class="session-stat-label">Результат</div>
+                        </div>
+                        <div class="session-stat">
+                            <div class="session-stat-value">3</div>
+                            <div class="session-stat-label">Штрафы</div>
+                        </div>
+                        <div class="session-stat">
+                            <div class="session-stat-value">-150 ₽</div>
+                            <div class="session-stat-label">Штрафов</div>
+                        </div>
+                    </div>
+                    
+                    <div class="session-balls">
+                        <div class="balls-title">Забитые шары:</div>
+                        <div class="balls-display">
+                            <div class="ball-icon-stat red">1</div>
+                            <div class="ball-icon-stat yellow">2</div>
+                            <div class="ball-icon-stat brown">4</div>
+                            <div class="ball-icon-stat blue">5</div>
+                            <div class="ball-icon-stat pink">6</div>
+                            <div class="ball-icon-stat black">7</div>
+                            <div class="foul-icon-stat">✕</div>
+                            <div class="foul-icon-stat">✕</div>
+                            <div class="foul-icon-stat">✕</div>
+                            <div class="balls-summary">6 шаров • 3 штрафа</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Filter functionality
+        function filterSessions(type) {
+            // Remove active class from all buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+            
+            const sessions = document.querySelectorAll('.session-card');
+            
+            sessions.forEach(session => {
+                let show = true;
+                
+                switch(type) {
+                    case 'all':
+                        show = true;
+                        break;
+                    case 'wins':
+                        show = session.dataset.result === 'win';
+                        break;
+                    case 'recent':
+                        // Show first 3 sessions (most recent)
+                        const index = Array.from(sessions).indexOf(session);
+                        show = index < 3;
+                        break;
+                    case 'kolkhoz':
+                        show = session.dataset.type === 'kolkhoz';
+                        break;
+                    case 'americana':
+                        show = session.dataset.type === 'americana';
+                        break;
+                }
+                
+                session.style.display = show ? 'block' : 'none';
+            });
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📊 Player Statistics Page Loaded');
+            
+            // Add click handlers for session cards
+            document.querySelectorAll('.session-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    console.log('📋 Session clicked:', this.querySelector('.session-title').textContent);
+                    // Here you could navigate to detailed session view
+                });
+            });
+        });
+    </script>
+</body>
+</html>

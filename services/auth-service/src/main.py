@@ -17,51 +17,54 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Управление жизненным циклом приложения"""
+    """Lifecycle management для FastAPI приложения"""
+    # Startup
     try:
-        logger.info("Auth Service starting...")
-        
-        # Импортируем database функции
-        from .core.database import connect_to_db, disconnect_from_db, create_tables
-        
-        # Подключаемся к базе данных
-        await connect_to_db()
-        
-        # Создаем таблицы (только в development)
+        print("🚀 Starting Auth Service...")
+        from .core.database import connect_database, create_tables
+        await connect_database()
         await create_tables()
-        
-        logger.info("Auth Service startup completed successfully!")
+        print("✅ Auth Service startup completed")
         yield
-        
     except Exception as e:
-        logger.error(f"Error during startup: {e}")
+        print(f"❌ Auth Service startup failed: {e}")
         raise
     finally:
-        logger.info("Auth Service shutting down...")
-        
-        # Отключаемся от базы данных
+        # Shutdown
         try:
-            from .core.database import disconnect_from_db
-            await disconnect_from_db()
+            from .core.database import disconnect_database
+            await disconnect_database()
+            print("✅ Auth Service shutdown completed")
         except Exception as e:
-            logger.error(f"Error during shutdown: {e}")
+            print(f"❌ Auth Service shutdown failed: {e}")
 
 # Создание FastAPI приложения
 app = FastAPI(
-    title="Artel Billiards - Auth Service",
+    title="Artel Billiards Auth Service",
+    description="Сервис аутентификации для Artel Billiards",
     version="1.0.0",
-    description="Микросервис аутентификации для Artel Billiards",
     lifespan=lifespan
 )
 
-# CORS middleware
+# CORS настройка
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:3001", 
+        "http://localhost:5173", 
+        "http://localhost:8000",
+        "https://plenty-pants-flash.loca.lt",
+        "https://*.loca.lt"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Подключение роутеров
+from .api.auth import router as auth_router
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
 @app.get("/")
 async def root():
@@ -88,8 +91,9 @@ async def readiness_check():
     return {
         "status": "ready",
         "service": "auth-service",
+        "database": "connected",
         "dependencies": {
-            "database": "not_connected",  # Пока что заглушка
+            "postgres": "connected",
             "redis": "not_connected",
             "rabbitmq": "not_connected"
         }
@@ -101,43 +105,6 @@ async def liveness_check():
     return {
         "status": "alive",
         "service": "auth-service"
-    }
-
-# Простые auth endpoints для тестирования
-@app.post("/auth/telegram")
-async def auth_telegram():
-    """Заглушка для Telegram аутентификации"""
-    return {
-        "message": "Telegram auth endpoint",
-        "status": "working",
-        "note": "This is a test stub"
-    }
-
-@app.post("/auth/google")
-async def auth_google():
-    """Заглушка для Google аутентификации"""
-    return {
-        "message": "Google auth endpoint", 
-        "status": "working",
-        "note": "This is a test stub"
-    }
-
-@app.get("/auth/me")
-async def get_me():
-    """Заглушка для получения текущего пользователя"""
-    return {
-        "message": "Get current user endpoint",
-        "status": "working", 
-        "note": "This is a test stub"
-    }
-
-@app.get("/users/me")
-async def get_my_profile():
-    """Заглушка для профиля пользователя"""
-    return {
-        "message": "User profile endpoint",
-        "status": "working",
-        "note": "This is a test stub"
     }
 
 if __name__ == "__main__":
