@@ -14,13 +14,21 @@ export const INITIAL_BALLS = [
 export const DEFAULT_TEMPLATE_SETTINGS = {
   name: '',
   description: '',
+  gameType: 'kolkhoz' as const,
   ballCount: '15',
   timeLimit: 'none',
   winCondition: 'last',
   turnOrder: 'sequential',
   pointPrice: '10',
   foulPenalty: '50',
-  balls: INITIAL_BALLS
+  balls: INITIAL_BALLS,
+  // Default game type specific fields
+  point_value_rubles: 50,
+  foul_penalty_points: 1,
+  min_players: 2,
+  max_players: 6,
+  game_price_rubles: 500,
+  balls_to_win: 8
 }
 
 // Опции для количества шаров
