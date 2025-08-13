@@ -149,23 +149,26 @@ services:
 
   # React Frontend (Development with hot reload)
   frontend:
-    build:
+    build: 
       context: ./react-app
       dockerfile: Dockerfile.dev
     container_name: artel_frontend_dev
-    environment:
-      - VITE_API_BASE_URL=http://localhost:8000
-      - VITE_WEBSOCKET_URL=ws://localhost:8000
+    volumes:
+      - ./react-app:/app
+      - /app/node_modules
     ports:
       - "5173:5173"
-    # volumes временно отключены для стабильности
-    # volumes:
-    #   - ./react-app/src:/app/src
+    environment:
+      - NODE_ENV=development
+      - VITE_API_BASE_URL=http://localhost:8000
+      - VITE_WEBSOCKET_URL=ws://localhost:8000
+      - VITE_HMR_PORT=false
+      - VITE_TUNNEL_MODE=true
+    networks:
+      - artel_network
     depends_on:
       - api-gateway
     restart: unless-stopped
-    networks:
-      - artel_network
 
   # ==================== DEVELOPMENT TOOLS ====================
 

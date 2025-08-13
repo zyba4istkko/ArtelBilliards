@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artel Billiards - Dashboard</title>
+    <style>
+        /* Design Tokens */
+        :root {
+            /* Colors */
+            --color-primary: #41B3A3;
+            --color-mint: #85DCCB;
+            --color-coral: #E27D60;
+            --color-peach: #E8A87C;
+            --color-rose-purple: #C38D9E;
+            
+            --color-black: #0a0a0a;
+            --color-gray-900: #121212;
+            --color-gray-800: #1a1a1a;
+            --color-gray-700: #2a2a2a;
+            --color-gray-600: #333333;
+            --color-gray-300: #b0b0b0;
+            --color-white: #ffffff;
+            
+            --color-success: #22c55e;
+            --color-warning: #f59e0b;
+            --color-error: #ef4444;
+            
+            /* Typography */
+            --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            
+            /* Spacing */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --spacing-xl: 24px;
+            --spacing-2xl: 32px;
+            --spacing-3xl: 48px;
+            
+            /* Radii */
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 18px;
+            --radius-xl: 24px;
+            --radius-pill: 999px;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+            --shadow-md: 0 6px 16px rgba(0,0,0,0.16);
+            --shadow-lg: 0 12px 28px rgba(0,0,0,0.22);
+            --shadow-glow-mint: 0 10px 20px rgba(133, 220, 203, 0.25);
+            --shadow-glow-coral: 0 10px 20px rgba(226, 125, 96, 0.25);
+            
+            /* Transitions */
+            --transition-fast: 150ms ease-in-out;
+            --transition-normal: 250ms ease-in-out;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-family);
+            background: var(--color-black);
+            color: var(--color-white);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+        }
+        
+        /* Header */
+        .header {
+            background: var(--color-gray-800);
+            border-bottom: 1px solid var(--color-gray-600);
+            padding: var(--spacing-lg) 0;
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--color-mint);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--color-mint), var(--color-coral));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+        
+        /* Quick Actions */
+        .section {
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-mint);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .action-card {
+            background: var(--color-gray-800);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            transition: all var(--transition-normal);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .action-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-glow-mint);
+            border-color: var(--color-mint);
+        }
+        
+        .action-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--color-coral), var(--color-peach));
+        }
+        
+        .action-icon {
+            font-size: 32px;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .action-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--color-white);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .action-description {
+            color: var(--color-gray-300);
+            font-size: 14px;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .action-button {
+            background: var(--color-primary);
+            color: var(--color-white);
+            border: none;
+            border-radius: var(--radius-pill);
+            padding: var(--spacing-md) var(--spacing-xl);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            font-size: 14px;
+        }
+        
+        .action-button:hover {
+            background: #369488;
+            transform: scale(1.02);
+        }
+        
+        /* Active Games */
+        .active-games {
+            background: var(--color-gray-800);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .game-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-md);
+            background: var(--color-gray-700);
+            margin-bottom: var(--spacing-md);
+            transition: all var(--transition-fast);
+        }
+        
+        .game-item:hover {
+            background: var(--color-gray-600);
+        }
+        
+        .game-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .game-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        
+        .game-type {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--color-success);
+        }
+        
+        .game-type.waiting {
+            background: var(--color-warning);
+        }
+        
+        .game-status {
+            background: var(--color-success);
+            color: var(--color-white);
+            padding: var(--spacing-xs) var(--spacing-md);
+            border-radius: var(--radius-pill);
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .game-status.waiting {
+            background: var(--color-warning);
+        }
+        
+        /* Recent Results */
+        .recent-results {
+            background: var(--color-gray-800);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-lg) 0;
+            border-bottom: 1px solid var(--color-gray-600);
+        }
+        
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .result-outcome {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        
+        .result-outcome.win {
+            background: var(--color-success);
+        }
+        
+        .result-outcome.loss {
+            background: var(--color-error);
+        }
+        
+        .result-outcome.tournament {
+            background: var(--color-peach);
+        }
+        
+        .result-time {
+            color: var(--color-gray-300);
+            font-size: 12px;
+        }
+        
+        /* Stats Overview */
+        .stats-overview {
+            background: linear-gradient(135deg, var(--color-gray-800) 0%, rgba(65, 179, 163, 0.1) 50%, var(--color-gray-800) 100%);
+            border: 1px solid var(--color-mint);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--color-mint);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .stat-label {
+            color: var(--color-gray-300);
+            font-size: 14px;
+        }
+        
+        .progress-bar {
+            background: var(--color-gray-600);
+            border-radius: var(--radius-pill);
+            height: 8px;
+            overflow: hidden;
+            margin-top: var(--spacing-md);
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, var(--color-mint), var(--color-coral));
+            height: 100%;
+            width: 80%;
+            border-radius: var(--radius-pill);
+            transition: width var(--transition-normal);
+        }
+        
+        .level-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .level-text {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .container {
+                padding: var(--spacing-md);
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: var(--spacing-md);
+                text-align: center;
+            }
+            
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-lg);
+            }
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .section {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        .section:nth-child(2) { animation-delay: 0.1s; }
+        .section:nth-child(3) { animation-delay: 0.2s; }
+        .section:nth-child(4) { animation-delay: 0.3s; }
+        .section:nth-child(5) { animation-delay: 0.4s; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">🎱 Artel Billiards</div>
+                <div class="user-info">
+                    <span>Александр</span>
+                    <div class="avatar">А</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Quick Actions -->
+        <section class="section">
+            <h2 class="section-title">Быстрые действия</h2>
+            <div class="quick-actions">
+                <div class="action-card">
+                    <div class="action-icon">🎮</div>
+                    <h3 class="action-title">Быстрая игра</h3>
+                    <p class="action-description">Начни игру с готовыми настройками</p>
+                    <button class="action-button">Играть сейчас</button>
+                </div>
+                
+                <div class="action-card">
+                    <div class="action-icon">📋</div>
+                    <h3 class="action-title">Шаблоны игр</h3>
+                    <p class="action-description">Выбери из готовых настроек</p>
+                    <button class="action-button">Посмотреть</button>
+                </div>
+                
+                <div class="action-card">
+                    <div class="action-icon">📊</div>
+                    <h3 class="action-title">Статистика</h3>
+                    <p class="action-description">Посмотри свой прогресс</p>
+                    <button class="action-button">Открыть</button>
+                </div>
+                
+                <div class="action-card">
+                    <div class="action-icon">👥</div>
+                    <h3 class="action-title">Друзья</h3>
+                    <p class="action-description">Играй с друзьями</p>
+                    <button class="action-button">Управлять</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Active Games -->
+        <section class="section">
+            <h2 class="section-title">Активные игры</h2>
+            <div class="active-games">
+                <div class="game-item">
+                    <div class="game-info">
+                        <div class="game-type"></div>
+                        <div>
+                            <div style="font-weight: 600;">🎱 Колхоз с Игорем</div>
+                            <div style="font-size: 12px; color: var(--color-gray-300);">Начата 15 минут назад</div>
+                        </div>
+                    </div>
+                    <div class="game-status">В процессе</div>
+                </div>
+                
+                <div class="game-item">
+                    <div class="game-info">
+                        <div class="game-type waiting"></div>
+                        <div>
+                            <div style="font-weight: 600;">⚫ Американка</div>
+                            <div style="font-size: 12px; color: var(--color-gray-300);">Ожидает игроков</div>
+                        </div>
+                    </div>
+                    <div class="game-status waiting">Ожидание</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Results -->
+        <section class="section">
+            <h2 class="section-title">Недавние результаты</h2>
+            <div class="recent-results">
+                <div class="result-item">
+                    <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+                        <div class="result-outcome win">✓</div>
+                        <div>
+                            <div style="font-weight: 600;">🔺 Пирамида: Победа</div>
+                            <div style="font-size: 12px; color: var(--color-gray-300);">vs Игорь, Алексей</div>
+                        </div>
+                    </div>
+                    <div class="result-time">вчера</div>
+                </div>
+                
+                <div class="result-item">
+                    <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+                        <div class="result-outcome loss">✗</div>
+                        <div>
+                            <div style="font-weight: 600;">🎱 Колхоз: Поражение</div>
+                            <div style="font-size: 12px; color: var(--color-gray-300);">vs Михаил</div>
+                        </div>
+                    </div>
+                    <div class="result-time">2 дня назад</div>
+                </div>
+                
+                <div class="result-item">
+                    <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+                        <div class="result-outcome tournament">🏆</div>
+                        <div>
+                            <div style="font-weight: 600;">Турнир "Золотой кий": 2 место</div>
+                            <div style="font-size: 12px; color: var(--color-gray-300);">8 участников</div>
+                        </div>
+                    </div>
+                    <div class="result-time">неделя назад</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Overview -->
+        <section class="section">
+            <h2 class="section-title">Твоя статистика</h2>
+            <div class="stats-overview">
+                <div class="level-info">
+                    <span class="level-text">Уровень: Опытный</span>
+                    <span style="color: var(--color-gray-300); font-size: 14px;">80% до следующего</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">47</div>
+                        <div class="stat-label">Всего игр</div>
+                    </div>
+                    
+                    <div class="stat-item">
+                        <div class="stat-value" style="color: var(--color-success);">32</div>
+                        <div class="stat-label">Побед (68%)</div>
+                    </div>
+                    
+                    <div class="stat-item">
+                        <div class="stat-value" style="color: var(--color-coral);">12</div>
+                        <div class="stat-label">Лучшая серия</div>
+                    </div>
+                    
+                    <div class="stat-item">
+                        <div class="stat-value" style="color: var(--color-peach);">84%</div>
+                        <div class="stat-label">Точность</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

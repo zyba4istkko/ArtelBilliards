@@ -10,6 +10,7 @@ import AppLayout from './components/layout/AppLayout'
 // Pages
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
 import TemplatesPage from './pages/TemplatesPage'
 import SessionPage from './pages/SessionPage'
 import GamePage from './pages/GamePage'
@@ -18,17 +19,8 @@ import ProfilePage from './pages/ProfilePage'
 import NotFoundPage from './pages/NotFoundPage'
 
 // Create Material UI theme
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
-})
+import buildTheme from './styles/theme'
+const theme = buildTheme()
 
 // Create a client for React Query
 const queryClient = new QueryClient({

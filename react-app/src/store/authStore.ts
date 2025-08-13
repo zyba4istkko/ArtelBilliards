@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { apiClient } from '../api/client'
 import { telegramWebApp } from '../api/telegram'
+import type { User, AuthResponse } from '../api/types'
 
 interface AuthState {
   // State

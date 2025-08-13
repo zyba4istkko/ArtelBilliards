@@ -74,9 +74,19 @@ async def telegram_auth(
         # Получаем или создаем пользователя
         user = await auth_service.get_or_create_telegram_user(telegram_data)
         
-        # Создаем сессию
+        # Генерируем токены
+        access_token = jwt_manager.create_access_token(
+            data={"user_id": str(user.id)}
+        )
+        refresh_token = jwt_manager.create_refresh_token(
+            data={"user_id": str(user.id)}
+        )
+        
+        # Создаем сессию с токенами
         session = await auth_service.create_session(
             user_id=user.id,
+            access_token=access_token,
+            refresh_token=refresh_token,
             ip_address=http_request.client.host,
             user_agent=http_request.headers.get("user-agent"),
             device_info={
@@ -84,17 +94,6 @@ async def telegram_auth(
                 "start_param": request.start_param
             }
         )
-        
-        # Генерируем токены
-        access_token = jwt_manager.create_access_token(
-            data={"user_id": str(user.id), "session_id": str(session.id)}
-        )
-        refresh_token = jwt_manager.create_refresh_token(
-            data={"user_id": str(user.id), "session_id": str(session.id)}
-        )
-        
-        # Сохраняем токены в сессии
-        await auth_service.update_session_tokens(session.id, access_token, refresh_token)
         
         # Логируем успешный вход
         await auth_service.log_auth_event(
@@ -156,24 +155,23 @@ async def google_auth(
         # Получаем или создаем пользователя
         user = await auth_service.get_or_create_google_user(google_data)
         
-        # Создаем сессию
+        # Генерируем токены
+        access_token = jwt_manager.create_access_token(
+            data={"user_id": str(user.id)}
+        )
+        refresh_token = jwt_manager.create_refresh_token(
+            data={"user_id": str(user.id)}
+        )
+        
+        # Создаем сессию с токенами
         session = await auth_service.create_session(
             user_id=user.id,
+            access_token=access_token,
+            refresh_token=refresh_token,
             ip_address=http_request.client.host,
             user_agent=http_request.headers.get("user-agent"),
             device_info={"platform": "google"}
         )
-        
-        # Генерируем токены
-        access_token = jwt_manager.create_access_token(
-            data={"user_id": str(user.id), "session_id": str(session.id)}
-        )
-        refresh_token = jwt_manager.create_refresh_token(
-            data={"user_id": str(user.id), "session_id": str(session.id)}
-        )
-        
-        # Сохраняем токены в сессии
-        await auth_service.update_session_tokens(session.id, access_token, refresh_token)
         
         # Логируем успешный вход
         await auth_service.log_auth_event(

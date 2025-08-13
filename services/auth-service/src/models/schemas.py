@@ -1,11 +1,11 @@
 """
-Pydantic модели для API Auth Service
+Pydantic модели для Auth Service
 """
 
-from pydantic import BaseModel, EmailStr, validator, Field
-from typing import Optional, Dict, Any, List
 from datetime import datetime
+from typing import Optional, Dict, Any, List
 from uuid import UUID
+from pydantic import BaseModel
 from enum import Enum
 
 from .database import UserRole, AuthProvider, SessionStatus
@@ -15,33 +15,27 @@ from .database import UserRole, AuthProvider, SessionStatus
 
 class TelegramAuthRequest(BaseModel):
     """Запрос аутентификации через Telegram"""
-    init_data: str = Field(..., description="Данные инициализации от Telegram")
-    start_param: Optional[str] = Field(None, description="Стартовый параметр")
+    init_data: str
+    start_param: Optional[str] = None
 
 class GoogleAuthRequest(BaseModel):
     """Запрос аутентификации через Google"""
-    id_token: str = Field(..., description="Google ID Token")
+    id_token: str
 
 class EmailAuthRequest(BaseModel):
     """Запрос аутентификации через email"""
-    email: EmailStr
-    password: str = Field(..., min_length=8)
+    email: str
+    password: str
 
 class RegisterRequest(BaseModel):
     """Запрос регистрации пользователя"""
-    username: str = Field(..., min_length=3, max_length=50)
-    email: Optional[EmailStr] = None
-    password: Optional[str] = Field(None, min_length=8)
-    first_name: Optional[str] = Field(None, max_length=100)
-    last_name: Optional[str] = Field(None, max_length=100)
-    language_code: Optional[str] = Field("ru", max_length=10)
-    timezone: Optional[str] = Field("UTC", max_length=50)
-
-    @validator('username')
-    def validate_username(cls, v):
-        if not v.isalnum() and '_' not in v:
-            raise ValueError('Username must contain only letters, numbers and underscores')
-        return v.lower()
+    username: str
+    email: Optional[str] = None
+    password: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    language_code: Optional[str] = "ru"
+    timezone: Optional[str] = "UTC"
 
 class AuthResponse(BaseModel):
     """Ответ при успешной аутентификации"""
@@ -66,7 +60,7 @@ class LogoutRequest(BaseModel):
 class UserBase(BaseModel):
     """Базовая модель пользователя"""
     username: str
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     phone: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -81,7 +75,7 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     """Модель обновления пользователя"""
     username: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     phone: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -110,7 +104,7 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class UserProfile(UserResponse):
+class UserProfile(BaseModel):
     """Расширенный профиль пользователя"""
     providers: List["AuthProviderResponse"] = []
     active_sessions_count: int = 0
@@ -180,7 +174,7 @@ class ErrorResponse(BaseModel):
     """Стандартный ответ с ошибкой"""
     error: str
     details: Optional[List[ErrorDetail]] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = datetime.utcnow()
 
 
 # ==================== HEALTH SCHEMAS ====================
@@ -188,7 +182,7 @@ class ErrorResponse(BaseModel):
 class HealthResponse(BaseModel):
     """Ответ проверки здоровья сервиса"""
     status: str = "healthy"
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = datetime.utcnow()
     version: str = "1.0.0"
     dependencies: Dict[str, str] = {}
 

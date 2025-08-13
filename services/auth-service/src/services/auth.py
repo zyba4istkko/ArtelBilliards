@@ -232,6 +232,8 @@ class AuthService:
     async def create_session(
         self,
         user_id: UUID,
+        access_token: str,
+        refresh_token: str,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
         device_info: Optional[Dict[str, Any]] = None
@@ -251,8 +253,10 @@ class AuthService:
         query = user_sessions_table.insert().values(
             id=session_id,
             user_id=user_id,
-            session_token="",  # Будет обновлен после создания JWT
-            refresh_token="",  # Будет обновлен после создания JWT
+            access_token_hash=access_token,
+            refresh_token_hash=refresh_token,
+            session_token=access_token,
+            refresh_token=refresh_token,
             device_info=device_info,
             ip_address=ip_address,
             user_agent=user_agent,
