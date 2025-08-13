@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Друзья - Artel Billiards</title>
+    <style>
+        :root {
+            /* Colors */
+            --coral: #E27D60;
+            --peach: #E8A87C;
+            --rose-purple: #C38D9E;
+            --dark-teal: #41B3A3;
+            --mint: #85DCCB;
+            
+            --black: #0a0a0a;
+            --gray-900: #121212;
+            --gray-800: #1a1a1a;
+            --gray-700: #2a2a2a;
+            --gray-600: #333333;
+            --gray-500: #4f4f4f;
+            --gray-400: #7a7a7a;
+            --gray-300: #b0b0b0;
+            --gray-200: #d9d9d9;
+            --gray-100: #efefef;
+            --white: #ffffff;
+            
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #0ea5e9;
+            
+            /* Typography */
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            
+            /* Spacing */
+            --space-xs: 0.25rem;
+            --space-sm: 0.5rem;
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+            --space-xl: 2rem;
+            --space-2xl: 3rem;
+            
+            /* Border Radius */
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            
+            /* Transitions */
+            --transition-fast: 150ms ease;
+            --transition-normal: 300ms ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: linear-gradient(135deg, var(--black) 0%, var(--gray-900) 100%);
+            color: var(--white);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: var(--space-xl);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-2xl);
+            padding-bottom: var(--space-lg);
+            border-bottom: 1px solid var(--gray-700);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .back-btn {
+            background: var(--gray-700);
+            border: none;
+            color: var(--white);
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .back-btn:hover {
+            background: var(--gray-600);
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--white);
+        }
+
+        .friends-count {
+            color: var(--gray-400);
+            font-size: 0.875rem;
+        }
+
+        .add-friend-btn {
+            background: var(--dark-teal);
+            color: var(--white);
+            border: none;
+            padding: var(--space-md) var(--space-lg);
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .add-friend-btn:hover {
+            background: #368a7d;
+            transform: translateY(-1px);
+        }
+
+        /* Search */
+        .search-section {
+            background: var(--gray-800);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            border: 1px solid var(--gray-700);
+            margin-bottom: var(--space-xl);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: var(--space-md);
+            background: var(--gray-700);
+            border: 2px solid var(--gray-600);
+            border-radius: var(--radius-md);
+            color: var(--white);
+            font-size: 1rem;
+            transition: var(--transition-fast);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--dark-teal);
+            box-shadow: 0 0 0 3px rgba(65, 179, 163, 0.1);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: var(--gray-800);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xs);
+            margin-bottom: var(--space-xl);
+            border: 1px solid var(--gray-700);
+        }
+
+        .tab {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--gray-400);
+            padding: var(--space-md);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: var(--transition-fast);
+            font-weight: 500;
+        }
+
+        .tab.active {
+            background: var(--dark-teal);
+            color: var(--white);
+        }
+
+        .tab:hover:not(.active) {
+            color: var(--white);
+            background: var(--gray-700);
+        }
+
+        /* Friends list */
+        .friends-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        .friend-card {
+            background: var(--gray-800);
+            border: 1px solid var(--gray-700);
+            border-radius: var(--radius-xl);
+            padding: var(--space-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            transition: var(--transition-fast);
+            cursor: pointer;
+        }
+
+        .friend-card:hover {
+            background: var(--gray-700);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .friend-avatar {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--dark-teal) 0%, var(--mint) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--white);
+            font-weight: 600;
+        }
+
+        .online-indicator {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 3px solid var(--gray-800);
+        }
+
+        .online-indicator.online {
+            background: var(--success);
+        }
+
+        .online-indicator.offline {
+            background: var(--gray-500);
+        }
+
+        .online-indicator.in-game {
+            background: var(--warning);
+        }
+
+        .friend-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .friend-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: var(--space-xs);
+        }
+
+        .friend-username {
+            color: var(--gray-400);
+            font-size: 0.875rem;
+            margin-bottom: var(--space-sm);
+        }
+
+        .friend-status {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-size: 0.875rem;
+        }
+
+        .status-online {
+            color: var(--success);
+        }
+
+        .status-offline {
+            color: var(--gray-400);
+        }
+
+        .status-in-game {
+            color: var(--warning);
+        }
+
+        .friend-stats {
+            display: flex;
+            gap: var(--space-lg);
+            color: var(--gray-400);
+            font-size: 0.875rem;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .stat-value {
+            color: var(--white);
+            font-weight: 600;
+        }
+
+        .friend-actions {
+            display: flex;
+            gap: var(--space-sm);
+            flex-shrink: 0;
+        }
+
+        .action-btn {
+            background: var(--gray-600);
+            border: none;
+            color: var(--white);
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            font-size: 0.875rem;
+        }
+
+        .action-btn:hover {
+            background: var(--gray-500);
+            transform: translateY(-1px);
+        }
+
+        .action-btn.primary {
+            background: var(--dark-teal);
+        }
+
+        .action-btn.primary:hover {
+            background: #368a7d;
+        }
+
+        .action-btn.danger {
+            background: var(--error);
+        }
+
+        .action-btn.danger:hover {
+            background: #dc2626;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: var(--space-2xl);
+            color: var(--gray-400);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: var(--space-lg);
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: var(--space-sm);
+            color: var(--gray-300);
+        }
+
+        .empty-text {
+            margin-bottom: var(--space-lg);
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--gray-800);
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            border: 1px solid var(--gray-700);
+            width: 90%;
+            max-width: 500px;
+            box-shadow: var(--shadow-xl);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-xl);
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: var(--space-sm);
+            border-radius: var(--radius-sm);
+            transition: var(--transition-fast);
+        }
+
+        .close-btn:hover {
+            color: var(--white);
+            background: var(--gray-700);
+        }
+
+        .form-group {
+            margin-bottom: var(--space-lg);
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: var(--space-sm);
+            color: var(--gray-200);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: var(--space-md);
+            background: var(--gray-700);
+            border: 2px solid var(--gray-600);
+            border-radius: var(--radius-md);
+            color: var(--white);
+            font-size: 1rem;
+            transition: var(--transition-fast);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--dark-teal);
+            box-shadow: 0 0 0 3px rgba(65, 179, 163, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: var(--space-md);
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: var(--space-md) var(--space-lg);
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--dark-teal);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: #368a7d;
+        }
+
+        .btn-secondary {
+            background: var(--gray-600);
+            color: var(--white);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-500);
+        }
+
+        /* Alert */
+        .alert {
+            padding: var(--space-md);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-lg);
+            border: 1px solid;
+            display: none;
+        }
+
+        .alert.success {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .alert.error {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: var(--space-md);
+            }
+
+            .header {
+                flex-direction: column;
+                gap: var(--space-md);
+                align-items: stretch;
+            }
+
+            .header-left {
+                justify-content: space-between;
+            }
+
+            .friend-card {
+                flex-direction: column;
+                text-align: center;
+                gap: var(--space-md);
+            }
+
+            .friend-stats {
+                justify-content: center;
+            }
+
+            .friend-actions {
+                justify-content: center;
+            }
+
+            .page-title {
+                font-size: 1.5rem;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: var(--space-lg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <button class="back-btn" onclick="goBack()">←</button>
+                <div>
+                    <h1 class="page-title">Друзья</h1>
+                    <div class="friends-count" id="friendsCount">5 друзей</div>
+                </div>
+            </div>
+            <button class="add-friend-btn" onclick="showAddFriendModal()">
+                <span>+</span>
+                <span>Добавить друга</span>
+            </button>
+        </div>
+
+        <!-- Alert -->
+        <div id="alert" class="alert">
+            <span id="alert-message"></span>
+        </div>
+
+        <!-- Search -->
+        <div class="search-section">
+            <input 
+                type="text" 
+                class="search-input" 
+                placeholder="Поиск друзей по имени или username..."
+                id="searchInput"
+                oninput="filterFriends()"
+            >
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('all')" id="tabAll">
+                Все друзья
+            </button>
+            <button class="tab" onclick="switchTab('online')" id="tabOnline">
+                Онлайн (3)
+            </button>
+            <button class="tab" onclick="switchTab('requests')" id="tabRequests">
+                Заявки (2)
+            </button>
+        </div>
+
+        <!-- Friends List -->
+        <div class="friends-list" id="friendsList">
+            <!-- Friends will be rendered here -->
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">👥</div>
+            <div class="empty-title">Друзей не найдено</div>
+            <div class="empty-text">Попробуйте изменить поисковой запрос или добавьте новых друзей</div>
+        </div>
+    </div>
+
+    <!-- Add Friend Modal -->
+    <div class="modal" id="addFriendModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Добавить друга</h2>
+                <button class="close-btn" onclick="hideAddFriendModal()">&times;</button>
+            </div>
+            
+            <form id="addFriendForm" onsubmit="addFriend(event)">
+                <div class="form-group">
+                    <label class="form-label">Username или email</label>
+                    <input 
+                        type="text" 
+                        class="form-input" 
+                        id="friendInput"
+                        placeholder="@username или email@example.com"
+                        required
+                    >
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideAddFriendModal()">
+                        Отмена
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Отправить заявку
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Sample data
+        const friendsData = [
+            {
+                id: 1,
+                name: 'Михаил Иванов',
+                username: 'misha_pool',
+                avatar: 'М',
+                status: 'online',
+                lastSeen: 'Сейчас',
+                gamesPlayed: 23,
+                winRate: 67,
+                level: 'Продвинутый'
+            },
+            {
+                id: 2,
+                name: 'Анна Смирнова',
+                username: 'anna_cue',
+                avatar: 'А',
+                status: 'in-game',
+                lastSeen: 'В игре',
+                gamesPlayed: 15,
+                winRate: 53,
+                level: 'Средний'
+            },
+            {
+                id: 3,
+                name: 'Дмитрий Козлов',
+                username: 'dima_break',
+                avatar: 'Д',
+                status: 'online',
+                lastSeen: '5 мин назад',
+                gamesPlayed: 31,
+                winRate: 74,
+                level: 'Профи'
+            },
+            {
+                id: 4,
+                name: 'Елена Петрова',
+                username: 'lena_8ball',
+                avatar: 'Е',
+                status: 'offline',
+                lastSeen: '2 часа назад',
+                gamesPlayed: 8,
+                winRate: 38,
+                level: 'Новичок'
+            },
+            {
+                id: 5,
+                name: 'Сергей Волков',
+                username: 'sergey_pro',
+                avatar: 'С',
+                status: 'online',
+                lastSeen: 'Сейчас',
+                gamesPlayed: 42,
+                winRate: 81,
+                level: 'Профи'
+            }
+        ];
+
+        const friendRequests = [
+            {
+                id: 6,
+                name: 'Игорь Новиков',
+                username: 'igor_shark',
+                avatar: 'И',
+                type: 'incoming'
+            },
+            {
+                id: 7,
+                name: 'Мария Кузнецова',
+                username: 'mary_cue',
+                avatar: 'М',
+                type: 'outgoing'
+            }
+        ];
+
+        let currentTab = 'all';
+        let searchQuery = '';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            renderFriends();
+            updateFriendsCount();
+        });
+
+        // Tab switching
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            // Update tab appearance
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.add('active');
+            
+            renderFriends();
+        }
+
+        // Filter friends
+        function filterFriends() {
+            searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            renderFriends();
+        }
+
+        // Render friends list
+        function renderFriends() {
+            const friendsList = document.getElementById('friendsList');
+            const emptyState = document.getElementById('emptyState');
+            let dataToRender = [];
+
+            if (currentTab === 'all') {
+                dataToRender = friendsData.filter(friend => 
+                    friend.name.toLowerCase().includes(searchQuery) ||
+                    friend.username.toLowerCase().includes(searchQuery)
+                );
+            } else if (currentTab === 'online') {
+                dataToRender = friendsData.filter(friend => 
+                    (friend.status === 'online' || friend.status === 'in-game') &&
+                    (friend.name.toLowerCase().includes(searchQuery) ||
+                     friend.username.toLowerCase().includes(searchQuery))
+                );
+            } else if (currentTab === 'requests') {
+                dataToRender = friendRequests.filter(request =>
+                    request.name.toLowerCase().includes(searchQuery) ||
+                    request.username.toLowerCase().includes(searchQuery)
+                );
+            }
+
+            if (dataToRender.length === 0) {
+                friendsList.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            friendsList.style.display = 'flex';
+            emptyState.style.display = 'none';
+
+            if (currentTab === 'requests') {
+                friendsList.innerHTML = dataToRender.map(request => createRequestCard(request)).join('');
+            } else {
+                friendsList.innerHTML = dataToRender.map(friend => createFriendCard(friend)).join('');
+            }
+        }
+
+        // Create friend card
+        function createFriendCard(friend) {
+            const statusClass = `status-${friend.status.replace('-', '-')}`;
+            const statusText = {
+                'online': 'Онлайн',
+                'offline': 'Не в сети',
+                'in-game': 'В игре'
+            }[friend.status];
+
+            return `
+                <div class="friend-card" onclick="viewProfile(${friend.id})">
+                    <div class="friend-avatar">
+                        <div class="avatar">${friend.avatar}</div>
+                        <div class="online-indicator ${friend.status}"></div>
+                    </div>
+                    
+                    <div class="friend-info">
+                        <div class="friend-name">${friend.name}</div>
+                        <div class="friend-username">@${friend.username}</div>
+                        <div class="friend-status">
+                            <span class="${statusClass}">${statusText}</span>
+                            <span>•</span>
+                            <span>${friend.lastSeen}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="friend-stats">
+                        <div class="stat">
+                            <div class="stat-value">${friend.gamesPlayed}</div>
+                            <div>Игр</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">${friend.winRate}%</div>
+                            <div>Побед</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">${friend.level}</div>
+                            <div>Уровень</div>
+                        </div>
+                    </div>
+                    
+                    <div class="friend-actions" onclick="event.stopPropagation()">
+                        ${friend.status === 'online' || friend.status === 'in-game' ? 
+                            `<button class="action-btn primary" onclick="inviteToGame(${friend.id})" title="Пригласить в игру">🎱</button>` : ''
+                        }
+                        <button class="action-btn" onclick="sendMessage(${friend.id})" title="Написать сообщение">💬</button>
+                        <button class="action-btn danger" onclick="removeFriend(${friend.id})" title="Удалить из друзей">🗑️</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Create request card
+        function createRequestCard(request) {
+            const isIncoming = request.type === 'incoming';
+            return `
+                <div class="friend-card">
+                    <div class="friend-avatar">
+                        <div class="avatar">${request.avatar}</div>
+                    </div>
+                    
+                    <div class="friend-info">
+                        <div class="friend-name">${request.name}</div>
+                        <div class="friend-username">@${request.username}</div>
+                        <div class="friend-status">
+                            <span class="status-offline">
+                                ${isIncoming ? 'Хочет добавить вас в друзья' : 'Заявка отправлена'}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="friend-actions">
+                        ${isIncoming ? `
+                            <button class="action-btn primary" onclick="acceptRequest(${request.id})" title="Принять">✓</button>
+                            <button class="action-btn danger" onclick="rejectRequest(${request.id})" title="Отклонить">✕</button>
+                        ` : `
+                            <button class="action-btn danger" onclick="cancelRequest(${request.id})" title="Отменить заявку">✕</button>
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update friends count
+        function updateFriendsCount() {
+            const count = friendsData.length;
+            const onlineCount = friendsData.filter(f => f.status === 'online' || f.status === 'in-game').length;
+            const requestsCount = friendRequests.length;
+            
+            document.getElementById('friendsCount').textContent = `${count} ${count === 1 ? 'друг' : count < 5 ? 'друга' : 'друзей'}`;
+            document.getElementById('tabOnline').textContent = `Онлайн (${onlineCount})`;
+            document.getElementById('tabRequests').textContent = `Заявки (${requestsCount})`;
+        }
+
+        // Show alert
+        function showAlert(message, type = 'success') {
+            const alert = document.getElementById('alert');
+            const alertMessage = document.getElementById('alert-message');
+            
+            alert.className = `alert ${type} show`;
+            alertMessage.textContent = message;
+
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 3000);
+        }
+
+        // Modal functions
+        function showAddFriendModal() {
+            document.getElementById('addFriendModal').classList.add('show');
+            document.getElementById('friendInput').focus();
+        }
+
+        function hideAddFriendModal() {
+            document.getElementById('addFriendModal').classList.remove('show');
+            document.getElementById('addFriendForm').reset();
+        }
+
+        // Add friend
+        function addFriend(event) {
+            event.preventDefault();
+            const input = document.getElementById('friendInput').value.trim();
+            
+            if (!input) return;
+
+            // Simulate API call
+            setTimeout(() => {
+                // Add to pending requests
+                friendRequests.push({
+                    id: Date.now(),
+                    name: 'Новый пользователь',
+                    username: input.replace('@', '').replace(/@.*/, ''),
+                    avatar: input[0].toUpperCase(),
+                    type: 'outgoing'
+                });
+
+                updateFriendsCount();
+                if (currentTab === 'requests') {
+                    renderFriends();
+                }
+
+                hideAddFriendModal();
+                showAlert('Заявка в друзья отправлена!');
+            }, 500);
+        }
+
+        // Friend actions
+        function viewProfile(friendId) {
+            console.log('View profile:', friendId);
+            showAlert('Просмотр профиля будет реализован позже', 'info');
+        }
+
+        function inviteToGame(friendId) {
+            const friend = friendsData.find(f => f.id === friendId);
+            showAlert(`Приглашение в игру отправлено ${friend.name}!`);
+        }
+
+        function sendMessage(friendId) {
+            const friend = friendsData.find(f => f.id === friendId);
+            showAlert(`Чат с ${friend.name} будет реализован позже`, 'info');
+        }
+
+        function removeFriend(friendId) {
+            const friend = friendsData.find(f => f.id === friendId);
+            if (confirm(`Удалить ${friend.name} из друзей?`)) {
+                const index = friendsData.findIndex(f => f.id === friendId);
+                friendsData.splice(index, 1);
+                updateFriendsCount();
+                renderFriends();
+                showAlert(`${friend.name} удален из друзей`);
+            }
+        }
+
+        function acceptRequest(requestId) {
+            const request = friendRequests.find(r => r.id === requestId);
+            
+            // Move to friends
+            friendsData.push({
+                id: request.id,
+                name: request.name,
+                username: request.username,
+                avatar: request.avatar,
+                status: 'offline',
+                lastSeen: 'Недавно',
+                gamesPlayed: 0,
+                winRate: 0,
+                level: 'Новичок'
+            });
+
+            // Remove from requests
+            const index = friendRequests.findIndex(r => r.id === requestId);
+            friendRequests.splice(index, 1);
+
+            updateFriendsCount();
+            renderFriends();
+            showAlert(`${request.name} добавлен в друзья!`);
+        }
+
+        function rejectRequest(requestId) {
+            const request = friendRequests.find(r => r.id === requestId);
+            const index = friendRequests.findIndex(r => r.id === requestId);
+            friendRequests.splice(index, 1);
+
+            updateFriendsCount();
+            renderFriends();
+            showAlert(`Заявка от ${request.name} отклонена`);
+        }
+
+        function cancelRequest(requestId) {
+            const request = friendRequests.find(r => r.id === requestId);
+            const index = friendRequests.findIndex(r => r.id === requestId);
+            friendRequests.splice(index, 1);
+
+            updateFriendsCount();
+            renderFriends();
+            showAlert(`Заявка к ${request.name} отменена`);
+        }
+
+        // Navigation
+        function goBack() {
+            window.location.href = 'dashboard-preview.html';
+        }
+
+        // Close modal on outside click
+        document.getElementById('addFriendModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideAddFriendModal();
+            }
+        });
+    </script>
+</body>
+</html>

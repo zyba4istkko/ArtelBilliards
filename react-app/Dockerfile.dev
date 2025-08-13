@@ -3,23 +3,29 @@ FROM node:20-alpine
 # Рабочая директория внутри контейнера
 WORKDIR /app
 
-# Устанавливаем curl и libc6-compat для совместимости с Rollup
+# Устанавливаем системные зависимости
 RUN apk add --no-cache curl libc6-compat
 
-# Обновляем npm до последней версии
+# Обновляем npm
 RUN npm install -g npm@latest
 
-# Копируем package.json и lock файл
+# Копируем package files
 COPY package*.json ./
 
-# Устанавливаем зависимости с принудительной установкой
+# Устанавливаем зависимости
 RUN npm install --force
 
-# Копируем исходный код
+# Устанавливаем serve для production
+RUN npm install -g serve
+
+# Копируем исходники
 COPY . .
+
+# Собираем production версию
+RUN npm run build-tunnel
 
 # Открываем порт Vite
 EXPOSE 5173
 
-# Запускаем dev-сервер
-CMD ["npm", "run", "dev"] 
+# Запускаем статический сервер для туннеля
+CMD ["serve", "-s", "dist", "-l", "5173"] 

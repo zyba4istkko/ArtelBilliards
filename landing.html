@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artel Billiards - Веди счет своих игр в бильярд</title>
+    <style>
+        /* Design Tokens */
+        :root {
+            /* Colors */
+            --color-primary: #41B3A3;
+            --color-mint: #85DCCB;
+            --color-coral: #E27D60;
+            --color-peach: #E8A87C;
+            --color-rose-purple: #C38D9E;
+            
+            --color-black: #0a0a0a;
+            --color-gray-900: #121212;
+            --color-gray-800: #1a1a1a;
+            --color-gray-700: #2a2a2a;
+            --color-gray-600: #333333;
+            --color-gray-300: #b0b0b0;
+            --color-white: #ffffff;
+            
+            --color-success: #22c55e;
+            --color-warning: #f59e0b;
+            --color-error: #ef4444;
+            
+            /* Typography */
+            --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            
+            /* Spacing */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --spacing-xl: 24px;
+            --spacing-2xl: 32px;
+            --spacing-3xl: 48px;
+            --spacing-4xl: 64px;
+            --spacing-5xl: 96px;
+            
+            /* Radii */
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 18px;
+            --radius-xl: 24px;
+            --radius-pill: 999px;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+            --shadow-md: 0 6px 16px rgba(0,0,0,0.16);
+            --shadow-lg: 0 12px 28px rgba(0,0,0,0.22);
+            --shadow-glow-mint: 0 10px 20px rgba(133, 220, 203, 0.25);
+            --shadow-glow-coral: 0 10px 20px rgba(226, 125, 96, 0.25);
+            
+            /* Transitions */
+            --transition-fast: 150ms ease-in-out;
+            --transition-normal: 250ms ease-in-out;
+            --transition-slow: 400ms ease-in-out;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-family);
+            background: var(--color-black);
+            color: var(--color-white);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--color-gray-800);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-gray-600);
+            border-radius: 3px;
+            transition: background var(--transition-fast);
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-gray-500);
+        }
+        
+        /* Firefox */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--color-gray-600) var(--color-gray-800);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-lg);
+        }
+        
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, var(--color-black) 0%, rgba(65, 179, 163, 0.1) 30%, rgba(133, 220, 203, 0.05) 50%, rgba(195, 141, 158, 0.1) 70%, var(--color-black) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Animated background elements */
+        .floating-ball {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.4;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .floating-ball:nth-child(1) {
+            width: 20px;
+            height: 20px;
+            background: var(--color-mint);
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+        
+        .floating-ball:nth-child(2) {
+            width: 15px;
+            height: 15px;
+            background: var(--color-coral);
+            top: 60%;
+            right: 15%;
+            animation-delay: 2s;
+        }
+        
+        .floating-ball:nth-child(3) {
+            width: 18px;
+            height: 18px;
+            background: var(--color-peach);
+            top: 40%;
+            left: 80%;
+            animation-delay: 4s;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .hero-content {
+            text-align: center;
+            z-index: 2;
+        }
+        
+        .hero-title {
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: var(--spacing-lg);
+            background: linear-gradient(45deg, var(--color-mint), var(--color-coral), var(--color-peach));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero-subtitle {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: var(--spacing-lg);
+            color: var(--color-mint);
+        }
+        
+        .hero-description {
+            font-size: 1.2rem;
+            color: var(--color-gray-300);
+            margin-bottom: var(--spacing-3xl);
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: var(--spacing-lg);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: var(--spacing-lg) var(--spacing-3xl);
+            border: none;
+            border-radius: var(--radius-pill);
+            font-family: var(--font-family);
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .btn-primary {
+            background: var(--color-primary);
+            color: var(--color-white);
+        }
+        
+        .btn-primary:hover {
+            background: #369488;
+            transform: scale(1.05);
+            box-shadow: var(--shadow-glow-mint);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--color-mint);
+            border: 2px solid var(--color-mint);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(133, 220, 203, 0.1);
+            border-color: #6BC7A8;
+        }
+        
+        /* Section Styles */
+        .section {
+            padding: var(--spacing-5xl) 0;
+        }
+        
+        .section-title {
+            font-size: 3rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: var(--spacing-3xl);
+            color: var(--color-mint);
+        }
+        
+        .section-subtitle {
+            font-size: 1.1rem;
+            text-align: center;
+            color: var(--color-gray-300);
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        /* About Section */
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-xl);
+        }
+        
+        .benefit-card {
+            background: var(--color-gray-800);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-2xl);
+            transition: all var(--transition-normal);
+        }
+        
+        .benefit-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--color-mint);
+            box-shadow: var(--shadow-glow-mint);
+        }
+        
+        .benefit-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .benefit-icon {
+            font-size: 2rem;
+            color: var(--color-coral);
+        }
+        
+        .benefit-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--color-mint);
+        }
+        
+        .benefit-description {
+            color: var(--color-gray-300);
+            line-height: 1.6;
+        }
+        
+        /* Statistics Section */
+        .stats-section {
+            background: linear-gradient(135deg, var(--color-gray-800) 0%, rgba(65, 179, 163, 0.1) 50%, var(--color-gray-800) 100%);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-xl);
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .stat-card {
+            background: var(--color-black);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            text-align: center;
+            transition: all var(--transition-normal);
+        }
+        
+        .stat-card:hover {
+            border-color: var(--color-peach);
+            transform: scale(1.02);
+        }
+        
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .stat-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--color-peach);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .stat-description {
+            color: var(--color-gray-300);
+            font-size: 0.9rem;
+        }
+        
+        /* Stats Preview */
+        .stats-preview {
+            background: var(--color-black);
+            border: 2px solid var(--color-mint);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            display: inline-block;
+            margin: 0 auto;
+        }
+        
+        .stats-preview-title {
+            font-size: 1.2rem;
+            color: var(--color-mint);
+            margin-bottom: var(--spacing-lg);
+            text-align: center;
+        }
+        
+        .stats-preview-grid {
+            display: flex;
+            gap: var(--spacing-3xl);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .stat-value.accuracy { color: var(--color-coral); }
+        .stat-value.wins { color: var(--color-peach); }
+        .stat-value.streak { color: var(--color-rose-purple); }
+        
+        .stat-label {
+            color: var(--color-gray-300);
+            font-size: 0.9rem;
+        }
+        
+        /* How it works Section */
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-2xl);
+        }
+        
+        .step-card {
+            text-align: center;
+        }
+        
+        .step-number {
+            font-size: 3rem;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .step-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--color-coral);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .step-description {
+            color: var(--color-gray-300);
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--color-gray-800) 0%, rgba(195, 141, 158, 0.2) 50%, var(--color-gray-800) 100%);
+            border-top: 1px solid var(--color-gray-600);
+            text-align: center;
+        }
+        
+        .features-chips {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-3xl);
+            flex-wrap: wrap;
+        }
+        
+        .chip {
+            background: var(--color-black);
+            border-radius: var(--radius-pill);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border: 1px solid;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .chip.mobile {
+            border-color: var(--color-peach);
+            color: var(--color-peach);
+        }
+        
+        .chip.fast {
+            border-color: var(--color-coral);
+            color: var(--color-coral);
+        }
+        
+        .chip.accurate {
+            border-color: var(--color-rose-purple);
+            color: var(--color-rose-purple);
+        }
+        
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 var(--spacing-md);
+            }
+            
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.8rem;
+            }
+            
+            .hero-description {
+                font-size: 1rem;
+            }
+            
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .benefits-grid {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-lg);
+            }
+            
+            .benefit-card {
+                padding: var(--spacing-lg);
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-lg);
+            }
+            
+            .steps-grid {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-lg);
+            }
+            
+            .stats-preview-grid {
+                flex-direction: column;
+                gap: var(--spacing-lg);
+            }
+            
+            .features-chips {
+                flex-direction: column;
+                align-items: center;
+                gap: var(--spacing-md);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="floating-ball"></div>
+        <div class="floating-ball"></div>
+        <div class="floating-ball"></div>
+        
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">🎱 Artel Billiards</h1>
+                <h2 class="hero-subtitle">ВЕДИ СЧЕТ СВОИХ ИГР В БИЛЬЯРД</h2>
+                <p class="hero-description">
+                    Записывай результаты, отслеживай прогресс, соревнуйся с друзьями
+                </p>
+                
+                <div class="hero-buttons">
+                    <a href="#" class="btn btn-primary">
+                        ▶️ НАЧАТЬ ВЕСТИ СЧЕТ
+                    </a>
+                    <a href="#about" class="btn btn-secondary" onclick="scrollToSection('about')">
+                        Узнать больше ⬇️
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="section" id="about">
+        <div class="container">
+            <h2 class="section-title">ЗАЧЕМ ВЕСТИ СТАТИСТИКУ?</h2>
+            
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-header">
+                        <div class="benefit-icon">📈</div>
+                        <h3 class="benefit-title">ОТСЛЕЖИВАЙ ПРОГРЕСС</h3>
+                    </div>
+                    <p class="benefit-description">
+                        Смотри как растет твое мастерство
+                    </p>
+                </div>
+                
+                <div class="benefit-card">
+                    <div class="benefit-header">
+                        <div class="benefit-icon">🏆</div>
+                        <h3 class="benefit-title">СОРЕВНУЙСЯ С ДРУЗЬЯМИ</h3>
+                    </div>
+                    <p class="benefit-description">
+                        Кто лучший игрок в вашей компании?
+                    </p>
+                </div>
+                
+                <div class="benefit-card">
+                    <div class="benefit-header">
+                        <div class="benefit-icon">📊</div>
+                        <h3 class="benefit-title">АНАЛИЗИРУЙ ИГРУ</h3>
+                    </div>
+                    <p class="benefit-description">
+                        Какие типы игр даются лучше всего
+                    </p>
+                </div>
+                
+                <div class="benefit-card">
+                    <div class="benefit-header">
+                        <div class="benefit-icon">📅</div>
+                        <h3 class="benefit-title">СОХРАНЯЙ ИСТОРИЮ</h3>
+                    </div>
+                    <p class="benefit-description">
+                        Никогда не забудешь крутые партии
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistics Section -->
+    <section class="section stats-section">
+        <div class="container">
+            <h2 class="section-title">ДЕТАЛЬНАЯ СТАТИСТИКА КАЖДОЙ ИГРЫ</h2>
+            <p class="section-subtitle">ЧТО МЫ ОТСЛЕЖИВАЕМ В РЕАЛЬНОМ ВРЕМЕНИ:</p>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">🎯</div>
+                    <h3 class="stat-title">СЧЕТ</h3>
+                    <p class="stat-description">Точные очки каждого игрока</p>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">⚫</div>
+                    <h3 class="stat-title">ЗАБИТЫЕ ШАРЫ</h3>
+                    <p class="stat-description">Какие шары, в каком порядке</p>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">⚠️</div>
+                    <h3 class="stat-title">ШТРАФЫ</h3>
+                    <p class="stat-description">Все нарушения с временными метками</p>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <h3 class="stat-title">СЕРИИ И ПОДХОДЫ</h3>
+                    <p class="stat-description">Анализ эффективности каждого хода</p>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">⏱️</div>
+                    <h3 class="stat-title">ВРЕМЯ ИГРЫ</h3>
+                    <p class="stat-description">Длительность партий и ходов</p>
+                </div>
+            </div>
+
+            <!-- Stats Preview -->
+            <div style="text-align: center;">
+                <div class="stats-preview">
+                    <h3 class="stats-preview-title">📊 ТВОЯ СТАТИСТИКА</h3>
+                    <div class="stats-preview-grid">
+                        <div class="stat-item">
+                            <div class="stat-value accuracy">84%</div>
+                            <div class="stat-label">Точность</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value wins">68%</div>
+                            <div class="stat-label">Побед</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value streak">12</div>
+                            <div class="stat-label">Лучшая серия</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it works Section -->
+    <section class="section">
+        <div class="container">
+            <h2 class="section-title">КАК ЭТО РАБОТАЕТ?</h2>
+            
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1️⃣</div>
+                    <h3 class="step-title">НАЧНИ ИГРУ</h3>
+                    <p class="step-description">Открой приложение и выбери тип бильярда</p>
+                </div>
+                
+                <div class="step-card">
+                    <div class="step-number">2️⃣</div>
+                    <h3 class="step-title">ДОБАВЬ ИГРОКОВ</h3>
+                    <p class="step-description">Введи имена всех, кто играет</p>
+                </div>
+                
+                <div class="step-card">
+                    <div class="step-number">3️⃣</div>
+                    <h3 class="step-title">ВЕДИ СЧЕТ</h3>
+                    <p class="step-description">Забил шар? Нажми кнопку в приложении!</p>
+                </div>
+                
+                <div class="step-card">
+                    <div class="step-number">4️⃣</div>
+                    <h3 class="step-title">СМОТРИ РЕЗУЛЬТАТ</h3>
+                    <p class="step-description">Кто победил и подробная статистика игры</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="section cta-section">
+        <div class="container">
+            <h2 class="section-title">СТАНЬ ЛУЧШИМ ИГРОКОМ!</h2>
+            
+            <div class="features-chips">
+                <div class="chip mobile">
+                    <span>📱</span> Удобно на телефоне
+                </div>
+                <div class="chip fast">
+                    <span>⚡</span> Быстрое ведение счета
+                </div>
+                <div class="chip accurate">
+                    <span>🎯</span> Точная статистика
+                </div>
+            </div>
+            
+            <a href="#" class="btn btn-primary" style="font-size: 1.2rem; padding: 20px 48px;">
+                👥 ВОЙТИ ЧЕРЕЗ TELEGRAM
+            </a>
+        </div>
+    </section>
+
+    <script>
+        function scrollToSection(sectionId) {
+            const element = document.getElementById(sectionId);
+            element?.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1716 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artel Billiards - Создание игры</title>
+    <style>
+        /* Design Tokens */
+        :root {
+            /* Colors */
+            --color-primary: #41B3A3;
+            --color-mint: #85DCCB;
+            --color-coral: #E27D60;
+            --color-peach: #E8A87C;
+            --color-rose-purple: #C38D9E;
+            
+            --color-black: #0a0a0a;
+            --color-gray-900: #121212;
+            --color-gray-800: #1a1a1a;
+            --color-gray-700: #2a2a2a;
+            --color-gray-600: #333333;
+            --color-gray-300: #b0b0b0;
+            --color-white: #ffffff;
+            
+            --color-success: #22c55e;
+            --color-warning: #f59e0b;
+            --color-error: #ef4444;
+            
+            /* Typography */
+            --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            
+            /* Spacing */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --spacing-xl: 24px;
+            --spacing-2xl: 32px;
+            --spacing-3xl: 48px;
+            
+            /* Radii */
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 18px;
+            --radius-xl: 24px;
+            --radius-pill: 999px;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+            --shadow-md: 0 6px 16px rgba(0,0,0,0.16);
+            --shadow-lg: 0 12px 28px rgba(0,0,0,0.22);
+            --shadow-glow-mint: 0 10px 20px rgba(133, 220, 203, 0.25);
+            --shadow-glow-coral: 0 10px 20px rgba(226, 125, 96, 0.25);
+            
+            /* Transitions */
+            --transition-fast: 150ms ease-in-out;
+            --transition-normal: 250ms ease-in-out;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-family);
+            background: var(--color-black);
+            color: var(--color-white);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+        }
+        
+        /* Header */
+        .header {
+            background: var(--color-gray-800);
+            border-bottom: 1px solid var(--color-gray-600);
+            padding: var(--spacing-lg) 0;
+            margin-bottom: var(--spacing-3xl);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-lg);
+        }
+        
+        .back-button {
+            background: none;
+            border: none;
+            color: var(--color-mint);
+            font-size: 18px;
+            cursor: pointer;
+            padding: var(--spacing-sm);
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+        }
+        
+        .back-button:hover {
+            background: var(--color-gray-700);
+        }
+        
+        .page-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-white);
+        }
+        
+        /* Progress Steps */
+        .progress-container {
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-xl);
+            position: relative;
+        }
+        
+        .progress-steps::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--color-gray-600);
+            z-index: 1;
+        }
+        
+        .progress-fill {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            height: 2px;
+            background: var(--color-mint);
+            width: 33.33%;
+            z-index: 2;
+            transition: width var(--transition-normal);
+        }
+        
+        .step {
+            background: var(--color-gray-600);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            position: relative;
+            z-index: 3;
+            transition: all var(--transition-normal);
+        }
+        
+        .step.active {
+            background: var(--color-mint);
+            color: var(--color-black);
+        }
+        
+        .step.completed {
+            background: var(--color-success);
+            color: var(--color-white);
+        }
+        
+        .step-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: var(--spacing-md);
+        }
+        
+        .step-label {
+            font-size: 12px;
+            color: var(--color-gray-300);
+            text-align: center;
+            flex: 1;
+        }
+        
+        .step-label.active {
+            color: var(--color-mint);
+            font-weight: 600;
+        }
+        
+        /* Form Container */
+        .form-container {
+            background: var(--color-gray-800);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-3xl);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .step-content {
+            display: none;
+        }
+        
+        .step-content.active {
+            display: block;
+            animation: fadeInUp 0.4s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .step-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-mint);
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .step-description {
+            color: var(--color-gray-300);
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        /* Game Type Selection */
+        .game-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .game-type-card {
+            background: var(--color-gray-700);
+            border: 2px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            text-align: center;
+            position: relative;
+        }
+        
+        .game-type-card:hover {
+            border-color: var(--color-mint);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-glow-mint);
+        }
+        
+        .game-type-card.selected {
+            border-color: var(--color-mint);
+            background: rgba(133, 220, 203, 0.1);
+        }
+        
+        .game-type-card.selected::after {
+            content: '✓';
+            position: absolute;
+            top: var(--spacing-md);
+            right: var(--spacing-md);
+            background: var(--color-mint);
+            color: var(--color-black);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        
+        .game-icon {
+            font-size: 48px;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .game-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--color-white);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .game-description {
+            font-size: 14px;
+            color: var(--color-gray-300);
+        }
+        
+        /* Player Management */
+        .players-section {
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .player-list {
+            background: var(--color-gray-700);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md) 0;
+            border-bottom: 1px solid var(--color-gray-600);
+        }
+        
+        .player-item:last-child {
+            border-bottom: none;
+        }
+        
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        
+        .player-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--color-coral), var(--color-peach));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        
+        .player-name {
+            font-weight: 600;
+        }
+        
+        .player-role {
+            font-size: 12px;
+            color: var(--color-gray-300);
+        }
+        
+        .remove-player {
+            background: none;
+            border: none;
+            color: var(--color-error);
+            cursor: pointer;
+            padding: var(--spacing-xs);
+            border-radius: var(--radius-sm);
+            font-size: 18px;
+            transition: all var(--transition-fast);
+        }
+        
+        .remove-player:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        .add-player {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            background: var(--color-gray-700);
+            border: 2px dashed var(--color-gray-600);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .add-player:hover {
+            border-color: var(--color-mint);
+            background: rgba(133, 220, 203, 0.05);
+        }
+        
+        .add-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--color-gray-600);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--color-mint);
+        }
+        
+        /* Player Status */
+        .player-status {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: var(--radius-pill);
+            font-weight: 600;
+        }
+        
+        .player-status.online {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--color-success);
+        }
+        
+        .player-item.pending {
+            opacity: 0.7;
+            background: rgba(249, 115, 22, 0.1);
+            border: 1px solid rgba(249, 115, 22, 0.3);
+        }
+        
+        .pending-avatar {
+            background: linear-gradient(45deg, #f97316, #fb923c) !important;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .invitation-actions {
+            display: flex;
+            gap: var(--spacing-xs);
+            align-items: center;
+        }
+        
+        .resend-invite {
+            background: none;
+            border: none;
+            color: var(--color-warning);
+            cursor: pointer;
+            padding: var(--spacing-xs);
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            transition: all var(--transition-fast);
+        }
+        
+        .resend-invite:hover {
+            background: rgba(245, 158, 11, 0.1);
+        }
+        
+        /* Invitation Info */
+        .invitation-info {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            margin-top: var(--spacing-lg);
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+            font-size: 14px;
+            color: var(--color-gray-300);
+        }
+        
+        .info-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .info-icon {
+            font-size: 16px;
+        }
+        
+        /* Input Fields */
+        .input-group {
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .input-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+            color: var(--color-white);
+        }
+        
+        .input-field {
+            width: 100%;
+            background: var(--color-gray-700);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md) var(--spacing-lg);
+            color: var(--color-white);
+            font-family: var(--font-family);
+            transition: all var(--transition-fast);
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: var(--color-mint);
+            box-shadow: 0 0 0 2px rgba(133, 220, 203, 0.2);
+        }
+        
+        .input-field::placeholder {
+            color: var(--color-gray-300);
+        }
+        
+        /* Settings */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-xl);
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        /* Balls Section */
+        .balls-section {
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .balls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .ball-item {
+            background: var(--color-gray-700);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            text-align: center;
+            transition: all var(--transition-fast);
+        }
+        
+        .ball-item:hover {
+            background: var(--color-gray-600);
+            transform: translateY(-2px);
+        }
+        
+        .ball {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin: 0 auto var(--spacing-md);
+            box-shadow: inset -2px -2px 8px rgba(0,0,0,0.3), inset 2px 2px 8px rgba(255,255,255,0.1);
+            position: relative;
+        }
+        
+        .ball::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 12px;
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), transparent 60%);
+            border-radius: 50%;
+        }
+        
+        .ball.white { background: #ffffff; border: 1px solid var(--color-gray-600); }
+        .ball.yellow { background: #ffeb3b; }
+        .ball.green { background: #4caf50; }
+        .ball.brown { background: #8d6e63; }
+        .ball.blue { background: #2196f3; }
+        .ball.pink { background: #e91e63; }
+        .ball.black { background: #212121; }
+        .ball.red { background: #f44336; }
+        
+        .ball-name {
+            font-weight: 600;
+            color: var(--color-white);
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .ball-points {
+            font-size: 12px;
+            color: var(--color-gray-300);
+        }
+        
+        /* Scoring Section */
+        .scoring-section {
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .scoring-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-xl);
+        }
+        
+        .scoring-item {
+            background: var(--color-gray-700);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+        }
+        
+        .price-options {
+            display: flex;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .price-option {
+            background: var(--color-gray-600);
+            border: 1px solid var(--color-gray-500);
+            border-radius: var(--radius-pill);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-size: 14px;
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        .price-option:hover {
+            border-color: var(--color-mint);
+        }
+        
+        .price-option.selected {
+            background: var(--color-mint);
+            color: var(--color-black);
+            border-color: var(--color-mint);
+        }
+        
+        .price-input {
+            background: var(--color-gray-600);
+            border: 1px solid var(--color-gray-500);
+            border-radius: var(--radius-pill);
+            padding: var(--spacing-sm) var(--spacing-md);
+            color: var(--color-white);
+            font-family: var(--font-family);
+            width: 80px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .price-input:focus {
+            outline: none;
+            border-color: var(--color-mint);
+        }
+        
+        .setting-item {
+            background: var(--color-gray-700);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+        }
+        
+        .setting-title {
+            font-weight: 600;
+            margin-bottom: var(--spacing-md);
+            color: var(--color-white);
+        }
+        
+        .setting-options {
+            display: flex;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+        
+        .setting-option {
+            background: var(--color-gray-600);
+            border: 1px solid var(--color-gray-500);
+            border-radius: var(--radius-pill);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-size: 14px;
+        }
+        
+        .setting-option:hover {
+            border-color: var(--color-mint);
+        }
+        
+        .setting-option.selected {
+            background: var(--color-mint);
+            color: var(--color-black);
+            border-color: var(--color-mint);
+        }
+        
+        /* Summary */
+        .summary-section {
+            background: var(--color-gray-700);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--spacing-md) 0;
+            border-bottom: 1px solid var(--color-gray-600);
+        }
+        
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+        
+        .summary-label {
+            color: var(--color-gray-300);
+        }
+        
+        .summary-value {
+            font-weight: 600;
+            color: var(--color-white);
+        }
+        
+        /* Navigation Buttons */
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-lg);
+        }
+        
+        .nav-button {
+            padding: var(--spacing-md) var(--spacing-2xl);
+            border-radius: var(--radius-pill);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            border: none;
+            font-family: var(--font-family);
+            font-size: 16px;
+            min-width: 120px;
+        }
+        
+        .nav-button.secondary {
+            background: var(--color-gray-700);
+            color: var(--color-white);
+            border: 1px solid var(--color-gray-600);
+        }
+        
+        .nav-button.secondary:hover {
+            background: var(--color-gray-600);
+        }
+        
+        .nav-button.primary {
+            background: var(--color-primary);
+            color: var(--color-white);
+        }
+        
+        .nav-button.primary:hover {
+            background: #369488;
+            transform: scale(1.02);
+        }
+        
+        .nav-button.success {
+            background: var(--color-success);
+            color: var(--color-white);
+        }
+        
+        .nav-button.success:hover {
+            background: #16a34a;
+            transform: scale(1.02);
+        }
+        
+        .nav-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .container {
+                padding: var(--spacing-md);
+            }
+            
+            .form-container {
+                padding: var(--spacing-xl);
+            }
+            
+            .game-types {
+                grid-template-columns: 1fr;
+            }
+            
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .navigation {
+                flex-direction: column;
+            }
+            
+            .step-labels {
+                font-size: 10px;
+            }
+            
+            .balls-grid {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            }
+            
+            .scoring-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .price-options {
+                justify-content: center;
+            }
+            
+            .template-cards-grid {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-lg);
+            }
+            
+            .template-card {
+                padding: var(--spacing-lg);
+            }
+            
+            .template-header {
+                flex-direction: column;
+                gap: var(--spacing-lg);
+                align-items: flex-start;
+            }
+        }
+        
+        /* Template Selection Styles */
+        .templates-selection {
+            margin-bottom: var(--spacing-3xl);
+        }
+        
+        .template-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--spacing-xl);
+        }
+        
+        .template-card {
+            background: var(--color-gray-700);
+            border: 2px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .template-card:hover {
+            border-color: var(--color-mint);
+            box-shadow: var(--shadow-glow-mint);
+            transform: translateY(-2px);
+        }
+        
+        .template-card.selected {
+            border-color: var(--color-mint);
+            background: var(--color-gray-600);
+            box-shadow: var(--shadow-glow-mint);
+        }
+        
+        .template-card.create-custom {
+            border: 2px dashed var(--color-gray-600);
+            background: var(--color-gray-800);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 200px;
+        }
+        
+        .template-card.create-custom:hover {
+            border-color: var(--color-coral);
+            background: var(--color-gray-700);
+            box-shadow: var(--shadow-glow-coral);
+        }
+        
+        .template-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--color-mint), var(--color-primary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .template-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-md);
+            color: var(--color-white);
+        }
+        
+        .template-description {
+            color: var(--color-gray-300);
+            margin-bottom: var(--spacing-lg);
+            line-height: 1.5;
+        }
+        
+        .template-settings {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--color-gray-600);
+        }
+        
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+        
+        .setting-label {
+            font-size: 0.8rem;
+            color: var(--color-gray-300);
+        }
+        
+        .setting-value {
+            font-weight: 600;
+            color: var(--color-mint);
+            font-size: 0.8rem;
+        }
+        
+        .template-badge {
+            position: absolute;
+            top: var(--spacing-lg);
+            right: var(--spacing-lg);
+            background: var(--color-success);
+            color: var(--color-white);
+            padding: var(--spacing-xs) var(--spacing-md);
+            border-radius: var(--radius-pill);
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        /* Create Custom Template */
+        .create-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--color-coral), var(--color-peach));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: var(--spacing-lg);
+            transition: all var(--transition-normal);
+        }
+        
+        .template-card.create-custom:hover .create-icon {
+            transform: scale(1.1) rotate(90deg);
+        }
+        
+        .create-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-md);
+            color: var(--color-white);
+        }
+        
+        .create-description {
+            color: var(--color-gray-300);
+        }
+
+        /* Template Balls Preview */
+        .template-balls {
+            margin-top: var(--spacing-lg);
+            padding-top: var(--spacing-lg);
+            border-top: 1px solid var(--color-gray-500);
+        }
+
+        .balls-title {
+            color: var(--color-mint);
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0 0 var(--spacing-md) 0;
+        }
+
+        .balls-preview-grid {
+            display: flex;
+            gap: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+
+        .ball-preview-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing-xs);
+            min-width: 70px;
+        }
+
+        .ball-preview {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            box-shadow: 
+                inset -4px -4px 8px rgba(0, 0, 0, 0.3),
+                inset 4px 4px 8px rgba(255, 255, 255, 0.1);
+        }
+
+        .ball-preview.white { background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%); }
+        .ball-preview.yellow { background: linear-gradient(135deg, #ffd700 0%, #daa520 100%); }
+        .ball-preview.pink { background: linear-gradient(135deg, #ff69b4 0%, #c71585 100%); }
+        .ball-preview.red { background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%); }
+        .ball-preview.blue { background: linear-gradient(135deg, #4169e1 0%, #0000cd 100%); }
+        .ball-preview.black { background: linear-gradient(135deg, #333333 0%, #000000 100%); }
+
+        .ball-preview-name {
+            color: var(--color-gray-100);
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .ball-preview-value {
+            color: var(--color-gray-300);
+            font-size: 0.7rem;
+            font-weight: 400;
+        }
+
+        /* Balls Summary in Confirmation */
+        .balls-summary {
+            background: var(--color-gray-700);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .balls-summary-title {
+            color: var(--color-mint);
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0 0 var(--spacing-lg) 0;
+        }
+
+        .balls-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+        }
+
+        .ball-summary-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            background: var(--color-gray-600);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+        }
+
+        .ball-summary {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            box-shadow: 
+                inset -4px -4px 8px rgba(0, 0, 0, 0.3),
+                inset 4px 4px 8px rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+
+        .ball-summary.white { background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%); }
+        .ball-summary.yellow { background: linear-gradient(135deg, #ffd700 0%, #daa520 100%); }
+        .ball-summary.pink { background: linear-gradient(135deg, #ff69b4 0%, #c71585 100%); }
+        .ball-summary.green { background: linear-gradient(135deg, #32cd32 0%, #228b22 100%); }
+        .ball-summary.brown { background: linear-gradient(135deg, #8b4513 0%, #654321 100%); }
+        .ball-summary.blue { background: linear-gradient(135deg, #4169e1 0%, #0000cd 100%); }
+
+        .ball-summary-info {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .ball-summary-name {
+            color: var(--color-white);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .ball-summary-points {
+            color: var(--color-gray-300);
+            font-size: 0.8rem;
+        }
+        
+        /* Template Details */
+        .template-details {
+            margin-top: var(--spacing-3xl);
+        }
+        
+        .template-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-3xl);
+            padding: var(--spacing-xl);
+            background: var(--color-gray-700);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-gray-600);
+        }
+        
+        .selected-template-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+        
+        .selected-template-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--color-mint), var(--color-primary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .selected-template-info h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--color-white);
+            margin: 0 0 var(--spacing-xs) 0;
+        }
+        
+        .selected-template-info p {
+            color: var(--color-gray-300);
+            margin: 0;
+            font-size: 0.875rem;
+        }
+        
+        .change-template-btn {
+            background: var(--color-gray-600);
+            color: var(--color-white);
+            border: 1px solid var(--color-gray-500);
+            padding: var(--spacing-md) var(--spacing-xl);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .change-template-btn:hover {
+            background: var(--color-gray-500);
+            border-color: var(--color-mint);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <button class="back-button">← Назад</button>
+            <h1 class="page-title">Создание игры</h1>
+            <div style="width: 60px;"></div> <!-- Spacer -->
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Progress Steps -->
+        <div class="progress-container">
+            <div class="progress-steps">
+                <div class="progress-fill"></div>
+                <div class="step active">1</div>
+                <div class="step">2</div>
+                <div class="step">3</div>
+            </div>
+            <div class="step-labels">
+                <div class="step-label active">Тип игры</div>
+                <div class="step-label">Игроки</div>
+                <div class="step-label">Подтверждение</div>
+            </div>
+        </div>
+
+        <!-- Form Container -->
+        <div class="form-container">
+            <!-- Step 1: Template Selection -->
+            <div class="step-content active" id="step1">
+                <h2 class="step-title">Выбери тип игры</h2>
+                <p class="step-description">Выбери правила, по которым будете играть</p>
+                
+                <!-- Templates Selection -->
+                <div class="templates-selection" id="templatesSelection">
+                    <div class="template-cards-grid">
+                        <!-- Template: Колхоз -->
+                        <div class="template-card" data-template="kolkhoz">
+                            <div class="template-badge">Популярный</div>
+                            <div class="template-icon">🎱</div>
+                            <h3 class="template-title">Колхоз</h3>
+                            <p class="template-description">
+                                Классическая русская игра. Простые правила, подходит для начинающих и дружеских партий.
+                            </p>
+                            
+                            <div class="template-settings">
+                                <div class="setting-row">
+                                    <span class="setting-label">Количество шаров:</span>
+                                    <span class="setting-value">15 шаров</span>
+                                </div>
+                                <div class="setting-row">
+                                    <span class="setting-label">Условие победы:</span>
+                                    <span class="setting-value">До последнего</span>
+                                </div>
+                                <div class="setting-row">
+                                    <span class="setting-label">Стоимость очка:</span>
+                                    <span class="setting-value">10₽</span>
+                                </div>
+                                <div class="setting-row">
+                                    <span class="setting-label">Штраф за фол:</span>
+                                    <span class="setting-value">50₽</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Template: Американка -->
+                        <div class="template-card" data-template="americana">
+                            <div class="template-icon">🔴</div>
+                            <h3 class="template-title">Американка</h3>
+                            <p class="template-description">
+                                Популярная игра в пул. Играйте сплошными или полосатыми шарами, забейте восьмерку для победы.
+                            </p>
+                            
+                            <div class="template-settings">
+                                <div class="setting-row">
+                                    <span class="setting-label">Количество шаров:</span>
+                                    <span class="setting-value">15 шаров</span>
+                                </div>
+                                <div class="setting-row">
+                                    <span class="setting-label">Условие победы:</span>
+                                    <span class="setting-value">Забить 8-ку</span>
+                                </div>
+                                <div class="setting-row">
+                                    <span class="setting-label">Стоимость очка:</span>
+                                    <span class="setting-value">25₽</span>
+                                </div>
+                                <div class="setting-row">
+                                    <span class="setting-label">Штраф за фол:</span>
+                                    <span class="setting-value">100₽</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Template: Пирамида -->
+                        <div class="template-card" data-template="pyramid">
+                            <div class="template-icon">🔺</div>
+                            <h3 class="template-title">Пирамида</h3>
+                            <p class="template-description">
+                                Классическая русская пирамида. Требует точности и стратегического мышления.
+                            </p>
+                            
+                            <div class="template-settings">
+                                <div class="setting-row">
+                                    <span class="setting-label">Количество шаров:</span>
+                                    <span class="setting-value">15 шаров</span>
+                                </div>
+                                <div class="setting-row">
+                                    <span class="setting-label">Условие победы:</span>
+                                    <span class="setting-value">До 71 очка</span>
+                                </div>
+                                <div class="setting-row">
+                                    <span class="setting-label">Стоимость очка:</span>
+                                    <span class="setting-value">50₽</span>
+                                </div>
+                                <div class="setting-row">
+                                    <span class="setting-label">Штраф за фол:</span>
+                                    <span class="setting-value">200₽</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Create Custom Template -->
+                        <div class="template-card create-custom" data-template="custom">
+                            <div class="create-icon">⚙️</div>
+                            <h3 class="create-title">Создать свой</h3>
+                            <p class="create-description">
+                                Настрой правила под себя: количество шаров, очки, стоимость, штрафы и другие параметры
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Player Management -->
+            <div class="step-content" id="step2">
+                <h2 class="step-title">Добавь игроков</h2>
+                <p class="step-description">Кто будет играть в этой партии?</p>
+                
+                <div class="players-section">
+                    <div class="player-list">
+                        <div class="player-item">
+                            <div class="player-info">
+                                <div class="player-avatar">Т</div>
+                                <div>
+                                    <div class="player-name">Ты</div>
+                                    <div class="player-role">Создатель игры</div>
+                                </div>
+                            </div>
+                            <div class="player-status online">онлайн</div>
+                        </div>
+                        
+                        <div class="player-item">
+                            <div class="player-info">
+                                <div class="player-avatar">И</div>
+                                <div>
+                                    <div class="player-name">Игорь</div>
+                                    <div class="player-role">Игрок</div>
+                                </div>
+                            </div>
+                            <button class="remove-player">×</button>
+                        </div>
+                        
+                        <div class="player-item pending">
+                            <div class="player-info">
+                                <div class="player-avatar pending-avatar">А</div>
+                                <div>
+                                    <div class="player-name">Александр</div>
+                                    <div class="player-role">Ожидает подтверждения</div>
+                                </div>
+                            </div>
+                            <div class="invitation-actions">
+                                <button class="resend-invite">📤</button>
+                                <button class="remove-player">×</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="add-player">
+                        <div class="add-icon">+</div>
+                        <div>
+                            <div style="font-weight: 600;">Добавить игрока</div>
+                            <div style="font-size: 12px; color: var(--color-gray-300);">Введи имя или выбери из друзей</div>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label">Имя нового игрока</label>
+                        <input type="text" class="input-field" placeholder="Введи имя игрока..." />
+                    </div>
+                    
+                    <button class="nav-button secondary" style="width: 100%; margin-bottom: var(--spacing-lg);">Пригласить по ссылке</button>
+                    
+                    <!-- Invitation Status -->
+                    <div class="invitation-info">
+                        <div class="info-item">
+                            <span class="info-icon">📤</span>
+                            <span>Приглашение отправлено - игрок получит уведомление</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-icon">⏱️</span>
+                            <span>Можно начать игру не дожидаясь всех игроков</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Confirmation -->
+            <div class="step-content" id="step3">
+                <h2 class="step-title">Подтверждение</h2>
+                <p class="step-description">Проверь настройки перед началом игры</p>
+                
+                <div class="summary-section">
+                    <div class="summary-item">
+                        <div class="summary-label">Тип игры:</div>
+                        <div class="summary-value">🎱 Колхоз</div>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <div class="summary-label">Игроки:</div>
+                        <div class="summary-value">Ты, Игорь + 1 ожидает (3 игрока)</div>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <div class="summary-label">Шары:</div>
+                        <div class="summary-value">15 шаров</div>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <div class="summary-label">Время на ход:</div>
+                        <div class="summary-value">Без лимита</div>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <div class="summary-label">Победа:</div>
+                        <div class="summary-value">До последнего шара</div>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <div class="summary-label">Порядок:</div>
+                        <div class="summary-value">По очереди</div>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <div class="summary-label">Стоимость очка:</div>
+                        <div class="summary-value">10 ₽</div>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <div class="summary-label">Штраф за фол:</div>
+                        <div class="summary-value">50 ₽</div>
+                    </div>
+                </div>
+                
+                <!-- Balls Summary with Points -->
+                <div class="balls-summary">
+                    <h3 class="balls-summary-title">Настройки шаров</h3>
+                    <div class="balls-summary-grid">
+                        <div class="ball-summary-item">
+                            <div class="ball-summary white"></div>
+                            <div class="ball-summary-info">
+                                <span class="ball-summary-name">Белый</span>
+                                <span class="ball-summary-points">1 очко</span>
+                            </div>
+                        </div>
+                        <div class="ball-summary-item">
+                            <div class="ball-summary yellow"></div>
+                            <div class="ball-summary-info">
+                                <span class="ball-summary-name">Желтый</span>
+                                <span class="ball-summary-points">2 очка</span>
+                            </div>
+                        </div>
+                        <div class="ball-summary-item">
+                            <div class="ball-summary pink"></div>
+                            <div class="ball-summary-info">
+                                <span class="ball-summary-name">Розовый</span>
+                                <span class="ball-summary-points">4 очка</span>
+                            </div>
+                        </div>
+                        <div class="ball-summary-item">
+                            <div class="ball-summary green"></div>
+                            <div class="ball-summary-info">
+                                <span class="ball-summary-name">Зеленый</span>
+                                <span class="ball-summary-points">3 очка</span>
+                            </div>
+                        </div>
+                        <div class="ball-summary-item">
+                            <div class="ball-summary brown"></div>
+                            <div class="ball-summary-info">
+                                <span class="ball-summary-name">Коричневый</span>
+                                <span class="ball-summary-points">4 очка</span>
+                            </div>
+                        </div>
+                        <div class="ball-summary-item">
+                            <div class="ball-summary blue"></div>
+                            <div class="ball-summary-info">
+                                <span class="ball-summary-name">Синий</span>
+                                <span class="ball-summary-points">5 очков</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: rgba(133, 220, 203, 0.1); border: 1px solid var(--color-mint); border-radius: var(--radius-md); padding: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
+                    <div style="color: var(--color-mint); font-weight: 600; margin-bottom: var(--spacing-sm);">🎯 Готово к игре!</div>
+                    <div style="font-size: 14px; color: var(--color-gray-300);">После создания вы сможете начать вести счет во время реальной игры</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="navigation">
+            <button class="nav-button secondary" id="prevBtn">Назад</button>
+            <button class="nav-button primary" id="nextBtn">Далее</button>
+        </div>
+    </main>
+
+    <script>
+        // Simple step navigation
+        let currentStep = 1;
+        const totalSteps = 3;
+
+        function updateUI() {
+            // Update progress
+            const progressFill = document.querySelector('.progress-fill');
+            progressFill.style.width = `${((currentStep - 1) / (totalSteps - 1)) * 100}%`;
+
+            // Update steps
+            document.querySelectorAll('.step').forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index + 1 < currentStep) {
+                    step.classList.add('completed');
+                    step.textContent = '✓';
+                } else if (index + 1 === currentStep) {
+                    step.classList.add('active');
+                    step.textContent = index + 1;
+                } else {
+                    step.textContent = index + 1;
+                }
+            });
+
+            // Update step labels
+            document.querySelectorAll('.step-label').forEach((label, index) => {
+                label.classList.remove('active');
+                if (index + 1 === currentStep) {
+                    label.classList.add('active');
+                }
+            });
+
+            // Update step content
+            document.querySelectorAll('.step-content').forEach((content, index) => {
+                content.classList.remove('active');
+                if (index + 1 === currentStep) {
+                    content.classList.add('active');
+                }
+            });
+
+            // Update buttons
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            prevBtn.disabled = currentStep === 1;
+            prevBtn.style.visibility = currentStep === 1 ? 'hidden' : 'visible';
+
+            if (currentStep === totalSteps) {
+                nextBtn.textContent = 'НАЧАТЬ ИГРУ';
+                nextBtn.className = 'nav-button success';
+            } else {
+                nextBtn.textContent = 'Далее';
+                nextBtn.className = 'nav-button primary';
+            }
+        }
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateUI();
+            } else {
+                alert('🎱 Игра создана! Переход к ведению счета...');
+            }
+        });
+
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            if (currentStep > 1) {
+                currentStep--;
+                updateUI();
+            }
+        });
+
+        // Game type selection
+        document.querySelectorAll('.game-type-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.game-type-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+            });
+        });
+
+        // Setting options selection
+        document.querySelectorAll('.setting-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const parent = option.closest('.setting-item');
+                parent.querySelectorAll('.setting-option').forEach(o => o.classList.remove('selected'));
+                option.classList.add('selected');
+            });
+        });
+
+        // Price options selection
+        document.querySelectorAll('.price-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const parent = option.closest('.price-options');
+                parent.querySelectorAll('.price-option').forEach(o => o.classList.remove('selected'));
+                option.classList.add('selected');
+                // Clear custom input if preset is selected
+                const input = parent.querySelector('.price-input');
+                if (input) input.value = '';
+            });
+        });
+
+        // Custom price input
+        document.querySelectorAll('.price-input').forEach(input => {
+            input.addEventListener('focus', () => {
+                const parent = input.closest('.price-options');
+                parent.querySelectorAll('.price-option').forEach(o => o.classList.remove('selected'));
+            });
+        });
+
+        // Template Selection Logic
+        const templates = {
+            kolkhoz: {
+                name: 'Колхоз',
+                icon: '🎱',
+                description: 'Классическая русская игра',
+                settings: {
+                    'Количество шаров': '15',
+                    'Лимит времени на ход': 'Без лимита',
+                    'Условие победы': 'До последнего',
+                    'Порядок игры': 'По очереди',
+                    'Правило касания': 'Любой шар',
+                    'Переигровка': 'При ничьей'
+                },
+                balls: [
+                    { name: 'Белый', points: 'Биток', color: 'white' },
+                    { name: 'Желтый', points: '2 очка', color: 'yellow' },
+                    { name: 'Зеленый', points: '3 очка', color: 'green' },
+                    { name: 'Коричневый', points: '4 очка', color: 'brown' },
+                    { name: 'Синий', points: '5 очков', color: 'blue' },
+                    { name: 'Розовый', points: '6 очков', color: 'pink' },
+                    { name: 'Черный', points: '7 очков', color: 'black' },
+                    { name: 'Красные', points: '1 очко (15 шт.)', color: 'red' }
+                ],
+                scoring: {
+                    'Стоимость одного очка': '10₽',
+                    'Штраф за фол': '50₽',
+                    'Бонус за серию': '20₽ (5+ шаров)',
+                    'Штраф за промах': '10₽'
+                }
+            },
+            americana: {
+                name: 'Американка',
+                icon: '🔴',
+                description: 'Популярная игра в пул',
+                settings: {
+                    'Количество шаров': '15',
+                    'Лимит времени на ход': '5 мин',
+                    'Условие победы': 'Забить 8-ку',
+                    'Порядок игры': 'По очереди',
+                    'Группы шаров': 'Сплошные/Полосатые',
+                    'Правило касания': 'Только свои шары'
+                },
+                balls: [
+                    { name: 'Белый', points: 'Биток', color: 'white' },
+                    { name: '1', points: 'Желтый сплошной', color: 'yellow' },
+                    { name: '2', points: 'Синий сплошной', color: 'blue' },
+                    { name: '3', points: 'Красный сплошной', color: 'red' },
+                    { name: '9', points: 'Желтый полосатый', color: 'yellow' },
+                    { name: '10', points: 'Синий полосатый', color: 'blue' },
+                    { name: '11', points: 'Красный полосатый', color: 'red' },
+                    { name: '8', points: 'Черный (решающий)', color: 'black' }
+                ],
+                scoring: {
+                    'Стоимость одного очка': '25₽',
+                    'Штраф за фол': '100₽',
+                    'Бонус за 8-ку с разбоя': '500₽',
+                    'Штраф за досрочную 8-ку': '200₽'
+                }
+            },
+            pyramid: {
+                name: 'Пирамида',
+                icon: '🔺',
+                description: 'Классическая русская пирамида',
+                settings: {
+                    'Количество шаров': '15',
+                    'Лимит времени на ход': '10 мин',
+                    'Условие победы': 'До 71 очка',
+                    'Порядок игры': 'По очереди',
+                    'Лузы': 'Только угловые',
+                    'Правило касания': 'Строгое'
+                },
+                balls: [
+                    { name: 'Белый', points: 'Биток', color: 'white' },
+                    { name: 'Желтый', points: '2 очка', color: 'yellow' },
+                    { name: 'Зеленый', points: '3 очка', color: 'green' },
+                    { name: 'Коричневый', points: '4 очка', color: 'brown' },
+                    { name: 'Синий', points: '5 очков', color: 'blue' },
+                    { name: 'Розовый', points: '6 очков', color: 'pink' },
+                    { name: 'Черный', points: '7 очков', color: 'black' },
+                    { name: 'Красные', points: '1 очко (15 шт.)', color: 'red' }
+                ],
+                scoring: {
+                    'Стоимость одного очка': '50₽',
+                    'Штраф за фол': '200₽',
+                    'Бонус за серию': '100₽ (3+ шара)',
+                    'Штраф за неточное касание': '50₽'
+                }
+            }
+        };
+
+        let selectedTemplate = null;
+
+        // Template selection handlers
+        document.querySelectorAll('.template-card[data-template]').forEach(card => {
+            card.addEventListener('click', function() {
+                const templateType = this.dataset.template;
+                
+                if (templateType === 'custom') {
+                    // Handle custom template creation
+                    alert('Функция создания пользовательского шаблона будет добавлена позже');
+                    return;
+                }
+                
+                selectTemplate(templateType);
+            });
+        });
+
+        function selectTemplate(templateType) {
+            selectedTemplate = templateType;
+            const template = templates[templateType];
+            
+            if (!template) return;
+            
+            // Remove selection from all cards
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selection to current card
+            document.querySelector(`[data-template="${templateType}"]`).classList.add('selected');
+            
+            console.log('🎮 Selected template:', templateType, template.name);
+        }
+
+
+
+        // Override next button behavior for step 1
+        document.getElementById('nextBtn').addEventListener('click', (e) => {
+            if (currentStep === 1 && !selectedTemplate) {
+                e.preventDefault();
+                e.stopPropagation();
+                alert('Выберите тип игры для продолжения');
+                return false;
+            }
+        });
+
+        // Initialize
+        updateUI();
+    </script>
+</body>
+</html>

@@ -88,15 +88,18 @@ user_sessions_table = sa.Table(
     metadata,
     Column("id", UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
     Column("user_id", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
-    Column("session_token", String(255), unique=True, nullable=False),
-    Column("refresh_token", String(255), unique=True, nullable=False),
+    Column("access_token_hash", String(255), nullable=False),
+    Column("refresh_token_hash", String(255), nullable=True),
     Column("device_info", JSONB, nullable=True),  # Информация об устройстве
     Column("ip_address", INET, nullable=True),
     Column("user_agent", Text, nullable=True),
     Column("status", String(20), nullable=False, default=SessionStatus.ACTIVE.value),
     Column("expires_at", DateTime(timezone=True), nullable=False),
     Column("created_at", DateTime(timezone=True), server_default=func.now()),
-    Column("updated_at", DateTime(timezone=True), server_default=func.now(), onupdate=func.now()),
+    Column("last_activity", DateTime(timezone=True), server_default=func.now()),
+    Column("session_token", String(255), unique=True, nullable=True),
+    Column("refresh_token", String(255), nullable=True),
+    Column("updated_at", DateTime(timezone=True), server_default=func.now()),
     Column("last_activity_at", DateTime(timezone=True), server_default=func.now()),
     
     # Индексы

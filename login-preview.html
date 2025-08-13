@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход - Artel Billiards</title>
+    <style>
+        :root {
+            /* Colors */
+            --coral: #E27D60;
+            --peach: #E8A87C;
+            --rose-purple: #C38D9E;
+            --dark-teal: #41B3A3;
+            --mint: #85DCCB;
+            
+            --black: #0a0a0a;
+            --gray-900: #121212;
+            --gray-800: #1a1a1a;
+            --gray-700: #2a2a2a;
+            --gray-600: #333333;
+            --gray-500: #4f4f4f;
+            --gray-400: #7a7a7a;
+            --gray-300: #b0b0b0;
+            --gray-200: #d9d9d9;
+            --gray-100: #efefef;
+            --white: #ffffff;
+            
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #0ea5e9;
+            
+            /* Typography */
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            
+            /* Spacing */
+            --space-xs: 0.25rem;
+            --space-sm: 0.5rem;
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+            --space-xl: 2rem;
+            --space-2xl: 3rem;
+            
+            /* Border Radius */
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            
+            /* Transitions */
+            --transition-fast: 150ms ease;
+            --transition-normal: 300ms ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: linear-gradient(135deg, var(--black) 0%, var(--gray-900) 100%);
+            color: var(--white);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 450px;
+            margin: 0 auto;
+            padding: var(--space-xl);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: var(--space-xl);
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: var(--space-xl);
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: var(--dark-teal);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto var(--space-md);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: var(--space-sm);
+            background: linear-gradient(135deg, var(--dark-teal) 0%, var(--mint) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.125rem;
+            color: var(--gray-300);
+            font-weight: 400;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--gray-800);
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--gray-700);
+            margin-bottom: var(--space-lg);
+        }
+
+        .card.social {
+            padding: var(--space-xl);
+        }
+
+        /* Form */
+        .form {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-lg);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: var(--space-md);
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+            z-index: 1;
+        }
+
+        .input {
+            width: 100%;
+            padding: var(--space-md) var(--space-md) var(--space-md) 2.75rem;
+            background: var(--gray-700);
+            border: 2px solid var(--gray-600);
+            border-radius: var(--radius-md);
+            color: var(--white);
+            font-size: 1rem;
+            transition: var(--transition-fast);
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--dark-teal);
+            box-shadow: 0 0 0 3px rgba(65, 179, 163, 0.1);
+        }
+
+        .input.error {
+            border-color: var(--error);
+        }
+
+        .input.error:focus {
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: var(--space-md);
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            cursor: pointer;
+            padding: var(--space-xs);
+            border-radius: var(--radius-sm);
+            transition: var(--transition-fast);
+        }
+
+        .password-toggle:hover {
+            color: var(--gray-300);
+            background: var(--gray-600);
+        }
+
+        .error-message {
+            color: var(--error);
+            font-size: 0.875rem;
+            margin-top: var(--space-xs);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: var(--space-md) var(--space-xl);
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            min-height: 48px;
+        }
+
+        .btn-primary {
+            background: var(--dark-teal);
+            color: var(--white);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover {
+            background: #368a7d;
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:disabled {
+            background: var(--gray-600);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--gray-600);
+            color: var(--white);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--dark-teal);
+            background: rgba(65, 179, 163, 0.1);
+        }
+
+        .btn-telegram {
+            border-color: #0088cc;
+            color: #0088cc;
+        }
+
+        .btn-telegram:hover {
+            border-color: #0077bb;
+            background: rgba(0, 136, 204, 0.1);
+        }
+
+        .btn-google {
+            border-color: #dd4b39;
+            color: #dd4b39;
+        }
+
+        .btn-google:hover {
+            border-color: #c23321;
+            background: rgba(221, 75, 57, 0.1);
+        }
+
+        .btn-text {
+            background: transparent;
+            border: none;
+            color: var(--gray-300);
+            text-decoration: underline;
+            padding: var(--space-sm);
+        }
+
+        .btn-text:hover {
+            color: var(--white);
+        }
+
+        /* Loading */
+        .loading {
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Forgot password */
+        .forgot-password {
+            text-align: right;
+            margin-top: var(--space-sm);
+        }
+
+        .forgot-password a {
+            color: var(--gray-400);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: var(--transition-fast);
+        }
+
+        .forgot-password a:hover {
+            color: var(--dark-teal);
+            text-decoration: underline;
+        }
+
+        /* Social Section */
+        .social-divider {
+            text-align: center;
+            color: var(--gray-400);
+            font-size: 0.875rem;
+            margin-bottom: var(--space-md);
+            position: relative;
+        }
+
+        .social-divider::before,
+        .social-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 45%;
+            height: 1px;
+            background: var(--gray-600);
+        }
+
+        .social-divider::before {
+            left: 0;
+        }
+
+        .social-divider::after {
+            right: 0;
+        }
+
+        .social-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        /* Demo Mode */
+        .demo-section {
+            text-align: center;
+            margin-top: var(--space-lg);
+            padding-top: var(--space-lg);
+            border-top: 1px solid var(--gray-600);
+        }
+
+        .demo-text {
+            color: var(--gray-400);
+            font-size: 0.875rem;
+            margin-bottom: var(--space-md);
+        }
+
+        /* Footer Links */
+        .footer-links {
+            text-align: center;
+        }
+
+        .footer-text {
+            color: var(--gray-300);
+            font-size: 0.875rem;
+        }
+
+        .link {
+            color: var(--dark-teal);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition-fast);
+        }
+
+        .link:hover {
+            color: var(--mint);
+            text-decoration: underline;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: var(--space-xl);
+            color: var(--gray-400);
+            font-size: 0.875rem;
+        }
+
+        /* Alert */
+        .alert {
+            padding: var(--space-md);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-lg);
+            border: 1px solid;
+        }
+
+        .alert.success {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .alert.error {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .alert.info {
+            background: rgba(14, 165, 233, 0.1);
+            border-color: var(--info);
+            color: var(--info);
+        }
+
+        .alert.hidden {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .container {
+                padding: var(--space-md);
+            }
+
+            .card {
+                padding: var(--space-xl);
+            }
+
+            .title {
+                font-size: 2rem;
+            }
+
+            .subtitle {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">🎱</div>
+            <h1 class="title">Artel Billiards</h1>
+            <p class="subtitle">Добро пожаловать в игру</p>
+        </div>
+
+        <!-- Alert -->
+        <div id="alert" class="alert hidden">
+            <span id="alert-message"></span>
+        </div>
+
+        <!-- Telegram Info (if in Telegram) -->
+        <div id="telegramInfo" class="alert info hidden">
+            <strong>Запущено в Telegram WebApp</strong><br>
+            <span id="telegramDetails"></span>
+        </div>
+
+        <!-- Login Form -->
+        <div class="card">
+            <form id="loginForm" class="form">
+                <!-- Email/Username -->
+                <div class="form-group">
+                    <div class="input-group">
+                        <span class="input-icon">👤</span>
+                        <input 
+                            type="text" 
+                            id="login" 
+                            class="input" 
+                            placeholder="Email или имя пользователя"
+                            required
+                        >
+                    </div>
+                    <div id="login-error" class="error-message"></div>
+                </div>
+
+                <!-- Password -->
+                <div class="form-group">
+                    <div class="input-group">
+                        <span class="input-icon">🔒</span>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            class="input" 
+                            placeholder="Пароль"
+                            required
+                        >
+                        <button type="button" class="password-toggle" onclick="togglePassword('password')">
+                            👁️
+                        </button>
+                    </div>
+                    <div id="password-error" class="error-message"></div>
+                    <div class="forgot-password">
+                        <a href="forgot-password-preview.html">Забыли пароль?</a>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="submitBtn" class="btn btn-primary">
+                    <span id="submitText">Войти</span>
+                    <div id="loading" class="loading" style="display: none;"></div>
+                </button>
+            </form>
+
+            <!-- Social Login -->
+            <div class="social-divider">или</div>
+            <div class="social-buttons">
+                <button id="telegramBtn" class="btn btn-outline btn-telegram" onclick="handleTelegramLogin()">
+                    <span>📱</span>
+                    <span id="telegramText">Войти через Telegram</span>
+                </button>
+
+                <button class="btn btn-outline btn-google" onclick="handleGoogleLogin()">
+                    <span>🔍</span>
+                    <span>Войти через Google</span>
+                </button>
+            </div>
+
+            <!-- Demo Mode -->
+            <div class="demo-section">
+                <div class="demo-text">или для демо-режима</div>
+                <button class="btn btn-text" onclick="handleDemoMode()">
+                    Продолжить без авторизации
+                </button>
+            </div>
+        </div>
+
+        <!-- Registration Link -->
+        <div class="footer-links">
+            <span class="footer-text">
+                Нет аккаунта? 
+                <a href="register-preview.html" class="link">Зарегистрироваться</a>
+            </span>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            © 2025 Artel Billiards. Все права защищены.
+        </div>
+    </div>
+
+    <script>
+        // Form data
+        let formData = {
+            login: '',
+            password: ''
+        };
+
+        // Initialize form
+        document.addEventListener('DOMContentLoaded', function() {
+            // Bind input events
+            Object.keys(formData).forEach(field => {
+                const input = document.getElementById(field);
+                if (input) {
+                    input.addEventListener('input', (e) => {
+                        formData[field] = e.target.value;
+                        clearError(field);
+                    });
+                }
+            });
+
+            // Bind form submit
+            document.getElementById('loginForm').addEventListener('submit', handleSubmit);
+
+            // Check if in Telegram
+            checkTelegramAvailability();
+        });
+
+        // Toggle password visibility
+        function togglePassword(fieldId) {
+            const input = document.getElementById(fieldId);
+            const toggle = input.nextElementSibling;
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                toggle.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                toggle.textContent = '👁️';
+            }
+        }
+
+        // Validate form
+        function validateForm() {
+            let isValid = true;
+
+            if (!formData.login.trim()) {
+                showError('login', 'Email или имя пользователя обязательно');
+                isValid = false;
+            }
+
+            if (!formData.password) {
+                showError('password', 'Пароль обязателен');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // Show error for field
+        function showError(field, message) {
+            const input = document.getElementById(field);
+            const errorDiv = document.getElementById(`${field}-error`);
+            
+            if (input) input.classList.add('error');
+            if (errorDiv) errorDiv.textContent = message;
+        }
+
+        // Clear error for field
+        function clearError(field) {
+            const input = document.getElementById(field);
+            const errorDiv = document.getElementById(`${field}-error`);
+            
+            if (input) input.classList.remove('error');
+            if (errorDiv) errorDiv.textContent = '';
+        }
+
+        // Show alert
+        function showAlert(message, type = 'error') {
+            const alert = document.getElementById('alert');
+            const alertMessage = document.getElementById('alert-message');
+            
+            alert.className = `alert ${type}`;
+            alertMessage.textContent = message;
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Hide alert
+        function hideAlert() {
+            document.getElementById('alert').classList.add('hidden');
+        }
+
+        // Set loading state
+        function setLoading(loading) {
+            const submitBtn = document.getElementById('submitBtn');
+            const submitText = document.getElementById('submitText');
+            const loadingSpinner = document.getElementById('loading');
+            
+            submitBtn.disabled = loading;
+            submitText.style.display = loading ? 'none' : 'block';
+            loadingSpinner.style.display = loading ? 'block' : 'none';
+        }
+
+        // Handle form submission
+        async function handleSubmit(e) {
+            e.preventDefault();
+            hideAlert();
+
+            // Update form data from inputs
+            Object.keys(formData).forEach(field => {
+                const input = document.getElementById(field);
+                if (input) formData[field] = input.value;
+            });
+
+            if (!validateForm()) {
+                showAlert('Пожалуйста, заполните все поля');
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Check credentials (demo)
+                if (formData.login === 'demo@test.com' && formData.password === '123456') {
+                    showAlert('Вход выполнен успешно! Перенаправляем...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard-preview.html';
+                    }, 2000);
+                } else {
+                    throw new Error('Неверный логин или пароль');
+                }
+
+            } catch (error) {
+                console.error('Login failed:', error);
+                showAlert(error.message || 'Ошибка при входе. Попробуйте еще раз.');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Handle Telegram login
+        function handleTelegramLogin() {
+            // Check if in Telegram
+            if (!window.Telegram || !window.Telegram.WebApp) {
+                showAlert('Вход через Telegram доступен только в Telegram приложении');
+                return;
+            }
+
+            showAlert('Выполняется вход через Telegram...', 'info');
+            
+            // Simulate Telegram auth
+            setTimeout(() => {
+                showAlert('Вход через Telegram выполнен успешно!', 'success');
+                setTimeout(() => {
+                    window.location.href = 'dashboard-preview.html';
+                }, 2000);
+            }, 2000);
+        }
+
+        // Handle Google login
+        function handleGoogleLogin() {
+            showAlert('Вход через Google будет доступен в ближайшее время');
+        }
+
+        // Handle demo mode
+        function handleDemoMode() {
+            showAlert('Переход в демо-режим...', 'info');
+            setTimeout(() => {
+                window.location.href = 'dashboard-preview.html';
+            }, 1500);
+        }
+
+        // Check Telegram availability
+        function checkTelegramAvailability() {
+            const telegramBtn = document.getElementById('telegramBtn');
+            const telegramText = document.getElementById('telegramText');
+            const telegramInfo = document.getElementById('telegramInfo');
+            const telegramDetails = document.getElementById('telegramDetails');
+            
+            if (window.Telegram && window.Telegram.WebApp) {
+                // Show Telegram info
+                telegramInfo.classList.remove('hidden');
+                telegramDetails.textContent = `Версия: ${window.Telegram.WebApp.version || 'Unknown'} | Платформа: ${window.Telegram.WebApp.platform || 'Unknown'}`;
+            } else {
+                // Disable Telegram button
+                telegramBtn.disabled = true;
+                telegramText.textContent = 'Доступно только в Telegram';
+                telegramBtn.style.opacity = '0.6';
+            }
+        }
+    </script>
+</body>
+</html>
