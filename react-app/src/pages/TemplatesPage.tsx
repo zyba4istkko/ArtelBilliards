@@ -7,24 +7,17 @@ import {
   Card, 
   CardContent, 
   Button, 
-  Chip,
   CircularProgress,
   Alert,
   Modal,
   IconButton,
   TextField,
-  FormControl,
-  FormLabel,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
   Divider,
   Fade,
   Backdrop
 } from '@mui/material'
 import { 
   Close,
-  Add,
   Settings
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
@@ -33,6 +26,7 @@ import { toast } from 'sonner'
 import { TemplateService } from '../api/services/templateService'
 import type { GameTemplate, GameTemplateListResponse } from '../api/types'
 import tokens from '../styles/design-tokens'
+import { Ball, PriceSelector, OptionSelector } from '../components/ui'
 
 interface BallConfig {
   name: string
@@ -149,42 +143,90 @@ function TemplatesPage() {
     }
   }
 
-  const getBallComponent = (color: string, size: number = 32) => {
-    const ballColors: Record<string, string> = {
-      white: '#ffffff',
-      yellow: '#ffeb3b',
-      green: '#4caf50',
-      brown: '#8d6e63',
-      blue: '#2196f3',
-      pink: '#e91e63',
-      black: '#212121',
-      red: '#f44336'
+  // Template data for modal display
+  const getTemplateDetails = (template: GameTemplate) => {
+    const templateDetails = {
+      kolkhoz: {
+        settings: {
+          'Количество шаров': '15',
+          'Лимит времени на ход': 'Без лимита',
+          'Условие победы': 'До последнего',
+          'Порядок игры': 'По очереди',
+          'Правило касания': 'Любой шар',
+          'Переигровка': 'При ничьей'
+        },
+        balls: [
+          { name: 'Белый', points: 'Биток', color: 'white' },
+          { name: 'Желтый', points: '2 очка', color: 'yellow' },
+          { name: 'Зеленый', points: '3 очка', color: 'green' },
+          { name: 'Коричневый', points: '4 очка', color: 'brown' },
+          { name: 'Синий', points: '5 очков', color: 'blue' },
+          { name: 'Розовый', points: '6 очков', color: 'pink' },
+          { name: 'Черный', points: '7 очков', color: 'black' },
+          { name: 'Красные', points: '1 очко (15 шт.)', color: 'red' }
+        ],
+        scoring: {
+          'Стоимость одного очка': '10₽',
+          'Штраф за фол': '50₽',
+          'Бонус за серию': '20₽ (5+ шаров)',
+          'Штраф за промах': '10₽'
+        }
+      },
+      americana: {
+        settings: {
+          'Количество шаров': '15',
+          'Лимит времени на ход': '5 мин',
+          'Условие победы': 'Забить 8-ку',
+          'Порядок игры': 'По очереди',
+          'Группы шаров': 'Сплошные/Полосатые',
+          'Правило касания': 'Только свои шары'
+        },
+        balls: [
+          { name: 'Белый', points: 'Биток', color: 'white' },
+          { name: '1', points: 'Желтый сплошной', color: 'yellow' },
+          { name: '2', points: 'Синий сплошной', color: 'blue' },
+          { name: '3', points: 'Красный сплошной', color: 'red' },
+          { name: '9', points: 'Желтый полосатый', color: 'yellow' },
+          { name: '10', points: 'Синий полосатый', color: 'blue' },
+          { name: '11', points: 'Красный полосатый', color: 'red' },
+          { name: '8', points: 'Черный (решающий)', color: 'black' }
+        ],
+        scoring: {
+          'Стоимость одного очка': '25₽',
+          'Штраф за фол': '100₽',
+          'Бонус за 8-ку с разбоя': '500₽',
+          'Штраф за досрочную 8-ку': '200₽'
+        }
+      },
+      moscow_pyramid: {
+        settings: {
+          'Количество шаров': '15',
+          'Лимит времени на ход': '10 мин',
+          'Условие победы': 'До 71 очка',
+          'Порядок игры': 'По очереди',
+          'Лузы': 'Только угловые',
+          'Правило касания': 'Строгое'
+        },
+        balls: [
+          { name: 'Белый', points: 'Биток', color: 'white' },
+          { name: 'Желтый', points: '2 очка', color: 'yellow' },
+          { name: 'Зеленый', points: '3 очка', color: 'green' },
+          { name: 'Коричневый', points: '4 очка', color: 'brown' },
+          { name: 'Синий', points: '5 очков', color: 'blue' },
+          { name: 'Розовый', points: '6 очков', color: 'pink' },
+          { name: 'Черный', points: '7 очков', color: 'black' },
+          { name: 'Красные', points: '1 очко (15 шт.)', color: 'red' }
+        ],
+        scoring: {
+          'Стоимость одного очка': '50₽',
+          'Штраф за фол': '200₽',
+          'Бонус за серию': '100₽ (3+ шара)',
+          'Штраф за неточное касание': '50₽'
+        }
+      }
     }
 
-    return (
-      <Box 
-        sx={{ 
-          width: size,
-          height: size,
-          borderRadius: '50%',
-          display: 'inline-block',
-          backgroundColor: ballColors[color] || ballColors.white,
-          border: color === 'white' ? '1px solid #666' : 'none',
-          boxShadow: 'inset -2px -2px 6px rgba(0,0,0,0.3), inset 2px 2px 6px rgba(255,255,255,0.1)',
-          position: 'relative',
-          '&::after': {
-            content: '""',
-            position: 'absolute',
-            top: '6px',
-            left: '10px',
-            width: '8px',
-            height: '8px',
-            background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), transparent 60%)',
-            borderRadius: '50%'
-          }
-        }}
-      />
-    )
+    return templateDetails[template.game_type as keyof typeof templateDetails] || templateDetails.kolkhoz
   }
 
   if (loading) {
@@ -342,21 +384,24 @@ function TemplatesPage() {
                       borderBottom: `1px solid ${tokens.colors.gray700}`
                     }}>
                       <Typography variant="caption" sx={{ fontSize: '0.875rem', color: tokens.colors.gray300 }}>
-                        Рейтинг:
+                        Условие победы:
                       </Typography>
                       <Typography variant="caption" sx={{ 
                         fontWeight: 600,
                         color: tokens.colors.mint,
                         fontSize: '0.875rem'
                       }}>
-                        {template.rating}/5 ({template.usage_count} игр)
+                        {template.game_type === 'kolkhoz' ? 'До последнего' : 
+                         template.game_type === 'americana' ? 'Забить 8-ку' : 
+                         template.game_type === 'moscow_pyramid' ? 'До 71 очка' : 'До последнего'}
                       </Typography>
                     </Box>
                     <Box sx={{ 
                       display: 'flex', 
                       justifyContent: 'space-between', 
                       alignItems: 'center',
-                      py: '8px'
+                      py: '8px',
+                      borderBottom: `1px solid ${tokens.colors.gray700}`
                     }}>
                       <Typography variant="caption" sx={{ fontSize: '0.875rem', color: tokens.colors.gray300 }}>
                         Стоимость очка:
@@ -366,7 +411,28 @@ function TemplatesPage() {
                         color: tokens.colors.mint,
                         fontSize: '0.875rem'
                       }}>
-                        10₽
+                        {template.game_type === 'kolkhoz' ? '10₽' : 
+                         template.game_type === 'americana' ? '25₽' : 
+                         template.game_type === 'moscow_pyramid' ? '50₽' : '10₽'}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      py: '8px'
+                    }}>
+                      <Typography variant="caption" sx={{ fontSize: '0.875rem', color: tokens.colors.gray300 }}>
+                        Штраф за фол:
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        fontWeight: 600,
+                        color: tokens.colors.mint,
+                        fontSize: '0.875rem'
+                      }}>
+                        {template.game_type === 'kolkhoz' ? '50₽' : 
+                         template.game_type === 'americana' ? '100₽' : 
+                         template.game_type === 'moscow_pyramid' ? '200₽' : '50₽'}
                       </Typography>
                     </Box>
                   </Box>
@@ -558,49 +624,83 @@ function TemplatesPage() {
                   </Box>
 
                   {/* Settings Grid */}
-                  <Grid container spacing={2} sx={{ mb: 3 }}>
-                    <Grid item xs={6}>
-                      <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-                        <Typography variant="subtitle2" fontWeight={600} gutterBottom color={tokens.colors.white} sx={{ fontSize: '0.875rem' }}>
-                          Тип игры
-                        </Typography>
-                        <Box sx={{
-                          color: tokens.colors.mint,
-                          fontWeight: 600,
-                          padding: '8px 12px',
-                          background: tokens.colors.gray600,
-                          borderRadius: '999px',
-                          display: 'inline-block',
-                          fontSize: '0.875rem'
-                        }}>
-                          {currentTemplate.game_type}
-                        </Box>
-                      </Box>
+                  <Box sx={{ mb: 3 }}>
+                    <Grid container spacing={2}>
+                      {Object.entries(getTemplateDetails(currentTemplate).settings).map(([key, value]) => (
+                        <Grid item xs={6} key={key}>
+                          <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
+                            <Typography variant="subtitle2" fontWeight={600} gutterBottom color={tokens.colors.white} sx={{ fontSize: '0.875rem' }}>
+                              {key}
+                            </Typography>
+                            <Box sx={{
+                              color: tokens.colors.mint,
+                              fontWeight: 600,
+                              padding: '8px 12px',
+                              background: tokens.colors.gray600,
+                              borderRadius: '999px',
+                              display: 'inline-block',
+                              fontSize: '0.875rem'
+                            }}>
+                              {value}
+                            </Box>
+                          </Box>
+                        </Grid>
+                      ))}
                     </Grid>
-                    <Grid item xs={6}>
-                      <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-                        <Typography variant="subtitle2" fontWeight={600} gutterBottom color={tokens.colors.white} sx={{ fontSize: '0.875rem' }}>
-                          Рейтинг
-                        </Typography>
-                        <Box sx={{
-                          color: tokens.colors.mint,
-                          fontWeight: 600,
-                          padding: '8px 12px',
-                          background: tokens.colors.gray600,
-                          borderRadius: '999px',
-                          display: 'inline-block',
-                          fontSize: '0.875rem'
-                        }}>
-                          {currentTemplate.rating}/5
-                        </Box>
-                      </Box>
-                    </Grid>
-                  </Grid>
+                  </Box>
 
-                  {/* Description */}
-                  <Typography variant="body1" color={tokens.colors.gray300} sx={{ mb: 3 }}>
-                    {currentTemplate.description}
-                  </Typography>
+                  {/* Balls Section */}
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="h6" color={tokens.colors.mint} fontWeight={700} gutterBottom sx={{ fontSize: '1.125rem' }}>
+                      Настройки шаров
+                    </Typography>
+                    <Grid container spacing={2}>
+                      {getTemplateDetails(currentTemplate).balls.map((ball, index) => (
+                        <Grid item xs={6} sm={4} md={3} key={index}>
+                          <Box sx={{ 
+                            background: tokens.colors.gray700,
+                            borderRadius: '14px', 
+                            p: 2, 
+                            textAlign: 'center',
+                            transition: 'all 0.15s ease-in-out',
+                            '&:hover': {
+                              background: tokens.colors.gray600,
+                              transform: 'translateY(-2px)'
+                            }
+                          }}>
+                            <Ball color={ball.color} size={32} />
+                            <Typography variant="caption" display="block" fontWeight={600} sx={{ mt: 1, color: tokens.colors.white, fontSize: '0.75rem' }}>
+                              {ball.name}
+                            </Typography>
+                            <Typography variant="caption" sx={{ fontSize: '0.7rem', color: tokens.colors.gray300 }}>
+                              {ball.points}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </Box>
+
+                  {/* Scoring Section */}
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="h6" color={tokens.colors.mint} fontWeight={700} gutterBottom sx={{ fontSize: '1.125rem' }}>
+                      Система очков
+                    </Typography>
+                    <Grid container spacing={2}>
+                      {Object.entries(getTemplateDetails(currentTemplate).scoring).map(([key, value]) => (
+                        <Grid item xs={6} key={key}>
+                          <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
+                            <Typography variant="caption" sx={{ fontSize: '0.875rem', color: tokens.colors.gray300, mb: 1, display: 'block' }}>
+                              {key}
+                            </Typography>
+                            <Typography variant="h6" sx={{ color: tokens.colors.mint, fontWeight: 600, fontSize: '1.125rem' }}>
+                              {value}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </Box>
 
                   {/* Action Buttons */}
                   <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
@@ -752,92 +852,62 @@ function TemplatesPage() {
                 <Grid container spacing={3}>
                   <Grid item xs={6}>
                     <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-                      <Typography variant="subtitle2" fontWeight={600} gutterBottom color={tokens.colors.white} sx={{ fontSize: '0.875rem' }}>
-                        Количество шаров
-                      </Typography>
-                      <RadioGroup
-                        row
+                      <OptionSelector
+                        label="Количество шаров"
                         value={customTemplate.ballCount}
-                        onChange={(e) => setCustomTemplate({ ...customTemplate, ballCount: e.target.value })}
-                        sx={{ 
-                          '& .MuiFormControlLabel-label': { 
-                            color: tokens.colors.white,
-                            fontSize: '0.875rem'
-                          } 
-                        }}
-                      >
-                        <FormControlLabel value="15" control={<Radio size="small" sx={{ color: tokens.colors.mint }} />} label="15" />
-                        <FormControlLabel value="8" control={<Radio size="small" sx={{ color: tokens.colors.mint }} />} label="8" />
-                        <FormControlLabel value="9" control={<Radio size="small" sx={{ color: tokens.colors.mint }} />} label="9" />
-                        <FormControlLabel value="21" control={<Radio size="small" sx={{ color: tokens.colors.mint }} />} label="21" />
-                      </RadioGroup>
+                        onChange={(value) => setCustomTemplate({ ...customTemplate, ballCount: value })}
+                        options={[
+                          { label: '15', value: '15' },
+                          { label: '8', value: '8' },
+                          { label: '9', value: '9' },
+                          { label: '21', value: '21' }
+                        ]}
+                        row
+                      />
                     </Box>
                   </Grid>
                   <Grid item xs={6}>
                     <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-                      <Typography variant="subtitle2" fontWeight={600} gutterBottom color={tokens.colors.white} sx={{ fontSize: '0.875rem' }}>
-                        Условие победы
-                      </Typography>
-                      <RadioGroup
-                        value={customTemplate.winCondition}
-                        onChange={(e) => setCustomTemplate({ ...customTemplate, winCondition: e.target.value })}
-                        sx={{ 
-                          '& .MuiFormControlLabel-label': { 
-                            color: tokens.colors.white,
-                            fontSize: '0.875rem'
-                          } 
-                        }}
-                      >
-                        <FormControlLabel value="last" control={<Radio size="small" sx={{ color: tokens.colors.mint }} />} label="До последнего" />
-                        <FormControlLabel value="50" control={<Radio size="small" sx={{ color: tokens.colors.mint }} />} label="До 50 очков" />
-                        <FormControlLabel value="100" control={<Radio size="small" sx={{ color: tokens.colors.mint }} />} label="До 100 очков" />
-                      </RadioGroup>
+                      <OptionSelector
+                        label="Лимит времени на ход"
+                        value={customTemplate.timeLimit}
+                        onChange={(value) => setCustomTemplate({ ...customTemplate, timeLimit: value })}
+                        options={[
+                          { label: 'Без лимита', value: 'none' },
+                          { label: '5 мин', value: '5' },
+                          { label: '10 мин', value: '10' },
+                          { label: '15 мин', value: '15' }
+                        ]}
+                      />
                     </Box>
                   </Grid>
-                </Grid>
-              </Box>
-
-              {/* Scoring System */}
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" color={tokens.colors.mint} fontWeight={700} gutterBottom sx={{ fontSize: '1.125rem' }}>
-                  Система очков
-                </Typography>
-                <Grid container spacing={3}>
                   <Grid item xs={6}>
-                    <TextField
-                      fullWidth
-                      label="Стоимость одного очка (₽)"
-                      type="number"
-                      value={customTemplate.pointPrice}
-                      onChange={(e) => setCustomTemplate({ ...customTemplate, pointPrice: e.target.value })}
-                      sx={{
-                        '& .MuiInputBase-root': {
-                          background: tokens.colors.gray700,
-                          color: tokens.colors.white
-                        },
-                        '& .MuiInputLabel-root': {
-                          color: tokens.colors.gray300
-                        }
-                      }}
-                    />
+                    <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
+                      <OptionSelector
+                        label="Условие победы"
+                        value={customTemplate.winCondition}
+                        onChange={(value) => setCustomTemplate({ ...customTemplate, winCondition: value })}
+                        options={[
+                          { label: 'До последнего', value: 'last' },
+                          { label: 'До 50 очков', value: '50' },
+                          { label: 'До 100 очков', value: '100' },
+                          { label: 'Другое', value: 'custom' }
+                        ]}
+                      />
+                    </Box>
                   </Grid>
                   <Grid item xs={6}>
-                    <TextField
-                      fullWidth
-                      label="Штраф за фол (₽)"
-                      type="number"
-                      value={customTemplate.foulPenalty}
-                      onChange={(e) => setCustomTemplate({ ...customTemplate, foulPenalty: e.target.value })}
-                      sx={{
-                        '& .MuiInputBase-root': {
-                          background: tokens.colors.gray700,
-                          color: tokens.colors.white
-                        },
-                        '& .MuiInputLabel-root': {
-                          color: tokens.colors.gray300
-                        }
-                      }}
-                    />
+                    <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
+                      <OptionSelector
+                        label="Порядок игры"
+                        value={customTemplate.turnOrder}
+                        onChange={(value) => setCustomTemplate({ ...customTemplate, turnOrder: value })}
+                        options={[
+                          { label: 'По очереди', value: 'sequential' },
+                          { label: 'Случайный', value: 'random' }
+                        ]}
+                      />
+                    </Box>
                   </Grid>
                 </Grid>
               </Box>
@@ -870,7 +940,7 @@ function TemplatesPage() {
                           setCustomTemplate({ ...customTemplate, balls: newBalls })
                         }}
                       >
-                        {getBallComponent(ball.color)}
+                        <Ball color={ball.color} size={32} />
                         <Typography variant="caption" display="block" fontWeight={600} sx={{ mt: 1, color: tokens.colors.white, fontSize: '0.75rem' }}>
                           {ball.name}
                         </Typography>
@@ -903,6 +973,44 @@ function TemplatesPage() {
                 <Typography variant="caption" color={tokens.colors.gray300} sx={{ mt: 1, display: 'block', fontSize: '0.8rem' }}>
                   💡 Нажмите на шар чтобы включить/исключить его из игры
                 </Typography>
+              </Box>
+
+              {/* Scoring System */}
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="h6" color={tokens.colors.mint} fontWeight={700} gutterBottom sx={{ fontSize: '1.125rem' }}>
+                  Система очков
+                </Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={6}>
+                    <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
+                      <PriceSelector
+                        label="Стоимость одного очка (₽)"
+                        value={customTemplate.pointPrice}
+                        onChange={(value) => setCustomTemplate({ ...customTemplate, pointPrice: value })}
+                        options={[
+                          { label: '10', value: '10' },
+                          { label: '25', value: '25' },
+                          { label: '50', value: '50' },
+                          { label: '100', value: '100' }
+                        ]}
+                      />
+                    </Box>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
+                      <PriceSelector
+                        label="Штраф за фол (₽)"
+                        value={customTemplate.foulPenalty}
+                        onChange={(value) => setCustomTemplate({ ...customTemplate, foulPenalty: value })}
+                        options={[
+                          { label: '50', value: '50' },
+                          { label: '100', value: '100' },
+                          { label: '200', value: '200' }
+                        ]}
+                      />
+                    </Box>
+                  </Grid>
+                </Grid>
               </Box>
 
               {/* Action Buttons */}
