@@ -263,7 +263,9 @@ function TemplatesPage() {
       }
 
       // Определяем категорию в зависимости от типа игры
-      const categoryId = customTemplate.gameType === 'kolkhoz' ? 1 : 2
+      const categoryId = 
+        customTemplate.gameType === 'kolkhoz' ? 1 :
+        customTemplate.gameType === 'americana' ? 2 : 3 // moscow_pyramid
 
       // Создаем объект шаблона для API
       const templateData: GameTemplateCreate = {
