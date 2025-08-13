@@ -12,6 +12,13 @@ function AppLayout() {
   const isAuthenticated = useIsAuthenticated()
   const { logout } = useAuthStore()
 
+  // DEBUG: Логи для отладки состояния авторизации
+  console.log('AppLayout DEBUG:', {
+    user,
+    isAuthenticated,
+    location: location.pathname
+  })
+
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
   }
@@ -36,12 +43,22 @@ function AppLayout() {
     navigate('/login')
   }
 
-  const navItems = [
+  // Публичные страницы - доступны всем
+  const publicNavItems = [
     { path: '/', label: 'Главная', icon: Home },
-    { path: '/templates', label: 'Шаблоны', icon: Description },
-    { path: '/stats', label: 'Статистика', icon: BarChart },
     { path: '/profile', label: 'Профиль', icon: Person }
   ]
+
+  // Защищенные страницы - только для авторизованных
+  const protectedNavItems = [
+    { path: '/app/templates', label: 'Шаблоны', icon: Description },
+    { path: '/app/stats', label: 'Статистика', icon: BarChart },
+  ]
+
+  // Объединяем элементы навигации в зависимости от авторизации
+  const navItems = isAuthenticated 
+    ? [...publicNavItems, ...protectedNavItems]
+    : publicNavItems
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>

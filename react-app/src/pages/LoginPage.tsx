@@ -121,7 +121,26 @@ function LoginPage() {
       toast.success('Вход выполнен успешно!')
       navigate('/')
     } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || 'Ошибка входа'
+      console.error('Login error:', error)
+      
+      let errorMessage = 'Ошибка входа'
+      
+      if (error.response?.data) {
+        const data = error.response.data
+        
+        // Обрабатываем разные форматы ошибок
+        if (typeof data.detail === 'string') {
+          errorMessage = data.detail
+        } else if (Array.isArray(data.detail)) {
+          // Для 422 ошибок валидации
+          errorMessage = data.detail.map((err: any) => err.msg).join(', ')
+        } else if (data.message) {
+          errorMessage = data.message
+        }
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
       setErrors({ general: errorMessage })
       toast.error(errorMessage)
     }
@@ -384,7 +403,7 @@ function LoginPage() {
                    </Button>
 
                    {/* Debug: Clear Auth Data */}
-                   {process.env.NODE_ENV === 'development' && (
+                   {import.meta.env.DEV && (
                      <Button
                        variant="text"
                        onClick={clearAuthData}

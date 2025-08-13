@@ -43,6 +43,7 @@ users_table = sa.Table(
     Column("first_name", String(100), nullable=True),
     Column("last_name", String(100), nullable=True),
     Column("avatar_url", String(500), nullable=True),
+    Column("password_hash", String(255), nullable=True),  # Хеш пароля
     Column("role", String(20), nullable=False, default=UserRole.REGULAR_USER.value),
     Column("is_active", Boolean, default=True),
     Column("is_verified", Boolean, default=False),

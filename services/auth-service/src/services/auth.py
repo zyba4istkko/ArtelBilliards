@@ -59,6 +59,7 @@ class AuthService:
             avatar_url=user_data.avatar_url,
             language_code=user_data.language_code,
             timezone=user_data.timezone,
+            password_hash=hashed_password,
             role=UserRole.REGULAR_USER.value,
             is_active=True,
             is_verified=False,
