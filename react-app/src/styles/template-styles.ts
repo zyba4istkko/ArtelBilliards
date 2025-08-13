@@ -131,21 +131,6 @@ export const valueBadgeStyles = {
   fontSize: '0.875rem'
 }
 
-// Стили для популярного бейджа
-export const popularBadgeStyles = {
-  position: 'absolute',
-  top: 16,
-  right: 16,
-  background: tokens.colors.success,
-  color: tokens.colors.white,
-  padding: '4px 12px',
-  borderRadius: '999px',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em'
-}
-
 // Стили для карточки создания
 export const createCardStyles = {
   border: `2px dashed ${tokens.colors.gray600}`,

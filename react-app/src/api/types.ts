@@ -79,8 +79,6 @@ export interface GameTemplate {
   is_system: boolean
   is_favorite: boolean
   tags: string[]
-  usage_count: number
-  rating: number
   created_at: string
   updated_at: string
 }

@@ -3,8 +3,9 @@ Template Service Main Application
 """
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from .api import templates, health
 from .core.database import init_db, close_db
 
@@ -32,6 +33,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Middleware для правильной кодировки
+@app.middleware("http")
+async def add_encoding_headers(request: Request, call_next):
+    """Добавляем заголовки для правильной кодировки"""
+    response = await call_next(request)
+    
+    # Добавляем заголовки для UTF-8
+    if "content-type" in response.headers:
+        if "application/json" in response.headers["content-type"]:
+            response.headers["content-type"] = "application/json; charset=utf-8"
+    
+    return response
 
 # Подключаем роутеры
 app.include_router(health.router, tags=["health"])

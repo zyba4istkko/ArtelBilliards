@@ -1,9 +1,7 @@
 import { Box, Card, CardContent, Typography, Button } from '@mui/material'
-import Ball from './Ball'
 import { 
   cardStyles, 
   iconStyles, 
-  popularBadgeStyles, 
   primaryButtonStyles 
 } from '../../styles/template-styles'
 import { 
@@ -33,13 +31,6 @@ export function TemplateCard({ template, onView }: TemplateCardProps) {
 
   return (
     <Card sx={cardStyles} onClick={() => onView(template)}>
-      {/* Popular Badge */}
-      {template.usage_count > 10 && (
-        <Box sx={popularBadgeStyles}>
-          Популярный
-        </Box>
-      )}
-      
       <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
         {/* Icon */}
         <Box sx={iconStyles}>
@@ -141,22 +132,14 @@ export function TemplateCard({ template, onView }: TemplateCardProps) {
           </Box>
         </Box>
 
-        {/* Stats */}
+        {/* Template Type */}
         <Box sx={{ 
           display: 'flex', 
-          justifyContent: 'space-between', 
+          justifyContent: 'flex-end', 
           alignItems: 'center',
           pt: 2,
           borderTop: `1px solid ${tokens.colors.gray700}`
         }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="caption" sx={{ color: tokens.colors.gray400 }}>
-              ⭐ {template.rating}
-            </Typography>
-            <Typography variant="caption" sx={{ color: tokens.colors.gray400 }}>
-              👥 {template.usage_count}
-            </Typography>
-          </Box>
           <Typography variant="caption" sx={{ 
             color: tokens.colors.mint,
             fontWeight: 600
