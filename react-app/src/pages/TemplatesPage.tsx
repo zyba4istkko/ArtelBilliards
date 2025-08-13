@@ -519,6 +519,8 @@ function TemplatesPage() {
                 DEBUG: Этот блок должен быть виден. Если видно - проблема в GameTypeSelector.
               </Typography>
             </Box>
+            {/* Временно отключаем GameTypeSelector для тестирования */}
+            {/*
             <GameTypeSelector 
               value={customTemplate.gameType}
               onChange={(gameType: GameType) => {
@@ -526,6 +528,10 @@ function TemplatesPage() {
                 setCustomTemplate({ ...customTemplate, gameType })
               }}
             />
+            */}
+            <Typography color={tokens.colors.white}>
+              GameTypeSelector временно отключен для диагностики
+            </Typography>
           </Box>
 
           {/* Dynamic Game Type Fields */}

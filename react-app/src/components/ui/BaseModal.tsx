@@ -19,6 +19,9 @@ export function BaseModal({ open, onClose, title, children, size = 'default' }: 
       open={open}
       onClose={onClose}
       closeAfterTransition
+      disableEnforceFocus
+      disableAutoFocus
+      disableRestoreFocus
       slots={{ backdrop: 'div' }}
       slotProps={{
         backdrop: {
