@@ -1,216 +1,296 @@
-import { Box, Grid, Typography, TextField } from '@mui/material'
-import { GameType } from '../../api/types'
-import { PriceSelector, OptionSelector } from './'
-import tokens from '../../styles/design-tokens'
+import React from 'react'
+import { Input, Select, SelectItem } from '@nextui-org/react'
+import { BallConfigurator } from './BallConfigurator'
+import { PriceSelector } from './PriceSelector'
+import type { GameType, BallConfig } from '../../api/types'
 
 interface GameTypeFieldsProps {
   gameType: GameType
-  values: Record<string, any>
-  onChange: (field: string, value: any) => void
+  values: {
+    minPlayers: number
+    maxPlayers: number
+    turnSequence: string
+    paymentDirection: string
+    gamePrice: number
+    pointValue: number
+    foulPenalty: number
+    ballsToWin: number
+    totalBalls: number
+    balls: BallConfig[]
+  }
+  onChange: (field: 'minPlayers' | 'maxPlayers' | 'turnSequence' | 'paymentDirection' | 'gamePrice' | 'pointValue' | 'foulPenalty' | 'ballsToWin' | 'totalBalls' | 'balls', value: any) => void
 }
 
-// Опции для Американки и Московской пирамиды
-const BALLS_TO_WIN_OPTIONS = [
-  { label: '8 шаров', value: '8' },
-  { label: '9 шаров', value: '9' },
-  { label: '10 шаров', value: '10' },
-]
-
-const GAME_PRICE_OPTIONS = [
-  { label: '100₽', value: '100' },
-  { label: '200₽', value: '200' },
-  { label: '500₽', value: '500' },
-  { label: '1000₽', value: '1000' },
-  { label: '2000₽', value: '2000' },
-]
-
-const POINT_VALUE_OPTIONS = [
-  { label: '25₽', value: '25' },
-  { label: '50₽', value: '50' },
-  { label: '100₽', value: '100' },
-  { label: '200₽', value: '200' },
-]
-
-const FOUL_PENALTY_OPTIONS = [
-  { label: '1 очко', value: '1' },
-  { label: '2 очка', value: '2' },
-  { label: '3 очка', value: '3' },
-]
-
 export function GameTypeFields({ gameType, values, onChange }: GameTypeFieldsProps) {
-  const renderKolkhozFields = () => (
-    <Box>
-      <Typography variant="h6" color={tokens.colors.mint} fontWeight={700} gutterBottom sx={{ fontSize: '1.125rem' }}>
-        Настройки Колхоза
-      </Typography>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-            <PriceSelector
-              label="Стоимость одного очка (₽)"
-              value={values.point_value_rubles || '50'}
-              onChange={(value) => onChange('point_value_rubles', parseInt(value))}
-              options={POINT_VALUE_OPTIONS}
-            />
-          </Box>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-            <OptionSelector
-              label="Штраф за фол (очки)"
-              value={values.foul_penalty_points?.toString() || '1'}
-              onChange={(value) => onChange('foul_penalty_points', parseInt(value))}
-              options={FOUL_PENALTY_OPTIONS}
-              row
-            />
-          </Box>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-            <TextField
-              fullWidth
-              label="Минимум игроков"
-              type="number"
-              value={values.min_players || 2}
-              onChange={(e) => onChange('min_players', parseInt(e.target.value))}
-              InputProps={{ inputProps: { min: 2, max: 6 } }}
-              sx={{
-                '& .MuiInputBase-root': {
-                  background: tokens.colors.gray600,
-                  color: tokens.colors.white
-                },
-                '& .MuiInputLabel-root': {
-                  color: tokens.colors.gray300
-                }
-              }}
-            />
-          </Box>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-            <TextField
-              fullWidth
-              label="Максимум игроков"
-              type="number"
-              value={values.max_players || 6}
-              onChange={(e) => onChange('max_players', parseInt(e.target.value))}
-              InputProps={{ inputProps: { min: 2, max: 6 } }}
-              sx={{
-                '& .MuiInputBase-root': {
-                  background: tokens.colors.gray600,
-                  color: tokens.colors.white
-                },
-                '& .MuiInputLabel-root': {
-                  color: tokens.colors.gray300
-                }
-              }}
-            />
-          </Box>
-        </Grid>
-      </Grid>
-    </Box>
-  )
-
-  const renderAmericanaFields = () => (
-    <Box>
-      <Typography variant="h6" color={tokens.colors.mint} fontWeight={700} gutterBottom sx={{ fontSize: '1.125rem' }}>
-        Настройки Американки
-      </Typography>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-            <PriceSelector
-              label="Стоимость партии (₽)"
-              value={values.game_price_rubles?.toString() || '500'}
-              onChange={(value) => onChange('game_price_rubles', parseInt(value))}
-              options={GAME_PRICE_OPTIONS}
-            />
-          </Box>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-            <OptionSelector
-              label="Шаров до победы"
-              value={values.balls_to_win?.toString() || '8'}
-              onChange={(value) => onChange('balls_to_win', parseInt(value))}
-              options={BALLS_TO_WIN_OPTIONS}
-              row
-            />
-          </Box>
-        </Grid>
-        <Grid item xs={12}>
-          <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-            <Typography variant="subtitle2" color={tokens.colors.gray300} sx={{ mb: 1 }}>
-              Особенности игры
-            </Typography>
-            <Typography variant="body2" color={tokens.colors.gray400}>
-              • Игра для 2 игроков<br/>
-              • Выигрывает тот, кто первым забьет указанное количество шаров<br/>
-              • Простой счет без очков - только количество забитых шаров
-            </Typography>
-          </Box>
-        </Grid>
-      </Grid>
-    </Box>
-  )
-
-  const renderMoscowPyramidFields = () => (
-    <Box>
-      <Typography variant="h6" color={tokens.colors.mint} fontWeight={700} gutterBottom sx={{ fontSize: '1.125rem' }}>
-        Настройки Московской пирамиды
-      </Typography>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-            <PriceSelector
-              label="Стоимость партии (₽)"
-              value={values.game_price_rubles?.toString() || '1000'}
-              onChange={(value) => onChange('game_price_rubles', parseInt(value))}
-              options={GAME_PRICE_OPTIONS}
-            />
-          </Box>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-            <OptionSelector
-              label="Шаров до победы"
-              value={values.balls_to_win?.toString() || '8'}
-              onChange={(value) => onChange('balls_to_win', parseInt(value))}
-              options={BALLS_TO_WIN_OPTIONS}
-              row
-            />
-          </Box>
-        </Grid>
-        <Grid item xs={12}>
-          <Box sx={{ 
-            background: `linear-gradient(135deg, ${tokens.colors.coral}20, ${tokens.colors.mint}20)`,
-            borderRadius: '14px', 
-            p: 2,
-            border: `1px solid ${tokens.colors.mint}40`
-          }}>
-            <Typography variant="subtitle2" color={tokens.colors.mint} sx={{ mb: 1, fontWeight: 600 }}>
-              🔺 Особенности Московской пирамиды
-            </Typography>
-            <Typography variant="body2" color={tokens.colors.gray300}>
-              • Игра для 2 игроков одним желтым шаром<br/>
-              • Всего на столе 16 шаров (15 + желтый биток)<br/>
-              • Выигрывает тот, кто первым забьет указанное количество шаров<br/>
-              • Игра ведется только желтым шаром - остальные шары являются целями
-            </Typography>
-          </Box>
-        </Grid>
-      </Grid>
-    </Box>
-  )
-
-  switch (gameType) {
-    case 'kolkhoz':
-      return renderKolkhozFields()
-    case 'americana':
-      return renderAmericanaFields()
-    case 'moscow_pyramid':
-      return renderMoscowPyramidFields()
-    default:
-      return null
+  // Стили для компонентов с нашими цветами - сделал фон светлее
+  const inputClasses = {
+    base: "w-full",
+    input: "text-white bg-gray-600 placeholder:text-gray-400", // Изменил с gray-700 на gray-600
+    inputWrapper: "border-gray-500 bg-gray-600 hover:border-mint focus-within:border-mint transition-colors", // Изменил с gray-600/gray-700 на gray-500/gray-600
+    label: "text-gray-200 font-semibold text-sm"
   }
+
+  const selectClasses = {
+    base: "w-full",
+    trigger: "bg-gray-600 border-gray-500 hover:border-mint data-[open=true]:border-mint transition-colors min-h-12", // Изменил с gray-700/gray-600 на gray-600/gray-500
+    value: "text-white font-medium",
+    label: "text-gray-200 font-semibold text-sm",
+    listbox: "bg-gray-700", // Оставил темнее для выпадающего списка
+    popoverContent: "bg-gray-700 border-gray-500" // Изменил с gray-600 на gray-500
+  }
+
+  const componentStyles = {
+    '--nextui-focus': '#85DCCB',
+    '--nextui-primary': '#85DCCB'
+  } as React.CSSProperties
+
+  const selectItemStyles = {
+    '--nextui-hover': 'rgba(133, 220, 203, 0.1)',
+    '--nextui-selected': 'rgba(133, 220, 203, 0.2)'
+  } as React.CSSProperties
+
+  if (gameType === 'kolkhoz') {
+    return (
+      <div className="space-y-6">
+        {/* Общие поля */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <Input
+            type="number"
+            label="Мин. игроков"
+            value={values.minPlayers.toString()}
+            onChange={(e) => onChange('minPlayers', parseInt(e.target.value) || 2)}
+            min={2}
+            max={6}
+            variant="bordered"
+            classNames={inputClasses}
+            style={componentStyles}
+          />
+
+          <Input
+            type="number"
+            label="Макс. игроков"
+            value={values.maxPlayers.toString()}
+            onChange={(e) => onChange('maxPlayers', parseInt(e.target.value) || 6)}
+            min={2}
+            max={6}
+            variant="bordered"
+            classNames={inputClasses}
+            style={componentStyles}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <Select
+            label="Алгоритм очереди"
+            selectedKeys={[values.turnSequence]}
+            onSelectionChange={(keys) => onChange('turnSequence', Array.from(keys)[0])}
+            variant="bordered"
+            classNames={selectClasses}
+            style={componentStyles}
+          >
+            <SelectItem 
+              key="По очереди без повторения" 
+              textValue="По очереди без повторения"
+              className="text-white hover:bg-mint/10 data-[selected=true]:bg-mint/20"
+              style={selectItemStyles}
+            >
+              <span className="text-white font-medium">По очереди без повторения</span>
+            </SelectItem>
+            <SelectItem 
+              key="Случайный порядок" 
+              textValue="Случайный порядок"
+              className="text-white hover:bg-mint/10 data-[selected=true]:bg-mint/20"
+              style={selectItemStyles}
+            >
+              <span className="text-white font-medium">Случайный порядок</span>
+            </SelectItem>
+          </Select>
+
+          <Select
+            label="Направление оплаты"
+            selectedKeys={[values.paymentDirection]}
+            onSelectionChange={(keys) => onChange('paymentDirection', Array.from(keys)[0])}
+            variant="bordered"
+            classNames={selectClasses}
+            style={componentStyles}
+          >
+            <SelectItem 
+              key="По часовой стрелке" 
+              textValue="По часовой стрелке"
+              className="text-white hover:bg-mint/10 data-[selected=true]:bg-mint/20"
+              style={selectItemStyles}
+            >
+              <span className="text-white font-medium">По часовой стрелке</span>
+            </SelectItem>
+            <SelectItem 
+              key="Против часовой стрелки" 
+              textValue="Против часовой стрелки"
+              className="text-white hover:bg-mint/10 data-[selected=true]:bg-mint/20"
+              style={selectItemStyles}
+            >
+              <span className="text-white font-medium">Против часовой стрелки</span>
+            </SelectItem>
+          </Select>
+        </div>
+
+        {/* Стоимость очка */}
+        <div className="space-y-3">
+          <PriceSelector
+            label="Стоимость очка (₽)"
+            value={values.pointValue}
+            onChange={(value) => onChange('pointValue', value)}
+            presetValues={[10, 25, 50, 100]}
+          />
+        </div>
+
+        {/* Штраф за фол */}
+        <div className="space-y-3">
+          <label className="text-gray-200 text-sm font-semibold">Штраф за фол (₽)</label>
+          <Input
+            type="number"
+            value={values.foulPenalty.toString()}
+            onChange={(e) => onChange('foulPenalty', parseInt(e.target.value) || 50)}
+            min={0}
+            max={1000}
+            variant="bordered"
+            classNames={inputClasses}
+            style={componentStyles}
+            placeholder="Введите размер штрафа..."
+          />
+        </div>
+
+        {/* Настройка шаров */}
+        <div className="space-y-3">
+          <BallConfigurator
+            balls={values.balls}
+            onChange={(balls) => onChange('balls', balls)}
+            allowPointsEdit={true}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // Для американки и московской пирамиды
+  return (
+    <div className="space-y-6">
+      {/* Общие поля */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <Input
+          type="number"
+          label="Мин. игроков"
+          value={values.minPlayers.toString()}
+          onChange={(e) => onChange('minPlayers', parseInt(e.target.value) || 2)}
+          min={2}
+          max={6}
+          variant="bordered"
+          classNames={inputClasses}
+          style={componentStyles}
+        />
+
+        <Input
+          type="number"
+          label="Макс. игроков"
+          value={values.maxPlayers.toString()}
+          onChange={(e) => onChange('maxPlayers', parseInt(e.target.value) || 6)}
+          min={2}
+          max={6}
+          variant="bordered"
+          classNames={inputClasses}
+          style={componentStyles}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <Select
+          label="Алгоритм очереди"
+          selectedKeys={[values.turnSequence]}
+          onSelectionChange={(keys) => onChange('turnSequence', Array.from(keys)[0])}
+          variant="bordered"
+          classNames={selectClasses}
+          style={componentStyles}
+        >
+          <SelectItem 
+            key="По очереди без повторения" 
+            textValue="По очереди без повторения"
+            className="text-white hover:bg-mint/10 data-[selected=true]:bg-mint/20"
+            style={selectItemStyles}
+          >
+            <span className="text-white font-medium">По очереди без повторения</span>
+          </SelectItem>
+          <SelectItem 
+            key="Случайный порядок" 
+            textValue="Случайный порядок"
+            className="text-white hover:bg-mint/10 data-[selected=true]:bg-mint/20"
+            style={selectItemStyles}
+          >
+            <span className="text-white font-medium">Случайный порядок</span>
+          </SelectItem>
+        </Select>
+
+        <Select
+          label="Направление оплаты"
+          selectedKeys={[values.paymentDirection]}
+          onSelectionChange={(keys) => onChange('paymentDirection', Array.from(keys)[0])}
+          variant="bordered"
+          classNames={selectClasses}
+          style={componentStyles}
+        >
+          <SelectItem 
+            key="По часовой стрелке" 
+            textValue="По часовой стрелке"
+            className="text-white hover:bg-mint/10 data-[selected=true]:bg-mint/20"
+            style={selectItemStyles}
+          >
+            <span className="text-white font-medium">По часовой стрелке</span>
+          </SelectItem>
+          <SelectItem 
+            key="Против часовой стрелки" 
+            textValue="Против часовой стрелки"
+            className="text-white hover:bg-mint/10 data-[selected=true]:bg-mint/20"
+            style={selectItemStyles}
+          >
+            <span className="text-white font-medium">Против часовой стрелки</span>
+          </SelectItem>
+        </Select>
+      </div>
+
+      {/* Стоимость партии */}
+      <div className="space-y-3">
+        <PriceSelector
+          label="Стоимость партии (₽)"
+          value={values.gamePrice}
+          onChange={(value) => onChange('gamePrice', value)}
+          presetValues={[100, 250, 500, 1000]}
+        />
+      </div>
+
+      {/* Шары для победы и общее количество */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <Input
+          type="number"
+          label="Шаров для победы"
+          value={values.ballsToWin.toString()}
+          onChange={(e) => onChange('ballsToWin', parseInt(e.target.value) || 8)}
+          min={1}
+          max={15}
+          variant="bordered"
+          classNames={inputClasses}
+          style={componentStyles}
+        />
+
+        <Input
+          type="number"
+          label="Всего шаров"
+          value={values.totalBalls.toString()}
+          onChange={(e) => onChange('totalBalls', parseInt(e.target.value) || 15)}
+          min={8}
+          max={21}
+          variant="bordered"
+          classNames={inputClasses}
+          style={componentStyles}
+        />
+      </div>
+    </div>
+  )
 }

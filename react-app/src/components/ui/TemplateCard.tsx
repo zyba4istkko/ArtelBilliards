@@ -10,6 +10,7 @@ import {
 } from '../../constants/template-constants'
 import tokens from '../../styles/design-tokens'
 import type { GameTemplate } from '../../api/types'
+import { getTemplateDetails } from '../../utils/template-utils'
 
 interface TemplateCardProps {
   template: GameTemplate
@@ -17,6 +18,8 @@ interface TemplateCardProps {
 }
 
 export function TemplateCard({ template, onView }: TemplateCardProps) {
+  console.log('🚀 TemplateCard вызван для:', template?.name)
+  
   if (!template) {
     return null
   }
@@ -28,6 +31,18 @@ export function TemplateCard({ template, onView }: TemplateCardProps) {
   const getGameTypeName = (gameType: string) => {
     return GAME_TYPE_NAMES[gameType] || gameType
   }
+
+  // Получаем детали шаблона через нашу функцию
+  const templateDetails = getTemplateDetails(template)
+  
+  // Отладочный лог
+  console.log('🔍 TemplateCard debug:', {
+    templateName: template.name,
+    gameType: template.game_type,
+    templateDetails,
+    settings: templateDetails.settings,
+    scoring: templateDetails.scoring
+  })
 
   return (
     <Card sx={cardStyles} onClick={() => onView(template)}>
@@ -76,60 +91,50 @@ export function TemplateCard({ template, onView }: TemplateCardProps) {
               {getGameTypeName(template.game_type)}
             </Typography>
           </Box>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            py: '8px',
-            borderBottom: `1px solid ${tokens.colors.gray700}`
-          }}>
-            <Typography variant="caption" sx={{ fontSize: '0.875rem', color: tokens.colors.gray300 }}>
-              Стоимость очка:
-            </Typography>
-            <Typography variant="caption" sx={{ 
-              fontWeight: 600,
-              color: tokens.colors.mint,
-              fontSize: '0.875rem'
+          
+          {/* Динамически отображаем поля в зависимости от типа игры */}
+          {Object.entries(templateDetails.settings).slice(0, 2).map(([key, value]) => (
+            <Box key={key} sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              py: '8px',
+              borderBottom: `1px solid ${tokens.colors.gray700}`
             }}>
-              {template.rules?.point_value_rubles ? `${template.rules.point_value_rubles}₽` : 'Не указано'}
-            </Typography>
-          </Box>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            py: '8px',
-            borderBottom: `1px solid ${tokens.colors.gray700}`
-          }}>
-            <Typography variant="caption" sx={{ fontSize: '0.875rem', color: tokens.colors.gray300 }}>
-              Игроков:
-            </Typography>
-            <Typography variant="caption" sx={{ 
-              fontWeight: 600,
-              color: tokens.colors.mint,
-              fontSize: '0.875rem'
+              <Typography variant="caption" sx={{ fontSize: '0.875rem', color: tokens.colors.gray300 }}>
+                {key}:
+              </Typography>
+              <Typography variant="caption" sx={{ 
+                fontWeight: 600,
+                color: tokens.colors.mint,
+                fontSize: '0.875rem'
+              }}>
+                {value}
+              </Typography>
+            </Box>
+          ))}
+
+          {/* Отображаем стоимость (очка или партии) */}
+          {Object.entries(templateDetails.scoring).slice(0, 1).map(([key, value]) => (
+            <Box key={key} sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              py: '8px',
+              borderBottom: `1px solid ${tokens.colors.gray700}`
             }}>
-              {template.rules?.min_players ? `${template.rules.min_players}-${template.rules.max_players}` : 'Не указано'}
-            </Typography>
-          </Box>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            py: '8px',
-            borderBottom: `1px solid ${tokens.colors.gray700}`
-          }}>
-            <Typography variant="caption" sx={{ fontSize: '0.875rem', color: tokens.colors.gray300 }}>
-              Шаров:
-            </Typography>
-            <Typography variant="caption" sx={{ 
-              fontWeight: 600,
-              color: tokens.colors.mint,
-              fontSize: '0.875rem'
-            }}>
-              {template.rules?.balls ? template.rules.balls.length : 'Не указано'}
-            </Typography>
-          </Box>
+              <Typography variant="caption" sx={{ fontSize: '0.875rem', color: tokens.colors.gray300 }}>
+                {key}:
+              </Typography>
+              <Typography variant="caption" sx={{ 
+                fontWeight: 600,
+                color: tokens.colors.mint,
+                fontSize: '0.875rem'
+              }}>
+                {value}
+              </Typography>
+            </Box>
+          ))}
         </Box>
 
         {/* Template Type */}

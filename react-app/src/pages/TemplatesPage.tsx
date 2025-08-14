@@ -366,13 +366,26 @@ function TemplatesPage() {
           {/* Если данные загружены */}
           {!loading && !error && (
             <>
+              {/* Отладочный лог */}
+              {console.log('🔍 TemplatesPage render:', {
+                templatesCount: templatesData?.templates?.length,
+                templates: templatesData?.templates,
+                firstTemplate: templatesData?.templates?.[0]
+              })}
+              
               {/* Шаблоны */}
               {templatesData?.templates?.length ? (
-                templatesData.templates.map((template) => (
-                  <Grid item xs={12} md={6} lg={4} key={template.id}>
-                    <TemplateCard template={template} onView={viewTemplate} />
-                  </Grid>
-                ))
+                (() => {
+                  console.log('🎯 Начинаю рендерить шаблоны:', templatesData.templates.length)
+                  return templatesData.templates.map((template) => {
+                    console.log('🎯 Рендерю шаблон:', template.name)
+                    return (
+                      <Grid item xs={12} md={6} lg={4} key={template.id}>
+                        <TemplateCard template={template} onView={viewTemplate} />
+                      </Grid>
+                    )
+                  })
+                })()
               ) : (
                 <Grid item xs={12}>
                   <Typography color={tokens.colors.gray300} textAlign="center" sx={{ py: 4 }}>
@@ -383,7 +396,7 @@ function TemplatesPage() {
 
               {/* Кнопка создания */}
               <Grid item xs={12} md={6} lg={4}>
-                <CreateTemplateCard onClick={createCustomTemplate} />
+                <CreateTemplateCard onTemplateCreated={loadTemplates} />
               </Grid>
             </>
           )}

@@ -2,7 +2,7 @@ import { Box } from '@mui/material'
 
 interface BallProps {
   color: string
-  size?: number
+  size?: number | 'sm' | 'md' | 'lg'
 }
 
 const ballColors: Record<string, string> = {
@@ -17,11 +17,22 @@ const ballColors: Record<string, string> = {
 }
 
 export function Ball({ color, size = 32 }: BallProps) {
+  const getSize = (size: number | 'sm' | 'md' | 'lg'): number => {
+    if (typeof size === 'number') return size
+    switch (size) {
+      case 'sm': return 20
+      case 'md': return 32
+      case 'lg': return 48
+      default: return 32
+    }
+  }
+
+  const ballSize = getSize(size)
   return (
     <Box 
       sx={{ 
-        width: size,
-        height: size,
+        width: ballSize,
+        height: ballSize,
         borderRadius: '50%',
         display: 'inline-block',
         backgroundColor: ballColors[color] || ballColors.white,

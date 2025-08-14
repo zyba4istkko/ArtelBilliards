@@ -1,74 +1,80 @@
-import { Box, FormControl, InputLabel, Select, MenuItem, Typography } from '@mui/material'
-import { GameType } from '../../api/types'
-import { GAME_TYPE_ICONS, GAME_TYPE_NAMES } from '../../constants/template-constants'
-import tokens from '../../styles/design-tokens'
+import React from 'react'
+import { Select, SelectItem } from '@nextui-org/react'
+import type { GameType } from '../../api/types'
 
 interface GameTypeSelectorProps {
-  value: GameType
+  value: GameType | ''
   onChange: (gameType: GameType) => void
-  label?: string
 }
 
-export function GameTypeSelector({ value, onChange, label = "Тип игры" }: GameTypeSelectorProps) {
-  const gameTypes: GameType[] = ['kolkhoz', 'americana', 'moscow_pyramid']
+const gameTypes = [
+  {
+    key: 'kolkhoz' as GameType,
+    label: 'Колхоз',
+    description: 'Игра на очки с настраиваемыми шарами'
+  },
+  {
+    key: 'americana' as GameType,
+    label: 'Американка', 
+    description: 'Игра до 8 шаров, фиксированная цена'
+  },
+  {
+    key: 'moscow_pyramid' as GameType,
+    label: 'Московская пирамида',
+    description: 'Классическая пирамида с желтым шаром'
+  }
+]
 
+export function GameTypeSelector({ value, onChange }: GameTypeSelectorProps) {
   return (
-    <Box sx={{ mb: 3 }}>
-      <Typography variant="subtitle1" color={tokens.colors.gray300} sx={{ mb: 2, fontWeight: 600 }}>
-        {label}
-      </Typography>
-      <FormControl fullWidth>
-        <Select
-          value={value}
-          onChange={(e) => onChange(e.target.value as GameType)}
-          sx={{
-            background: tokens.colors.gray700,
-            color: tokens.colors.white,
-            borderRadius: '14px',
-            '& .MuiOutlinedInput-notchedOutline': {
-              border: `2px solid ${tokens.colors.gray600}`,
-            },
-            '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: tokens.colors.mint,
-            },
-            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: tokens.colors.mint,
-            },
-            '& .MuiSelect-icon': {
-              color: tokens.colors.gray300,
-            }
-          }}
+    <Select
+      label="Тип игры"
+      placeholder="Выберите тип игры"
+      selectedKeys={value ? [value] : []}
+      onSelectionChange={(keys) => {
+        const selectedKey = Array.from(keys)[0] as GameType
+        if (selectedKey) {
+          onChange(selectedKey)
+        }
+      }}
+      variant="bordered"
+      className="w-full"
+      classNames={{
+        trigger: "bg-gray-600 border-gray-500 hover:border-mint data-[open=true]:border-mint transition-colors min-h-12",
+        value: "text-white font-medium",
+        label: "text-gray-200 font-semibold text-sm",
+        listbox: "bg-gray-700",
+        popoverContent: "bg-gray-700 border-gray-500"
+      }}
+      style={{
+        '--nextui-focus': '#85DCCB',
+        '--nextui-primary': '#85DCCB'
+      } as React.CSSProperties}
+      renderValue={(items) => {
+        if (items.length === 0) return null;
+        const selectedItem = gameTypes.find(gt => gt.key === value);
+        return selectedItem ? (
+          <span className="text-white font-semibold">{selectedItem.label}</span>
+        ) : null;
+      }}
+    >
+      {gameTypes.map((gameType) => (
+        <SelectItem 
+          key={gameType.key} 
+          value={gameType.key}
+          textValue={gameType.label}
+          className="text-white py-2"
+          style={{
+            '--nextui-hover': 'rgba(133, 220, 203, 0.1)',
+            '--nextui-selected': 'rgba(133, 220, 203, 0.2)'
+          } as React.CSSProperties}
         >
-          {gameTypes.map((gameType) => (
-            <MenuItem 
-              key={gameType} 
-              value={gameType}
-              sx={{
-                color: tokens.colors.white,
-                background: tokens.colors.gray700,
-                '&:hover': {
-                  background: tokens.colors.gray600,
-                },
-                '&.Mui-selected': {
-                  background: tokens.colors.gray600,
-                  '&:hover': {
-                    background: tokens.colors.gray500,
-                  }
-                }
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Box sx={{ fontSize: '1.2rem' }}>
-                  {GAME_TYPE_ICONS[gameType]}
-                </Box>
-                <Typography>
-                  {GAME_TYPE_NAMES[gameType]}
-                </Typography>
-              </Box>
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    </Box>
+          <div className="flex flex-col">
+            <span className="font-semibold text-white text-base leading-tight">{gameType.label}</span>
+            <span className="text-sm text-gray-300 leading-tight">{gameType.description}</span>
+          </div>
+        </SelectItem>
+      ))}
+    </Select>
   )
 }

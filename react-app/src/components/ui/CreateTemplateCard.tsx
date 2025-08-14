@@ -1,43 +1,75 @@
-import { Box, Card, CardContent, Typography, Button } from '@mui/material'
-import { createCardStyles, largeIconStyles, coralButtonStyles } from '../../styles/template-styles'
-import tokens from '../../styles/design-tokens'
+import React, { useState } from 'react'
+import { Card, CardBody, Button } from '@nextui-org/react'
+import { Plus } from 'lucide-react'
+import { BaseModal } from './BaseModal'
+import { CreateTemplateForm } from './CreateTemplateForm'
+import { apiClient } from '../../api/client'
+import type { GameTemplateCreate } from '../../api/types'
 
 interface CreateTemplateCardProps {
-  onClick: () => void
+  onTemplateCreated: () => void
 }
 
-export function CreateTemplateCard({ onClick }: CreateTemplateCardProps) {
+export function CreateTemplateCard({ onTemplateCreated }: CreateTemplateCardProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+  }
+
+  const handleSubmitTemplate = async (template: GameTemplateCreate) => {
+    try {
+      await apiClient.post('/api/v1/templates/', template)
+      onTemplateCreated()
+      handleCloseModal()
+    } catch (error) {
+      console.error('Ошибка создания шаблона:', error)
+      throw error
+    }
+  }
+
   return (
-    <Card sx={createCardStyles} onClick={onClick}>
-      <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-        {/* Icon */}
-        <Box sx={largeIconStyles}>
-          ⚙️
-        </Box>
+    <>
+      <Card className="h-full border-2 border-dashed border-gray-600 bg-gray-900 hover:border-coral hover:bg-gray-800 transition-all duration-300 hover:shadow-lg">
+        <CardBody className="flex flex-col items-center justify-center text-center p-8 min-h-[320px]">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-coral to-peach flex items-center justify-center mb-6 transition-transform hover:scale-110">
+            <Plus size={32} className="text-white" />
+          </div>
+          
+          <h3 className="text-xl font-bold text-white mb-3">
+            Создать свой шаблон
+          </h3>
+          
+          <p className="text-gray-300 mb-6 leading-relaxed">
+            Настрой правила под себя: количество игроков, стоимость, штрафы и другое
+          </p>
+          
+          <Button
+            className="text-white font-semibold px-6 py-2 rounded-xl transition-colors"
+            style={{ backgroundColor: '#E27D60' }}
+            variant="solid"
+            onPress={handleOpenModal}
+          >
+            Настроить правила
+          </Button>
+        </CardBody>
+      </Card>
 
-        {/* Title */}
-        <Typography variant="h6" component="h3" sx={{ 
-          fontSize: '1.5rem',
-          fontWeight: 700, 
-          mb: 1,
-          color: tokens.colors.white
-        }}>
-          Создать свой
-        </Typography>
-
-        {/* Description */}
-        <Typography variant="body2" color={tokens.colors.gray300} sx={{ mb: 3 }}>
-          Настрой правила под себя: количество шаров, очки, стоимость, штрафы и другие параметры
-        </Typography>
-
-        {/* Action Button */}
-        <Button 
-          variant="contained"
-          sx={coralButtonStyles}
-        >
-          Настроить правила
-        </Button>
-      </CardContent>
-    </Card>
+      <BaseModal
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        title="Создать свой шаблон"
+        size="xl"
+      >
+        <CreateTemplateForm
+          onClose={handleCloseModal}
+          onSubmit={handleSubmitTemplate}
+        />
+      </BaseModal>
+    </>
   )
 }

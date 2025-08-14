@@ -1,48 +1,45 @@
-import { Box, Grid, Typography } from '@mui/material'
+import React from 'react'
 import { Ball } from './Ball'
-import { settingBlockStyles } from '../../styles/template-styles'
-import tokens from '../../styles/design-tokens'
 
-interface BallDisplay {
+interface BallInfo {
   name: string
   points: string
   color: string
 }
 
 interface BallsDisplayProps {
-  balls: BallDisplay[]
+  balls: BallInfo[]
   title: string
 }
 
 export function BallsDisplay({ balls, title }: BallsDisplayProps) {
+  if (!balls || balls.length === 0) {
+    return null
+  }
+
   return (
-    <Box sx={{ mb: 3 }}>
-      <Typography variant="h6" color={tokens.colors.mint} fontWeight={700} gutterBottom sx={{ fontSize: '1.125rem' }}>
+    <div className="mb-6">
+      <h3 className="font-bold text-lg mb-4" style={{ color: '#85DCCB' }}>
         {title}
-      </Typography>
-      <Grid container spacing={2}>
+      </h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {balls.map((ball, index) => (
-          <Grid item xs={6} sm={4} md={3} key={index}>
-            <Box sx={{ 
-              ...settingBlockStyles,
-              textAlign: 'center',
-              transition: 'all 0.15s ease-in-out',
-              '&:hover': {
-                background: tokens.colors.gray600,
-                transform: 'translateY(-2px)'
-              }
-            }}>
-              <Ball color={ball.color} size={32} />
-              <Typography variant="caption" display="block" fontWeight={600} sx={{ mt: 1, color: tokens.colors.white, fontSize: '0.75rem' }}>
-                {ball.name}
-              </Typography>
-              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: tokens.colors.gray300 }}>
-                {ball.points}
-              </Typography>
-            </Box>
-          </Grid>
+          <div 
+            key={index}
+            className="bg-gray-700 border border-gray-600 rounded-lg p-4 text-center transition-all hover:bg-gray-600"
+          >
+            <div className="flex justify-center mb-2">
+              <Ball color={ball.color} size="md" />
+            </div>
+            <div className="text-white font-semibold text-sm mb-1">
+              {ball.name}
+            </div>
+            <div className="text-gray-300 text-xs">
+              {ball.points}
+            </div>
+          </div>
         ))}
-      </Grid>
-    </Box>
+      </div>
+    </div>
   )
 }
