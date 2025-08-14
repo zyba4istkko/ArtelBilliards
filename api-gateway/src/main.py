@@ -21,7 +21,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000", 
         "http://localhost:3001",
-        "http://localhost:5173",  # Vite dev server
+        "http://localhost:5173",  # Vite dev server (production build)
+        "http://localhost:5174",  # Vite dev server (hot reload)
         "https://plenty-pants-flash.loca.lt"  # Localtunnel
     ],
     allow_credentials=True,

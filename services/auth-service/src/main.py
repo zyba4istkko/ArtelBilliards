@@ -64,7 +64,9 @@ app.add_middleware(
 
 # Подключение роутеров
 from .api.auth import router as auth_router
+from .api.users import router as users_router
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(users_router, prefix="/auth", tags=["users"])
 
 @app.get("/")
 async def root():

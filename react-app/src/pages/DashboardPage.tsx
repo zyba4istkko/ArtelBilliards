@@ -66,8 +66,8 @@ function DashboardPage() {
     {
       icon: '🎮',
       title: 'Быстрая игра',
-      description: 'Начни игру с готовыми настройками',
-      action: () => navigate('/session'),
+      description: 'Создай новую игру и пригласи игроков',
+      action: () => navigate('/session/create'),
       color: 'primary'
     },
     {

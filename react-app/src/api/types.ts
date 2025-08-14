@@ -220,4 +220,17 @@ export interface SessionUpdateMessage extends WebSocketMessage {
     players: SessionPlayer[]
     status: string
   }
+}
+
+export interface Player {
+  id: string
+  username: string
+  email?: string
+  isBot: boolean
+  displayName: string
+  first_name?: string
+  last_name?: string
+  avatar_url?: string
+  is_online?: boolean
+  last_seen?: string
 } 

@@ -1,8 +1,10 @@
 import { AppBar, Toolbar, Typography, Button, Box, IconButton, Menu, MenuItem } from '@mui/material'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Home, Description, BarChart, Person, AccountCircle, Login, Dashboard } from '@mui/icons-material'
 import { useAuthStore, useUser, useIsAuthenticated } from '../../store/authStore'
+import { VersionDisplay } from '../ui/VersionDisplay'
+import { getAppVersion } from '../../utils/version-utils'
 
 function AppLayout() {
   const navigate = useNavigate()
@@ -18,6 +20,16 @@ function AppLayout() {
     isAuthenticated,
     location: location.pathname
   })
+
+  // DEBUG: Логи для отладки VersionDisplay
+  useEffect(() => {
+    console.log('🔍 AppLayout VersionDisplay DEBUG:', {
+      isAuthenticated,
+      user,
+      shouldShowVersion: isAuthenticated,
+      appVersion: getAppVersion()
+    })
+  }, [isAuthenticated, user])
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
@@ -69,6 +81,17 @@ function AppLayout() {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             🎱 Artel Billiards
           </Typography>
+          
+          {/* Version Display - только для авторизованных пользователей */}
+          {isAuthenticated && (
+            <Box sx={{ mr: 2, display: { xs: 'none', md: 'block' } }}>
+              {/* DEBUG: Логи для отладки VersionDisplay */}
+              <VersionDisplay 
+                version={getAppVersion().version} 
+                buildDate={getAppVersion().buildDate}
+              />
+            </Box>
+          )}
           
           {isAuthenticated ? (
             <>
@@ -204,6 +227,26 @@ function AppLayout() {
               </Button>
             )
           })}
+        </Box>
+      )}
+      
+      {/* Version Display для мобильных устройств */}
+      {isAuthenticated && (
+        <Box 
+          sx={{ 
+            display: { xs: 'flex', sm: 'flex', md: 'none' },
+            justifyContent: 'center',
+            py: 1,
+            bgcolor: 'background.paper',
+            borderTop: 1,
+            borderColor: 'divider',
+            mt: 'auto'
+          }}
+        >
+          <VersionDisplay 
+            version={getAppVersion().version} 
+            buildDate={getAppVersion().buildDate}
+          />
         </Box>
       )}
     </Box>

@@ -1,12 +1,15 @@
 {
   "name": "react-app",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.1",
+  "buildDate": "2025-08-14T15:12:16.619Z",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
-    "build": "tsc -b && vite build",
-    "build-tunnel": "vite build",
+    "dev-hot": "vite --host 0.0.0.0 --port 5174",
+    "build": "npm run update-version && tsc -b && vite build",
+    "build-tunnel": "npm run update-version && vite build",
+    "update-version": "node -e \"const pkg=require('./package.json');pkg.buildDate=new Date().toISOString();require('fs').writeFileSync('./package.json',JSON.stringify(pkg,null,2));console.log('Version updated:',pkg.version,'Build date:',pkg.buildDate);\"",
     "lint": "eslint .",
     "preview": "vite preview"
   },

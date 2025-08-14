@@ -19,7 +19,10 @@ RUN npm install --force
 COPY . .
 
 # Открываем порт Vite
-EXPOSE 5173
+EXPOSE 5174
 
-# Запускаем Vite dev server для разработки с hot reload
-CMD ["npm", "run", "dev"] 
+# Устанавливаем переменную окружения для порта
+ENV PORT=5174
+
+# Запускаем Vite dev server с hot reload на порту 5174
+CMD ["npm", "run", "dev-hot"]

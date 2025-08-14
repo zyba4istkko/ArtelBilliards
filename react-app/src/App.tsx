@@ -16,10 +16,12 @@ import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import TemplatesPage from './pages/TemplatesPage'
 import SessionPage from './pages/SessionPage'
+import SessionCreationPage from './pages/SessionCreationPage'
 import GamePage from './pages/GamePage'
 import StatsPage from './pages/StatsPage'
 import ProfilePage from './pages/ProfilePage'
 import NotFoundPage from './pages/NotFoundPage'
+import GameSessionPage from './pages/GameSessionPage'
 
 // Create Material UI theme
 import buildTheme from './styles/theme'
@@ -79,6 +81,7 @@ function App() {
               </ProtectedRoute>
             }>
               <Route index element={<SessionPage />} />
+              <Route path="create" element={<SessionCreationPage />} />
               <Route path=":sessionId" element={<SessionPage />} />
             </Route>
             
@@ -88,6 +91,14 @@ function App() {
               </ProtectedRoute>
             }>
               <Route index element={<GamePage />} />
+            </Route>
+            
+            <Route path="/game-session/:sessionId" element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<GameSessionPage />} />
             </Route>
             
             <Route path="/stats" element={
