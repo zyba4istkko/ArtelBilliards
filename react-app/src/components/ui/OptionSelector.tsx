@@ -1,5 +1,6 @@
 import { Box, Typography } from '@mui/material'
 import tokens from '../../styles/design-tokens'
+import { Button } from '@nextui-org/react'
 
 interface Option {
   label: string
@@ -14,7 +15,13 @@ interface OptionSelectorProps {
   row?: boolean
 }
 
-function OptionSelector({ label, value, onChange, options, row = false }: OptionSelectorProps) {
+export function OptionSelector({ 
+  label, 
+  value, 
+  onChange, 
+  options, 
+  row = false 
+}: OptionSelectorProps) {
   return (
     <Box>
       <Typography 
@@ -34,33 +41,20 @@ function OptionSelector({ label, value, onChange, options, row = false }: Option
         flexWrap: 'wrap'
       }}>
         {options.map((option) => (
-          <Box
+          <Button
             key={option.value}
-            onClick={() => onChange(option.value)}
-            sx={{
-              background: value === option.value ? tokens.colors.mint : tokens.colors.gray600,
-              color: value === option.value ? tokens.colors.black : tokens.colors.white,
-              border: `1px solid ${value === option.value ? tokens.colors.mint : tokens.colors.gray500}`,
-              borderRadius: '999px',
-              padding: '8px 16px',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease-in-out',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              textAlign: 'center',
-              minWidth: row ? 'auto' : '100%',
-              '&:hover': {
-                borderColor: tokens.colors.mint,
-                background: value === option.value ? tokens.colors.mint : tokens.colors.gray500
-              }
-            }}
+            variant="bordered"
+            className={`w-full ${
+              value === option.value 
+                ? 'bg-mint text-black border-mint' 
+                : 'bg-gray-600/50 border-gray-500 text-gray-200 hover:bg-mint/20 hover:border-mint'
+            } transition-colors`}
+            onPress={() => onChange(option.value)}
           >
             {option.label}
-          </Box>
+          </Button>
         ))}
       </Box>
     </Box>
   )
 }
-
-export default OptionSelector

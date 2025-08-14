@@ -5,11 +5,10 @@ Template Service - Business logic for templates
 from typing import List, Optional, Dict, Any
 from uuid import UUID
 from ..core.database import get_db_session_context
-from ..models.database import TemplateCategory, GameTemplate, TemplateRating, TemplateFavorite
+from ..models.database import TemplateCategory, GameTemplate, TemplateFavorite
 from ..models.schemas import (
     TemplateCategoryCreate, TemplateCategoryUpdate, TemplateCategoryResponse,
     GameTemplateCreate, GameTemplateUpdate, GameTemplateResponse,
-    TemplateRatingCreate, TemplateRatingUpdate, TemplateRatingResponse,
     TemplateFavoriteCreate, TemplateFavoriteResponse,
     GameTemplateSearchRequest
 )
@@ -159,74 +158,6 @@ class TemplateService:
             repo = TemplateRepository(db)
             return await repo.delete_template(template_id)
 
-    @staticmethod
-    async def increment_usage_count(template_id: UUID) -> bool:
-        """Увеличить счетчик использования"""
-        async with get_db_session_context() as db:
-            repo = TemplateRepository(db)
-            return await repo.increment_usage_count(template_id)
-
-    # Rating operations
-    @staticmethod
-    async def create_rating(rating_data: TemplateRatingCreate, user_id: UUID) -> TemplateRatingResponse:
-        """Создать рейтинг"""
-        async with get_db_session_context() as db:
-            repo = TemplateRepository(db)
-            
-            # Проверяем существование шаблона
-            template = await repo.get_template_by_id(rating_data.template_id)
-            if not template:
-                raise ValueError(f"Шаблон с ID {rating_data.template_id} не найден")
-            
-            # Проверяем, не оценивал ли уже пользователь этот шаблон
-            existing_rating = await repo.get_rating_by_user_and_template(user_id, rating_data.template_id)
-            if existing_rating:
-                raise ValueError("Пользователь уже оценил этот шаблон")
-            
-            # Создаем рейтинг
-            rating = TemplateRating(
-                template_id=rating_data.template_id,
-                user_id=user_id,
-                rating=rating_data.rating,
-                comment=rating_data.comment
-            )
-            created_rating = await repo.create_rating(rating)
-            
-            # Обновляем средний рейтинг шаблона
-            new_avg_rating = await repo.calculate_template_rating(rating_data.template_id)
-            await repo.update_template(rating_data.template_id, rating=new_avg_rating)
-            
-            return TemplateRatingResponse.from_orm(created_rating)
-
-    @staticmethod
-    async def update_rating(rating_id: UUID, rating_data: TemplateRatingUpdate, user_id: UUID) -> Optional[TemplateRatingResponse]:
-        """Обновить рейтинг"""
-        async with get_db_session_context() as db:
-            repo = TemplateRepository(db)
-            
-            # Получаем существующий рейтинг
-            existing_rating = await repo.get_rating_by_user_and_template(user_id, rating_id)
-            if not existing_rating:
-                return None
-            
-            # Обновляем рейтинг
-            updated_rating = await repo.update_rating(rating_id, **rating_data.dict(exclude_unset=True))
-            if updated_rating:
-                # Обновляем средний рейтинг шаблона
-                new_avg_rating = await repo.calculate_template_rating(updated_rating.template_id)
-                await repo.update_template(updated_rating.template_id, rating=new_avg_rating)
-                
-                return TemplateRatingResponse.from_orm(updated_rating)
-            return None
-
-    @staticmethod
-    async def get_template_ratings(template_id: UUID) -> List[TemplateRatingResponse]:
-        """Получить все рейтинги шаблона"""
-        async with get_db_session_context() as db:
-            repo = TemplateRepository(db)
-            ratings = await repo.get_template_ratings(template_id)
-            return [TemplateRatingResponse.from_orm(rating) for rating in ratings]
-
     # Favorite operations
     @staticmethod
     async def add_to_favorites(template_id: UUID, user_id: UUID) -> TemplateFavoriteResponse:
@@ -270,11 +201,3 @@ class TemplateService:
             repo = TemplateRepository(db)
             favorites = await repo.get_user_favorites(user_id)
             return [TemplateFavoriteResponse.from_orm(fav) for fav in favorites]
-
-    # Statistics
-    @staticmethod
-    async def get_template_stats(template_id: UUID) -> Dict[str, Any]:
-        """Получить статистику шаблона"""
-        async with get_db_session_context() as db:
-            repo = TemplateRepository(db)
-            return await repo.get_template_stats(template_id)

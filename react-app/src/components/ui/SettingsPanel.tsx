@@ -1,6 +1,4 @@
-import { Box, Grid, Typography } from '@mui/material'
-import { settingBlockStyles, valueBadgeStyles } from '../../styles/template-styles'
-import tokens from '../../styles/design-tokens'
+import React from 'react'
 
 interface SettingsPanelProps {
   settings: Record<string, string>
@@ -9,24 +7,31 @@ interface SettingsPanelProps {
 
 export function SettingsPanel({ settings, title }: SettingsPanelProps) {
   return (
-    <Box sx={{ mb: 3 }}>
-      <Typography variant="h6" color={tokens.colors.mint} fontWeight={700} gutterBottom sx={{ fontSize: '1.125rem' }}>
+    <div className="mb-6">
+      <h3 className="font-bold text-lg mb-4" style={{ color: '#85DCCB' }}>
         {title}
-      </Typography>
-      <Grid container spacing={2}>
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {Object.entries(settings).map(([key, value]) => (
-          <Grid item xs={6} key={key}>
-            <Box sx={settingBlockStyles}>
-              <Typography variant="subtitle2" fontWeight={600} gutterBottom color={tokens.colors.white} sx={{ fontSize: '0.875rem' }}>
-                {key}
-              </Typography>
-              <Box sx={valueBadgeStyles}>
-                {value}
-              </Box>
-            </Box>
-          </Grid>
+          <div 
+            key={key}
+            className="bg-gray-700 border border-gray-600 rounded-lg p-4"
+          >
+            <div className="text-white font-semibold text-sm mb-2">
+              {key}
+            </div>
+            <div 
+              className="inline-block px-3 py-1 rounded-full text-sm font-medium"
+              style={{ 
+                backgroundColor: '#85DCCB', 
+                color: '#0a0a0a' 
+              }}
+            >
+              {value}
+            </div>
+          </div>
         ))}
-      </Grid>
-    </Box>
+      </div>
+    </div>
   )
 }

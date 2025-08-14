@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, func, and_, or_
 from sqlalchemy.orm import selectinload
-from ..models.database import TemplateCategory, GameTemplate, TemplateRating, TemplateFavorite
+from ..models.database import TemplateCategory, GameTemplate, TemplateFavorite
 
 class TemplateRepository:
     """Репозиторий для работы с шаблонами"""
@@ -86,7 +86,7 @@ class TemplateRepository:
             select(GameTemplate)
             .options(selectinload(GameTemplate.category))
             .where(GameTemplate.category_id == category_id)
-            .order_by(GameTemplate.rating.desc(), GameTemplate.usage_count.desc())
+            .order_by(GameTemplate.created_at.desc())
             .limit(limit)
             .offset(offset)
         )
@@ -112,22 +112,16 @@ class TemplateRepository:
             conditions.append(GameTemplate.is_system == search_params['is_system'])
         
         if search_params.get('tags'):
-            tags = search_params['tags']
-            if isinstance(tags, list):
-                for tag in tags:
-                    conditions.append(GameTemplate.tags.contains([tag]))
+            # Поиск по тегам (JSONB)
+            for tag in search_params['tags']:
+                conditions.append(GameTemplate.tags.contains([tag]))
         
-        if search_params.get('min_rating'):
-            conditions.append(GameTemplate.rating >= search_params['min_rating'])
-        
-        if search_params.get('max_rating'):
-            conditions.append(GameTemplate.rating <= search_params['max_rating'])
-        
+        # Применяем условия
         if conditions:
             query = query.where(and_(*conditions))
         
         # Сортировка и пагинация
-        query = query.order_by(GameTemplate.rating.desc(), GameTemplate.usage_count.desc())
+        query = query.order_by(GameTemplate.created_at.desc())
         query = query.limit(limit).offset(offset)
         
         result = await self.db.execute(query)
@@ -139,7 +133,7 @@ class TemplateRepository:
             select(GameTemplate)
             .options(selectinload(GameTemplate.category))
             .where(GameTemplate.is_public == True)
-            .order_by(GameTemplate.rating.desc(), GameTemplate.usage_count.desc())
+            .order_by(GameTemplate.created_at.desc())
             .limit(limit)
             .offset(offset)
         )
@@ -173,66 +167,6 @@ class TemplateRepository:
         )
         await self.db.commit()
         return result.rowcount > 0
-
-    async def increment_usage_count(self, template_id: UUID) -> bool:
-        """Увеличить счетчик использования"""
-        result = await self.db.execute(
-            update(GameTemplate)
-            .where(GameTemplate.id == template_id)
-            .values(usage_count=GameTemplate.usage_count + 1)
-        )
-        await self.db.commit()
-        return result.rowcount > 0
-
-    # Rating operations
-    async def create_rating(self, rating: TemplateRating) -> TemplateRating:
-        """Создать рейтинг"""
-        self.db.add(rating)
-        await self.db.commit()
-        await self.db.refresh(rating)
-        return rating
-
-    async def get_rating_by_user_and_template(self, user_id: UUID, template_id: UUID) -> Optional[TemplateRating]:
-        """Получить рейтинг пользователя для шаблона"""
-        result = await self.db.execute(
-            select(TemplateRating)
-            .where(
-                and_(
-                    TemplateRating.user_id == user_id,
-                    TemplateRating.template_id == template_id
-                )
-            )
-        )
-        return result.scalar_one_or_none()
-
-    async def update_rating(self, rating_id: UUID, **kwargs) -> Optional[TemplateRating]:
-        """Обновить рейтинг"""
-        result = await self.db.execute(
-            update(TemplateRating)
-            .where(TemplateRating.id == rating_id)
-            .values(**kwargs)
-            .returning(TemplateRating)
-        )
-        await self.db.commit()
-        return result.scalar_one_or_none()
-
-    async def get_template_ratings(self, template_id: UUID) -> List[TemplateRating]:
-        """Получить все рейтинги шаблона"""
-        result = await self.db.execute(
-            select(TemplateRating)
-            .where(TemplateRating.template_id == template_id)
-            .order_by(TemplateRating.created_at.desc())
-        )
-        return result.scalars().all()
-
-    async def calculate_template_rating(self, template_id: UUID) -> float:
-        """Рассчитать средний рейтинг шаблона"""
-        result = await self.db.execute(
-            select(func.avg(TemplateRating.rating))
-            .where(TemplateRating.template_id == template_id)
-        )
-        avg_rating = result.scalar()
-        return float(avg_rating) if avg_rating else 0.0
 
     # Favorite operations
     async def add_to_favorites(self, favorite: TemplateFavorite) -> TemplateFavorite:
@@ -278,29 +212,3 @@ class TemplateRepository:
             .order_by(TemplateFavorite.created_at.desc())
         )
         return result.scalars().all()
-
-    # Statistics
-    async def get_template_stats(self, template_id: UUID) -> Dict[str, Any]:
-        """Получить статистику шаблона"""
-        # Количество рейтингов
-        ratings_count = await self.db.execute(
-            select(func.count(TemplateRating.id))
-            .where(TemplateRating.template_id == template_id)
-        )
-        ratings_count = ratings_count.scalar() or 0
-
-        # Средний рейтинг
-        avg_rating = await self.calculate_template_rating(template_id)
-
-        # Количество в избранном
-        favorites_count = await self.db.execute(
-            select(func.count(TemplateFavorite.id))
-            .where(TemplateFavorite.template_id == template_id)
-        )
-        favorites_count = favorites_count.scalar() or 0
-
-        return {
-            "ratings_count": ratings_count,
-            "average_rating": avg_rating,
-            "favorites_count": favorites_count
-        }

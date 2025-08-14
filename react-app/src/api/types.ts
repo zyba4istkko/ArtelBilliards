@@ -54,6 +54,10 @@ export interface BaseGameRules {
   allow_queue_change?: boolean
   calculate_net_result?: boolean
   time_limit_minutes?: number
+  foul_penalty_points?: number
+  balls_to_win?: number
+  balls_total?: number
+  game_price_rubles?: number
 }
 
 export interface KolkhozRules extends BaseGameRules {
@@ -65,13 +69,24 @@ export interface KolkhozRules extends BaseGameRules {
   max_shots_per_turn?: number
 }
 
+export interface AmericanaRules extends BaseGameRules {
+  game_type: 'americana'
+  winning_condition?: string
+}
+
+export interface MoscowPyramidRules extends BaseGameRules {
+  game_type: 'moscow_pyramid'
+  winning_condition?: string
+  special_rule?: string
+}
+
 export interface GameTemplate {
   id: string
   creator_user_id: string
   name: string
   description: string
   game_type: GameType
-  rules: KolkhozRules | BaseGameRules
+  rules: KolkhozRules | AmericanaRules | MoscowPyramidRules
   settings: Record<string, any>
   category_id: number
   category_name: string
@@ -79,8 +94,6 @@ export interface GameTemplate {
   is_system: boolean
   is_favorite: boolean
   tags: string[]
-  usage_count: number
-  rating: number
   created_at: string
   updated_at: string
 }
@@ -89,7 +102,7 @@ export interface GameTemplateCreate {
   name: string
   description: string
   game_type: GameType
-  rules: KolkhozRules | BaseGameRules
+  rules: KolkhozRules | AmericanaRules | MoscowPyramidRules
   settings: Record<string, any>
   category_id: number
   is_public: boolean

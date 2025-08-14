@@ -37,20 +37,6 @@ export class TemplateService {
   }
 
   /**
-   * Получить популярные шаблоны
-   */
-  static async getPopularTemplates(limit: number = 10): Promise<GameTemplateListResponse> {
-    return await apiClient.get(`${this.baseUrl}/popular?limit=${limit}`)
-  }
-
-  /**
-   * Получить рекомендованные шаблоны для пользователя
-   */
-  static async getRecommendedTemplates(limit: number = 5): Promise<GameTemplateListResponse> {
-    return await apiClient.get(`${this.baseUrl}/recommended?limit=${limit}`)
-  }
-
-  /**
    * Поиск шаблонов
    */
   static async searchTemplates(query: string, filters?: Partial<TemplateSearchParams>): Promise<GameTemplateListResponse> {
@@ -90,17 +76,10 @@ export class TemplateService {
   }
 
   /**
-   * Оценить шаблон
-   */
-  static async rateTemplate(id: string, rating: number): Promise<BaseResponse> {
-    return await apiClient.post(`${this.baseUrl}/${id}/rate`, { rating })
-  }
-
-  /**
    * Добавить/убрать шаблон в избранное
    */
   static async toggleFavorite(id: string): Promise<BaseResponse> {
-    return await apiClient.post(`${this.baseUrl}/${id}/favorite`)
+    return await apiClient.post(`${this.baseUrl}/${id}/favorite`, {})
   }
 
   /**
@@ -108,18 +87,6 @@ export class TemplateService {
    */
   static async validateTemplate(template: Partial<GameTemplate>): Promise<{ valid: boolean; errors: string[] }> {
     return await apiClient.post(`${this.baseUrl}/validate`, template)
-  }
-
-  /**
-   * Получить статистику использования шаблона
-   */
-  static async getTemplateStats(id: string): Promise<{
-    usage_count: number
-    average_rating: number
-    ratings_count: number
-    recent_usage: Array<{ date: string; count: number }>
-  }> {
-    return await apiClient.get(`${this.baseUrl}/${id}/stats`)
   }
 
   /**

@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { TemplateService } from '../api/services/templateService'
-import type { GameTemplate, GameTemplateListResponse, GameTemplateCreate } from '../api/types'
+import type { GameTemplate, GameTemplateListResponse, GameTemplateCreate, GameType } from '../api/types'
 import tokens from '../styles/design-tokens'
 import { 
   PriceSelector, 
@@ -23,7 +23,9 @@ import {
   CreateTemplateCard,
   BallConfigurator,
   SettingsPanel,
-  BallsDisplay
+  BallsDisplay,
+  GameTypeSelector,
+  GameTypeFields
 } from '../components/ui'
 import { 
   headerStyles,
@@ -50,9 +52,10 @@ interface BallConfig {
   enabled: boolean
 }
 
-interface CustomTemplateData {
+interface CustomTemplateState {
   name: string
   description: string
+  gameType: GameType
   ballCount: string
   timeLimit: string
   winCondition: string
@@ -60,6 +63,13 @@ interface CustomTemplateData {
   pointPrice: string
   foulPenalty: string
   balls: BallConfig[]
+  // Specific game type fields
+  point_value_rubles?: number
+  foul_penalty_points?: number
+  min_players?: number
+  max_players?: number
+  game_price_rubles?: number
+  balls_to_win?: number
 }
 
 function TemplatesPage() {
@@ -83,11 +93,15 @@ function TemplatesPage() {
   const [currentTemplate, setCurrentTemplate] = useState<GameTemplate | null>(null)
   
   // Custom template state
-  const [customTemplate, setCustomTemplate] = useState<CustomTemplateData>(DEFAULT_TEMPLATE_SETTINGS)
+  const [customTemplate, setCustomTemplate] = useState<CustomTemplateState>(DEFAULT_TEMPLATE_SETTINGS)
 
   useEffect(() => {
     loadTemplates()
   }, [])
+
+  useEffect(() => {
+    console.log('🎯 createModalOpen changed to:', createModalOpen)
+  }, [createModalOpen])
 
   const loadTemplates = async () => {
     try {
@@ -128,7 +142,10 @@ function TemplatesPage() {
   }
 
   const createCustomTemplate = () => {
+    console.log('🎯 Opening custom template modal')
+    console.log('🎯 Current createModalOpen state:', createModalOpen)
     setCreateModalOpen(true)
+    console.log('🎯 setCreateModalOpen(true) called')
   }
 
   const selectTemplate = () => {
@@ -140,6 +157,8 @@ function TemplatesPage() {
   }
 
   const saveCustomTemplate = async () => {
+    console.log('🎯 Saving custom template:', customTemplate)
+    
     if (!customTemplate.name.trim()) {
       toast.error('Введите название шаблона!')
       return
@@ -148,39 +167,130 @@ function TemplatesPage() {
     try {
       setLoading(true)
       
+      // Создаем правила в зависимости от типа игры
+      let rules: any = {
+        game_type: customTemplate.gameType,
+        queue_algorithm: 'random_no_repeat'
+      }
+
+      // Настраиваем поля в зависимости от типа игры
+      switch (customTemplate.gameType) {
+        case 'kolkhoz':
+          rules = {
+            ...rules,
+            max_players: customTemplate.max_players || 6,
+            min_players: customTemplate.min_players || 2,
+            balls_total: 15,
+            point_value_rubles: customTemplate.point_value_rubles || 50,
+            winning_condition: 'last_ball_remaining',
+            game_rules: {
+              description: 'Классическая русская игра Колхоз. Игра до последнего шара',
+              ball_counting: 'point_based',
+              foul_penalty_points: customTemplate.foul_penalty_points || 1,
+              foul_penalty_description: `Штраф за фол: -${customTemplate.foul_penalty_points || 1} очко`,
+              payment_direction: 'clockwise',
+              calculate_net_result: true
+            }
+          }
+          break
+          
+        case 'americana':
+          rules = {
+            ...rules,
+            max_players: 2,
+            min_players: 2,
+            balls_total: 16,
+            balls_to_win: customTemplate.balls_to_win || 8,
+            game_price_rubles: customTemplate.game_price_rubles || 500,
+            winning_condition: 'first_to_8_balls',
+            game_rules: {
+              description: `Игра до ${customTemplate.balls_to_win || 8} шаров. Выигрывает тот, кто первым забьет ${customTemplate.balls_to_win || 8} шаров`,
+              ball_counting: 'simple_count',
+              no_color_values: true
+            }
+          }
+          break
+          
+        case 'moscow_pyramid':
+          rules = {
+            ...rules,
+            max_players: 2,
+            min_players: 2,
+            balls_total: 16,
+            balls_to_win: customTemplate.balls_to_win || 8,
+            game_price_rubles: customTemplate.game_price_rubles || 1000,
+            winning_condition: 'first_to_8_balls',
+            game_rules: {
+              description: `Московская пирамида. Игра одним желтым шаром до ${customTemplate.balls_to_win || 8}. Всего 16 шаров`,
+              special_rule: 'yellow_ball_only',
+              ball_counting: 'simple_count',
+              no_color_values: true,
+              yellow_ball_description: 'Игра ведется одним желтым шаром'
+            }
+          }
+          break
+      }
+
+      // Настройки UI в зависимости от типа игры
+      let settings: any = {
+        ui_theme: 'classic'
+      }
+
+      switch (customTemplate.gameType) {
+        case 'kolkhoz':
+          settings = {
+            ...settings,
+            show_points_counter: true,
+            show_running_total: true,
+            enable_point_calculation: true,
+            show_foul_warnings: true,
+            show_payment_direction: true
+          }
+          break
+          
+        case 'americana':
+          settings = {
+            ...settings,
+            show_ball_counter: true,
+            show_game_progress: true,
+            enable_simple_scoring: true,
+            show_winning_condition: true
+          }
+          break
+          
+        case 'moscow_pyramid':
+          settings = {
+            ...settings,
+            show_ball_counter: true,
+            show_game_progress: true,
+            enable_simple_scoring: true,
+            highlight_yellow_ball: true,
+            show_yellow_ball_rule: true,
+            show_winning_condition: true
+          }
+          break
+      }
+
+      // Определяем категорию в зависимости от типа игры
+      const categoryId = 
+        customTemplate.gameType === 'kolkhoz' ? 1 :
+        customTemplate.gameType === 'americana' ? 2 : 3 // moscow_pyramid
+
       // Создаем объект шаблона для API
       const templateData: GameTemplateCreate = {
         name: customTemplate.name,
         description: customTemplate.description,
-        game_type: 'kolkhoz',
-        rules: {
-          game_type: 'kolkhoz',
-          max_players: parseInt(customTemplate.ballCount) || 6,
-          min_players: 2,
-          point_value_rubles: parseFloat(customTemplate.pointPrice) || 10.0,
-          balls: customTemplate.balls
-            .filter(ball => ball.enabled)
-            .map((ball) => ({
-              color: ball.color,
-              points: typeof ball.points === 'string' ? 
-                (ball.points === 'Биток' ? 0 : parseInt(ball.points) || 1) : 
-                ball.points,
-              is_required: ball.enabled,
-              order_priority: 1
-            })),
-          queue_algorithm: customTemplate.turnOrder === 'sequential' ? 'manual' : 'always_random',
-          payment_direction: 'clockwise',
-          allow_queue_change: true,
-          calculate_net_result: true
-        },
-        settings: {
-          ui_theme: 'custom',
-          show_running_total: true,
-          enable_sound_effects: true
-        },
-        category_id: 2, // Пользовательские (созданная категория)
+        game_type: customTemplate.gameType,
+        rules,
+        settings,
+        category_id: categoryId,
         is_public: true,
-        tags: ['пользовательский', 'кастомный'],
+        tags: [
+          'пользовательский',
+          customTemplate.gameType === 'kolkhoz' ? 'колхоз' :
+          customTemplate.gameType === 'americana' ? 'американка' :
+          'московская пирамида'
+        ],
         creator_user_id: user?.id || '00000000-0000-0000-0000-000000000000'
       }
       
@@ -256,13 +366,26 @@ function TemplatesPage() {
           {/* Если данные загружены */}
           {!loading && !error && (
             <>
+              {/* Отладочный лог */}
+              {console.log('🔍 TemplatesPage render:', {
+                templatesCount: templatesData?.templates?.length,
+                templates: templatesData?.templates,
+                firstTemplate: templatesData?.templates?.[0]
+              })}
+              
               {/* Шаблоны */}
               {templatesData?.templates?.length ? (
-                templatesData.templates.map((template) => (
-                  <Grid item xs={12} md={6} lg={4} key={template.id}>
-                    <TemplateCard template={template} onView={viewTemplate} />
-                  </Grid>
-                ))
+                (() => {
+                  console.log('🎯 Начинаю рендерить шаблоны:', templatesData.templates.length)
+                  return templatesData.templates.map((template) => {
+                    console.log('🎯 Рендерю шаблон:', template.name)
+                    return (
+                      <Grid item xs={12} md={6} lg={4} key={template.id}>
+                        <TemplateCard template={template} onView={viewTemplate} />
+                      </Grid>
+                    )
+                  })
+                })()
               ) : (
                 <Grid item xs={12}>
                   <Typography color={tokens.colors.gray300} textAlign="center" sx={{ py: 4 }}>
@@ -273,7 +396,7 @@ function TemplatesPage() {
 
               {/* Кнопка создания */}
               <Grid item xs={12} md={6} lg={4}>
-                <CreateTemplateCard onClick={createCustomTemplate} />
+                <CreateTemplateCard onTemplateCreated={loadTemplates} />
               </Grid>
             </>
           )}
@@ -352,6 +475,11 @@ function TemplatesPage() {
           title="Создать свой шаблон"
           size="large"
         >
+          {/* DEBUG INFO */}
+          <Box sx={{ p: 2, bgcolor: 'red', color: 'white', mb: 2 }}>
+            DEBUG: Модальное окно открыто! createModalOpen = {createModalOpen.toString()}
+          </Box>
+          
           {/* Basic Info */}
           <Box sx={{ mb: 4 }}>
             <Typography variant="h6" color={tokens.colors.mint} fontWeight={700} gutterBottom sx={{ fontSize: '1.125rem' }}>
@@ -394,96 +522,53 @@ function TemplatesPage() {
             />
           </Box>
 
-          {/* Game Settings */}
+          {/* Game Type Selector */}
           <Box sx={{ mb: 4 }}>
             <Typography variant="h6" color={tokens.colors.mint} fontWeight={700} gutterBottom sx={{ fontSize: '1.125rem' }}>
-              Настройки игры
+              Тип игры (DEBUG: {customTemplate.gameType})
             </Typography>
-            <Grid container spacing={3}>
-              <Grid item xs={6}>
-                <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-                  <OptionSelector
-                    label="Количество шаров"
-                    value={customTemplate.ballCount}
-                    onChange={(value) => setCustomTemplate({ ...customTemplate, ballCount: value })}
-                    options={BALL_COUNT_OPTIONS}
-                    row
-                  />
-                </Box>
-              </Grid>
-              <Grid item xs={6}>
-                <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-                  <OptionSelector
-                    label="Лимит времени на ход"
-                    value={customTemplate.timeLimit}
-                    onChange={(value) => setCustomTemplate({ ...customTemplate, timeLimit: value })}
-                    options={TIME_LIMIT_OPTIONS}
-                  />
-                </Box>
-              </Grid>
-              <Grid item xs={6}>
-                <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-                  <OptionSelector
-                    label="Условие победы"
-                    value={customTemplate.winCondition}
-                    onChange={(value) => setCustomTemplate({ ...customTemplate, winCondition: value })}
-                    options={WIN_CONDITION_OPTIONS}
-                  />
-                </Box>
-              </Grid>
-              <Grid item xs={6}>
-                <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-                  <OptionSelector
-                    label="Порядок игры"
-                    value={customTemplate.turnOrder}
-                    onChange={(value) => setCustomTemplate({ ...customTemplate, turnOrder: value })}
-                    options={TURN_ORDER_OPTIONS}
-                  />
-                </Box>
-              </Grid>
-            </Grid>
+            <Box sx={{ p: 2, bgcolor: tokens.colors.gray700, borderRadius: '14px', mb: 2 }}>
+              <Typography color={tokens.colors.white}>
+                DEBUG: Этот блок должен быть виден. Если видно - проблема в GameTypeSelector.
+              </Typography>
+            </Box>
+            {/* Временно отключаем GameTypeSelector для тестирования */}
+            {/*
+            <GameTypeSelector 
+              value={customTemplate.gameType}
+              onChange={(gameType: GameType) => {
+                console.log('🎯 GameTypeSelector onChange:', gameType)
+                setCustomTemplate({ ...customTemplate, gameType })
+              }}
+            />
+            */}
+            <Typography color={tokens.colors.white}>
+              GameTypeSelector временно отключен для диагностики
+            </Typography>
           </Box>
 
-          {/* Ball Configuration */}
+          {/* Dynamic Game Type Fields */}
           <Box sx={{ mb: 4 }}>
-            <BallConfigurator 
-              balls={customTemplate.balls}
-              onBallChange={(index, ball) => {
-                const newBalls = [...customTemplate.balls]
-                newBalls[index] = ball
-                setCustomTemplate({ ...customTemplate, balls: newBalls })
-              }}
+            <GameTypeFields 
+              gameType={customTemplate.gameType}
+              values={customTemplate}
+              onChange={(field: string, value: any) => setCustomTemplate({ ...customTemplate, [field]: value })}
             />
           </Box>
 
-          {/* Scoring System */}
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h6" color={tokens.colors.mint} fontWeight={700} gutterBottom sx={{ fontSize: '1.125rem' }}>
-              Система очков
-            </Typography>
-            <Grid container spacing={3}>
-              <Grid item xs={6}>
-                <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-                  <PriceSelector
-                    label="Стоимость одного очка (₽)"
-                    value={customTemplate.pointPrice}
-                    onChange={(value) => setCustomTemplate({ ...customTemplate, pointPrice: value })}
-                    options={POINT_PRICE_OPTIONS}
-                  />
-                </Box>
-              </Grid>
-              <Grid item xs={6}>
-                <Box sx={{ background: tokens.colors.gray700, borderRadius: '14px', p: 2 }}>
-                  <PriceSelector
-                    label="Штраф за фол (₽)"
-                    value={customTemplate.foulPenalty}
-                    onChange={(value) => setCustomTemplate({ ...customTemplate, foulPenalty: value })}
-                    options={FOUL_PENALTY_OPTIONS}
-                  />
-                </Box>
-              </Grid>
-            </Grid>
-          </Box>
+          {/* Ball Configuration - only for kolkhoz */}
+          {customTemplate.gameType === 'kolkhoz' && (
+            <Box sx={{ mb: 4 }}>
+              <BallConfigurator 
+                balls={customTemplate.balls}
+                onBallChange={(index: number, ball: BallConfig) => {
+                  const newBalls = [...customTemplate.balls]
+                  newBalls[index] = ball
+                  setCustomTemplate({ ...customTemplate, balls: newBalls })
+                }}
+              />
+            </Box>
+          )}
 
           {/* Action Buttons */}
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>

@@ -1,99 +1,76 @@
-import { Box, TextField, Typography } from '@mui/material'
-import tokens from '../../styles/design-tokens'
+import React, { useState } from 'react'
+import { Input, Button, ButtonGroup } from '@nextui-org/react'
 
 interface PriceSelectorProps {
   label: string
-  value: string
-  onChange: (value: string) => void
-  options: { label: string; value: string }[]
-  customPlaceholder?: string
+  value: number
+  onChange: (value: number) => void
+  presetValues: number[]
 }
 
-function PriceSelector({ label, value, onChange, options, customPlaceholder = "Свой" }: PriceSelectorProps) {
-  const isCustomValue = !options.some(option => option.value === value)
-  
+export function PriceSelector({ label, value, onChange, presetValues }: PriceSelectorProps) {
+  const [customValue, setCustomValue] = useState('')
+  const [isCustom, setIsCustom] = useState(!presetValues.includes(value))
+
+  const handlePresetClick = (presetValue: number) => {
+    setIsCustom(false)
+    setCustomValue('')
+    onChange(presetValue)
+  }
+
+  const handleCustomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value
+    setCustomValue(inputValue)
+    setIsCustom(true)
+    
+    const numValue = parseInt(inputValue)
+    if (!isNaN(numValue) && numValue > 0) {
+      onChange(numValue)
+    }
+  }
+
+  const componentStyles = {
+    '--nextui-focus': '#85DCCB',
+    '--nextui-primary': '#85DCCB'
+  } as React.CSSProperties
+
   return (
-    <Box>
-      <Typography 
-        variant="subtitle2" 
-        fontWeight={600} 
-        gutterBottom 
-        color={tokens.colors.white} 
-        sx={{ fontSize: '0.875rem', mb: 2 }}
-      >
-        {label}
-      </Typography>
+    <div className="space-y-3">
+      <label className="text-gray-200 text-sm font-semibold">{label}</label>
       
-      <Box sx={{ 
-        display: 'flex', 
-        gap: 1, 
-        alignItems: 'center', 
-        flexWrap: 'wrap' 
-      }}>
-        {/* Preset options */}
-        {options.map((option) => (
-          <Box
-            key={option.value}
-            onClick={() => onChange(option.value)}
-            sx={{
-              background: value === option.value ? tokens.colors.mint : tokens.colors.gray600,
-              color: value === option.value ? tokens.colors.black : tokens.colors.white,
-              border: `1px solid ${value === option.value ? tokens.colors.mint : tokens.colors.gray500}`,
-              borderRadius: '999px',
-              padding: '8px 16px',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease-in-out',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              minWidth: '50px',
-              textAlign: 'center',
-              '&:hover': {
-                borderColor: tokens.colors.mint,
-                background: value === option.value ? tokens.colors.mint : tokens.colors.gray500
-              }
-            }}
+      {/* Preset values */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        {presetValues.map((preset) => (
+          <Button
+            key={preset}
+            size="sm"
+            variant="bordered"
+            className="bg-gray-600/50 border-gray-500 text-gray-200 hover:bg-mint/20 hover:border-mint transition-colors"
+            onPress={() => handlePresetClick(preset)}
           >
-            {option.label}
-          </Box>
+            {preset}₽
+          </Button>
         ))}
-        
-        {/* Custom input */}
-        <TextField
-          type="number"
-          placeholder={customPlaceholder}
-          value={isCustomValue ? value : ''}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={() => {
-            // Clear selection when focusing custom input
-            if (!isCustomValue) {
-              onChange('')
-            }
-          }}
-          sx={{
-            width: '80px',
-            '& .MuiInputBase-root': {
-              background: isCustomValue ? tokens.colors.mint : tokens.colors.gray600,
-              color: isCustomValue ? tokens.colors.black : tokens.colors.white,
-              border: `1px solid ${tokens.colors.gray500}`,
-              borderRadius: '999px',
-              fontSize: '0.875rem',
-              textAlign: 'center',
-              '&:focus': {
-                borderColor: tokens.colors.mint
-              }
-            },
-            '& .MuiInputBase-input': {
-              textAlign: 'center',
-              padding: '8px 16px'
-            },
-            '& .MuiOutlinedInput-notchedOutline': {
-              border: 'none'
-            }
-          }}
-        />
-      </Box>
-    </Box>
+      </div>
+
+      {/* Custom input */}
+      <Input
+        type="number"
+        label="Или введите свое значение"
+        placeholder="Введите другую сумму..."
+        value={isCustom ? value.toString() : customValue}
+        onChange={handleCustomChange}
+        onFocus={() => setIsCustom(true)}
+        variant="bordered"
+        classNames={{
+          base: "w-full",
+          input: "text-white bg-gray-600 placeholder:text-gray-400",
+          inputWrapper: "border-gray-500 bg-gray-600 hover:border-mint focus-within:border-mint",
+          label: "text-gray-200 font-semibold text-sm"
+        }}
+        style={componentStyles}
+        endContent={<span className="text-gray-400 text-sm">₽</span>}
+      />
+    </div>
   )
 }
-
-export default PriceSelector

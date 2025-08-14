@@ -30,31 +30,71 @@ export const getTemplateDetails = (template: GameTemplate) => {
   }
 
   const { rules } = template
+  const gameType = template.game_type
 
-  // Настройки
-  const settings = {
-    'Стоимость очка': rules.point_value_rubles ? `${rules.point_value_rubles}₽` : 'Не указано',
-    'Игроков': rules.min_players ? `${rules.min_players}-${rules.max_players}` : 'Не указано',
-    'Шаров': rules.balls ? rules.balls.length.toString() : 'Не указано',
-    'Алгоритм очереди': rules.queue_algorithm ? getQueueAlgorithmName(rules.queue_algorithm) : 'Не указано',
-    'Лимит времени': rules.time_limit_minutes ? `${rules.time_limit_minutes} мин` : 'Без лимита',
-    'Направление оплаты': rules.payment_direction === 'clockwise' ? 'По часовой' : 'Не указано'
+  // Настройки в зависимости от типа игры
+  let settings: Record<string, string> = {}
+  let scoring: Record<string, string> = {}
+
+  // Общие поля для всех типов
+  const playersRange = rules.min_players && rules.max_players 
+    ? `${rules.min_players}-${rules.max_players}` 
+    : 'Не указано'
+
+  const queueAlgorithm = rules.queue_algorithm 
+    ? getQueueAlgorithmName(rules.queue_algorithm) 
+    : 'Случайно без повторения'
+
+  if (gameType === 'kolkhoz') {
+    // Для Колхоза - убираем лимит времени
+    settings = {
+      'Игроков': playersRange,
+      'Алгоритм очереди': queueAlgorithm,
+      'Направление оплаты': rules.payment_direction === 'clockwise' ? 'По часовой стрелке' : 'Не указано'
+    }
+
+    scoring = {
+      'Стоимость очка': rules.point_value_rubles ? `${rules.point_value_rubles}₽` : '50₽',
+      'Штраф за фол': rules.foul_penalty_points ? `${Math.abs(rules.foul_penalty_points)}₽` : '50₽'
+    }
+  } else if (gameType === 'americana' || gameType === 'moscow_pyramid') {
+    // Для Американки и Московской пирамиды
+    
+    settings = {
+      'Игроков': playersRange,
+      'Шаров для победы': rules.balls_to_win ? rules.balls_to_win.toString() : '8',
+      'Всего шаров': rules.balls_total ? rules.balls_total.toString() : '16',
+      'Алгоритм очереди': queueAlgorithm,
+      'Направление оплаты': rules.payment_direction === 'clockwise' ? 'По часовой стрелке' : 'Не указано'
+    }
+
+    scoring = {
+      'Стоимость партии': rules.game_price_rubles ? `${rules.game_price_rubles}₽` : (gameType === 'americana' ? '500₽' : '1000₽')
+    }
+    
+  } else {
+    // Fallback для других типов
+    settings = {
+      'Стоимость очка': rules.point_value_rubles ? `${rules.point_value_rubles}₽` : 'Не указано',
+      'Игроков': playersRange,
+      'Шаров': rules.balls ? rules.balls.length.toString() : 'Не указано',
+      'Алгоритм очереди': queueAlgorithm,
+      'Лимит времени': rules.time_limit_minutes ? `${rules.time_limit_minutes} мин` : 'Без лимита',
+      'Направление оплаты': rules.payment_direction === 'clockwise' ? 'По часовой стрелке' : 'Не указано'
+    }
+
+    scoring = {
+      'Стоимость очка': rules.point_value_rubles ? `${rules.point_value_rubles}₽` : 'Не указано',
+      'Штраф за фол': '50₽'
+    }
   }
 
-  // Шары
-  const balls = rules.balls ? rules.balls.map(ball => ({
+  // Шары (только для Колхоза показываем детали шаров)
+  const balls = (gameType === 'kolkhoz' && rules.balls) ? rules.balls.map(ball => ({
     name: getBallDisplayName(ball.color),
     points: getBallPointsDisplay(ball.points),
     color: ball.color
   })) : []
-
-  // Система очков
-  const scoring = {
-    'Стоимость очка': rules.point_value_rubles ? `${rules.point_value_rubles}₽` : 'Не указано',
-    'Штраф за фол': '50₽', // Можно добавить в API
-    'Бонус за серию': '20₽ (5+ шаров)', // Можно добавить в API
-    'Штраф за промах': '10₽' // Можно добавить в API
-  }
 
   return { settings, balls, scoring }
 }
