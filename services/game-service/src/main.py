@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from .core.database import connect_to_db, disconnect_from_db, create_tables
+from .core.database import connect_to_db, disconnect_from_db, create_tables, init_sqlalchemy
 from .core.config import settings
 from .api import health, sessions, games
 
@@ -30,6 +30,9 @@ async def lifespan(app: FastAPI):
         # Создание таблиц (только в development)
         if settings.environment == "development":
             await create_tables()
+        
+        # Инициализация SQLAlchemy
+        await init_sqlalchemy()
         
         # TODO: Подключение к RabbitMQ
         print("🐰 RabbitMQ connection: placeholder")

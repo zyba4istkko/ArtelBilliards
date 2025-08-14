@@ -60,6 +60,8 @@ class GameTypeResponse(BaseModel):
 # Session Models
 class CreateSessionRequest(BaseModel):
     name: str = Field(min_length=1, max_length=100)
+    creator_display_name: Optional[str] = Field(max_length=100, default=None)  # Имя создателя сессии
+    bot_display_name: Optional[str] = Field(max_length=100, default=None)  # Имя бота
     game_type_id: Optional[int] = None  # Опциональный
     template_id: UUID  # Обязательный UUID
     max_players: int = Field(ge=2, le=8)

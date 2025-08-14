@@ -74,6 +74,8 @@ export class SessionService {
   static async createSession(sessionData: {
     template_id: string
     name: string
+    creator_display_name?: string  // Имя создателя сессии
+    bot_display_name?: string  // Имя бота
     description?: string
     max_players?: number
   }): Promise<GameSession> {

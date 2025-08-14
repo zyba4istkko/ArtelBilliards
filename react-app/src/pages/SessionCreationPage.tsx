@@ -120,6 +120,8 @@ function SessionCreationPage() {
       // Создаем сессию через API
       const sessionData = await SessionService.createSession({
         name: `${selectedTemplate.name} с ${players[0].displayName}`,
+        creator_display_name: players[0].displayName,  // Имя создателя
+        bot_display_name: players[1]?.displayName || "Бот Игорь",  // Имя бота (второй игрок)
         template_id: selectedTemplate.id,
         max_players: players.length
       })

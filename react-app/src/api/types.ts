@@ -136,6 +136,7 @@ export interface GameSession {
   status: 'waiting' | 'in_progress' | 'completed' | 'cancelled'
   max_players: number
   current_players: number
+  participants: SessionPlayer[]  // Добавляю участников сессии
   created_at: string
   started_at?: string
   finished_at?: string
@@ -165,13 +166,12 @@ export interface Game {
   id: string
   session_id: string
   game_number: number
-  status: 'waiting' | 'active' | 'paused' | 'completed'
-  current_player_id?: string
-  scores: Record<string, number>
-  events: GameEvent[]
-  started_at?: string
-  finished_at?: string
-  winner_id?: string
+  status: 'in_progress' | 'completed' | 'cancelled'
+  winner_participant_id?: string
+  started_at: string
+  completed_at?: string
+  duration_seconds?: number
+  game_data?: Record<string, any>
 }
 
 export interface GameEvent {

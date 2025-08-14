@@ -116,3 +116,10 @@ class GameService:
             duration_seconds=1800,  # 30 минут
             game_data={"queue_algorithm": "manual"}
         )
+
+    @staticmethod
+    async def get_session_games(session_id: UUID, limit: int = 10, offset: int = 0) -> List[GameResponse]:
+        """Получение списка игр в сессии"""
+        # TODO: Заменить на реальный запрос к базе данных
+        # Пока возвращаем пустой список, так как игр еще нет
+        return []

@@ -46,14 +46,13 @@ async def get_session_games(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0)
 ):
-    """Получение списка игр в сессии (stub)"""
+    """Получение списка игр в сессии"""
     try:
-        # Заглушка - возвращаем одну примерную игру
-        game = await GameService.get_game(UUID("abcdef12-3456-7890-abcd-ef1234567890"))
+        games = await GameService.get_session_games(session_id, limit, offset)
         
         return GameListResponse(
-            games=[game] if game else [],
-            total=1
+            games=games,
+            total=len(games)
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

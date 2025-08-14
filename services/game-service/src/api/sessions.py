@@ -13,6 +13,8 @@ from ..models.schemas import (
     JoinSessionRequest, InvitePlayerRequest, BaseResponse, SessionParticipantResponse
 )
 from ..services.session_service import SessionService
+from ..core.database import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -27,11 +29,12 @@ async def get_current_user() -> UUID:
 @router.post("", response_model=SessionResponse)
 async def create_session(
     request: CreateSessionRequest,
-    current_user: UUID = Depends(get_current_user)
+    current_user: UUID = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Создание новой игровой сессии"""
     try:
-        return await SessionService.create_session(request, current_user)
+        return await SessionService.create_session(db, request, current_user)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -73,10 +76,10 @@ async def get_sessions_by_status(
 
 
 @router.get("/{session_id}", response_model=SessionResponse)
-async def get_session(session_id: UUID):
+async def get_session(session_id: UUID, db: AsyncSession = Depends(get_db)):
     """Получение детальной информации о сессии"""
     try:
-        session = await SessionService.get_session(session_id)
+        session = await SessionService.get_session(db, session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
         return session
@@ -87,10 +90,10 @@ async def get_session(session_id: UUID):
 
 
 @router.get("/{session_id}/players", response_model=List[SessionParticipantResponse])
-async def get_session_players(session_id: UUID):
+async def get_session_players(session_id: UUID, db: AsyncSession = Depends(get_db)):
     """Получение списка игроков в сессии"""
     try:
-        players = await SessionService.get_session_players(session_id)
+        players = await SessionService.get_session_players(db, session_id)
         return players
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

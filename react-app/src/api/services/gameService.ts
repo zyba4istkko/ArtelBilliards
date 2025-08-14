@@ -1,215 +1,88 @@
 import { apiClient } from '../client'
 import type { 
-  Game, 
-  GameEvent,
-  BaseResponse,
-  PaginationParams
+  GameResponse, 
+  GameListResponse,
+  GameEventRequest,
+  GameEventResponse,
+  GameScoresResponse,
+  CreateGameRequest
 } from '../types'
 
 /**
- * Game Service API
+ * Game Service API - Управление играми в сессиях
  */
 export class GameService {
   private static baseUrl = '/api/v1/games'
 
   /**
-   * Получить список игр по сессии
-   */
-  static async getGamesBySession(sessionId: string, params: PaginationParams = {}): Promise<{
-    games: Game[]
-    total: number
-    page: number
-    page_size: number
-  }> {
-    const queryParams = new URLSearchParams()
-    
-    if (params.page) queryParams.append('page', params.page.toString())
-    if (params.page_size) queryParams.append('page_size', params.page_size.toString())
-
-    const url = `${this.baseUrl}/session/${sessionId}?${queryParams.toString()}`
-    return await apiClient.get(url)
-  }
-
-  /**
-   * Получить игру по ID
-   */
-  static async getGame(id: string): Promise<Game> {
-    return await apiClient.get(`${this.baseUrl}/${id}`)
-  }
-
-  /**
    * Создать новую игру в сессии
    */
-  static async createGame(sessionId: string): Promise<Game> {
-    return await apiClient.post(this.baseUrl, { session_id: sessionId })
+  static async createGame(sessionId: string, gameData: CreateGameRequest): Promise<GameResponse> {
+    const response = await apiClient.post(`${this.baseUrl}/sessions/${sessionId}/games`, gameData)
+    return response
   }
 
   /**
-   * Запустить игру
+   * Получить список игр в сессии
    */
-  static async startGame(id: string): Promise<Game> {
-    return await apiClient.post(`${this.baseUrl}/${id}/start`)
+  static async getSessionGames(sessionId: string, limit: number = 10, offset: number = 0): Promise<GameListResponse> {
+    const params = new URLSearchParams()
+    if (limit) params.append('limit', limit.toString())
+    if (offset) params.append('offset', offset.toString())
+    
+    const response = await apiClient.get(`${this.baseUrl}/sessions/${sessionId}/games?${params.toString()}`)
+    return response
   }
 
   /**
-   * Приостановить игру
+   * Получить детальную информацию об игре
    */
-  static async pauseGame(id: string): Promise<Game> {
-    return await apiClient.post(`${this.baseUrl}/${id}/pause`)
+  static async getGame(gameId: string): Promise<GameResponse> {
+    const response = await apiClient.get(`${this.baseUrl}/${gameId}`)
+    return response
   }
 
   /**
-   * Возобновить игру
+   * Начать игру
    */
-  static async resumeGame(id: string): Promise<Game> {
-    return await apiClient.post(`${this.baseUrl}/${id}/resume`)
+  static async startGame(gameId: string): Promise<GameResponse> {
+    const response = await apiClient.post(`${this.baseUrl}/${gameId}/start`, {})
+    return response
   }
 
   /**
    * Завершить игру
    */
-  static async endGame(id: string, winnerId?: string): Promise<Game> {
-    return await apiClient.post(`${this.baseUrl}/${id}/end`, { winner_id: winnerId })
+  static async endGame(gameId: string): Promise<GameResponse> {
+    const response = await apiClient.post(`${this.baseUrl}/${gameId}/end`, {})
+    return response
   }
 
   /**
-   * Добавить событие в игру
+   * Добавить игровое событие
    */
-  static async addGameEvent(gameId: string, eventData: {
-    player_id: string
-    event_type: 'shot' | 'foul' | 'miss' | 'win' | 'timeout'
-    description: string
-    score_change?: number
-    metadata?: Record<string, any>
-  }): Promise<GameEvent> {
-    return await apiClient.post(`${this.baseUrl}/${gameId}/events`, eventData)
+  static async addGameEvent(gameId: string, eventData: GameEventRequest): Promise<GameEventResponse> {
+    const response = await apiClient.post(`${this.baseUrl}/${gameId}/events`, eventData)
+    return response
+  }
+
+  /**
+   * Получить счета игры
+   */
+  static async getGameScores(gameId: string): Promise<GameScoresResponse> {
+    const response = await apiClient.get(`${this.baseUrl}/${gameId}/scores`)
+    return response
   }
 
   /**
    * Получить события игры
    */
-  static async getGameEvents(gameId: string, params: PaginationParams = {}): Promise<{
-    events: GameEvent[]
-    total: number
-    page: number
-    page_size: number
-  }> {
-    const queryParams = new URLSearchParams()
+  static async getGameEvents(gameId: string, limit: number = 50, offset: number = 0): Promise<GameEventResponse[]> {
+    const params = new URLSearchParams()
+    if (limit) params.append('limit', limit.toString())
+    if (offset) params.append('offset', offset.toString())
     
-    if (params.page) queryParams.append('page', params.page.toString())
-    if (params.page_size) queryParams.append('page_size', params.page_size.toString())
-
-    const url = `${this.baseUrl}/${gameId}/events?${queryParams.toString()}`
-    return await apiClient.get(url)
-  }
-
-  /**
-   * Обновить счет игрока
-   */
-  static async updatePlayerScore(gameId: string, playerId: string, scoreChange: number): Promise<Game> {
-    return await apiClient.put(`${this.baseUrl}/${gameId}/score`, {
-      player_id: playerId,
-      score_change: scoreChange
-    })
-  }
-
-  /**
-   * Сделать ход (комплексное действие)
-   */
-  static async makeMove(gameId: string, moveData: {
-    player_id: string
-    action_type: 'shot' | 'foul' | 'miss'
-    score_change?: number
-    description?: string
-    metadata?: Record<string, any>
-  }): Promise<{ game: Game; event: GameEvent }> {
-    return await apiClient.post(`${this.baseUrl}/${gameId}/move`, moveData)
-  }
-
-  /**
-   * Передать ход следующему игроку
-   */
-  static async nextPlayer(gameId: string): Promise<Game> {
-    return await apiClient.post(`${this.baseUrl}/${gameId}/next-player`)
-  }
-
-  /**
-   * Отменить последнее действие
-   */
-  static async undoLastAction(gameId: string): Promise<Game> {
-    return await apiClient.post(`${this.baseUrl}/${gameId}/undo`)
-  }
-
-  /**
-   * Получить статистику игры
-   */
-  static async getGameStats(gameId: string): Promise<{
-    game_id: string
-    duration: number
-    total_shots: number
-    player_stats: Array<{
-      player_id: string
-      score: number
-      shots: number
-      fouls: number
-      misses: number
-      accuracy: number
-    }>
-  }> {
-    return await apiClient.get(`${this.baseUrl}/${gameId}/stats`)
-  }
-
-  /**
-   * Получить текущее состояние игры
-   */
-  static async getGameState(gameId: string): Promise<{
-    game: Game
-    current_player: string | null
-    scores: Record<string, number>
-    last_events: GameEvent[]
-    game_duration: number
-  }> {
-    return await apiClient.get(`${this.baseUrl}/${gameId}/state`)
-  }
-
-  /**
-   * Экспортировать игру (для анализа)
-   */
-  static async exportGame(gameId: string, format: 'json' | 'csv' = 'json'): Promise<any> {
-    return await apiClient.get(`${this.baseUrl}/${gameId}/export?format=${format}`)
-  }
-
-  /**
-   * Получить активные игры пользователя
-   */
-  static async getActiveGames(): Promise<Game[]> {
-    return await apiClient.get(`${this.baseUrl}/active`)
-  }
-
-  /**
-   * Поиск игр пользователя
-   */
-  static async searchGames(params: {
-    session_id?: string
-    status?: 'waiting' | 'active' | 'paused' | 'completed'
-    from_date?: string
-    to_date?: string
-  } & PaginationParams): Promise<{
-    games: Game[]
-    total: number
-    page: number
-    page_size: number
-  }> {
-    const queryParams = new URLSearchParams()
-    
-    if (params.page) queryParams.append('page', params.page.toString())
-    if (params.page_size) queryParams.append('page_size', params.page_size.toString())
-    if (params.session_id) queryParams.append('session_id', params.session_id)
-    if (params.status) queryParams.append('status', params.status)
-    if (params.from_date) queryParams.append('from_date', params.from_date)
-    if (params.to_date) queryParams.append('to_date', params.to_date)
-
-    const url = `${this.baseUrl}/search?${queryParams.toString()}`
-    return await apiClient.get(url)
+    const response = await apiClient.get(`${this.baseUrl}/${gameId}/events?${params.toString()}`)
+    return response
   }
 } 

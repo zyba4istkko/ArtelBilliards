@@ -4,8 +4,18 @@ Game Service Database Connection - Real PostgreSQL connection
 
 import psycopg
 from contextlib import contextmanager
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import DeclarativeBase
 
 from .config import settings
+
+# SQLAlchemy Base class
+class Base(DeclarativeBase):
+    pass
+
+# Async engine for SQLAlchemy
+engine = None
+async_session_maker = None
 
 # Simple connection without pool for now
 connection = None
@@ -160,3 +170,51 @@ async def create_tables():
 async def get_database():
     """Get database connection"""
     return None  # For now, we'll use direct connections
+
+# SQLAlchemy database dependency
+async def get_db():
+    """Get SQLAlchemy database session"""
+    if async_session_maker is None:
+        raise RuntimeError("Database not initialized")
+    
+    async with async_session_maker() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
+
+async def init_sqlalchemy():
+    """Initialize SQLAlchemy engine and session maker"""
+    global engine, async_session_maker
+    
+    try:
+        # Convert psycopg URL to async SQLAlchemy URL
+        # psycopg: postgresql://user:pass@host:port/db
+        # async SQLAlchemy: postgresql+psycopg://user:pass@host:port/db
+        async_url = settings.database_url.replace("postgresql://", "postgresql+psycopg://")
+        
+        engine = create_async_engine(
+            async_url,
+            echo=settings.environment == "development",
+            pool_pre_ping=True
+        )
+        
+        async_session_maker = async_sessionmaker(
+            engine,
+            class_=AsyncSession,
+            expire_on_commit=False
+        )
+        
+        # Создаем таблицы из SQLAlchemy моделей
+        if settings.environment == "development":
+            async with engine.begin() as conn:
+                from ..models.database import Base
+                # Создаем таблицы только если их нет
+                await conn.run_sync(Base.metadata.create_all)
+                print("✅ SQLAlchemy tables created")
+        
+        print("✅ SQLAlchemy engine initialized")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to initialize SQLAlchemy: {e}")
+        raise

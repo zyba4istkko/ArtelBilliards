@@ -12,6 +12,7 @@ import {
   EndGameModal
 } from '../components/ui'
 import { SessionService } from '../api/services/sessionService'
+import { GameService } from '../api/services/gameService'
 import type { GameSession, Game } from '../api/types'
 
 interface Player {
@@ -91,7 +92,7 @@ export default function GameSessionPage() {
       
       // Transform API data to Player format for UI
       const transformedPlayers: Player[] = playersData.map((sp) => ({
-        id: sp.user_id,
+        id: sp.id, // Используем sp.id вместо sp.user_id для ботов
         name: sp.display_name || sp.username,
         avatar: (sp.display_name || sp.username).charAt(0).toUpperCase(),
         points: sp.current_score || 0,
@@ -101,25 +102,9 @@ export default function GameSessionPage() {
       }))
       setPlayers(transformedPlayers)
       
-      // TODO: Load games data when GameService.getGames() is implemented
-      // const gamesData = await GameService.getGames(sessionId)
-      // setGames(gamesData)
-      
-      // For now, create a mock game with real players
-      if (playersData.length > 0) {
-        const mockGame: Game = {
-          id: '1',
-          session_id: sessionId,
-          game_number: 1,
-          status: 'active',
-          scores: playersData.reduce((acc, sp) => ({ ...acc, [sp.user_id]: sp.current_score || 0 }), {}),
-          events: [],
-          started_at: new Date().toISOString()
-        }
-        setGames([mockGame])
-      } else {
-        setGames([])
-      }
+      // Load games data
+      const gamesData = await GameService.getSessionGames(sessionId)
+      setGames(gamesData.games)
       
     } catch (err: any) {
       console.error('Failed to load session data:', err)
@@ -195,7 +180,7 @@ export default function GameSessionPage() {
 
     // Update current game in games array
     setGames(prev => prev.map(game => {
-      if (game.status === 'active') {
+      if (game.status === 'in_progress') {
         return {
           ...game,
           players: players.map(p => {
@@ -335,55 +320,107 @@ export default function GameSessionPage() {
 
       <main className="max-w-4xl mx-auto px-4 pb-20">
         {/* Game Controls */}
-        <ActionPanel
-          isPaused={isPaused}
-          onPause={handlePause}
-          onResume={handleResume}
-          onEndGame={handleEndGame}
-          onNextGame={handleNextGame}
-          canStartNextGame={games.length === 0}
-        />
-
-        {/* Players Section */}
         <div className="bg-gray-800 border border-gray-600 rounded-2xl p-6 mb-6">
-          <h2 className="text-base font-bold text-mint mb-4 text-center">
-            Игроки ({players.length})
+          <div className="flex gap-3">
+            <button
+              onClick={handleEndGame}
+              className="bg-red-500 text-white px-6 py-3 rounded-full hover:bg-red-600 font-semibold text-base transition-all duration-250"
+            >
+              🏁 Завершить игру
+            </button>
+          </div>
+        </div>
+
+        {/* Scoreboard - Общий счет сессии */}
+        <div className="bg-gray-800 border border-gray-600 rounded-2xl p-6 mb-6">
+          <h2 className="text-lg font-bold text-mint mb-4 text-center">
+            Общий счет сессии
           </h2>
           
-          {players.length === 0 ? (
+          {!session.participants || session.participants.length === 0 ? (
             <div className="text-center py-8 text-gray-400">
-              <p>Игроки не найдены</p>
+              <p>Нет данных для отображения</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {players.map((player) => (
-                <PlayerCard
-                  key={player.id}
-                  player={player}
-                  onAddScore={() => handleAddScore(player)}
-                  isLeading={leadingPlayer ? player.id === leadingPlayer.id : false}
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {session.participants.map((participant) => (
+                <div key={participant.id} className="bg-gray-700 p-4 rounded-lg text-center relative">
+                  <div className="w-8 h-8 bg-mint text-black rounded-full flex items-center justify-center font-bold text-sm mx-auto mb-2">
+                    {participant.display_name.charAt(0).toUpperCase()}
+                  </div>
+                  <h3 className="font-semibold text-sm mb-1">{participant.display_name}</h3>
+                  <div className="text-xs text-gray-400 space-y-1">
+                    <p>Очки: {participant.current_score}</p>
+                    <p>Баланс: {participant.session_balance_rubles} ₽</p>
+                    <p>Игр сыграно: {participant.total_games_played}</p>
+                    <p>Шаров забито: {participant.total_balls_potted}</p>
+                  </div>
+                  {leadingPlayer && participant.id === leadingPlayer.id && (
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                      <span className="text-black text-xs">👑</span>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Games Section */}
+        {/* Games Section - Игры в сессии */}
         <div className="bg-gray-800 border border-gray-600 rounded-2xl p-6 mb-6">
-          <h2 className="text-base font-bold text-mint mb-4 text-center">
-            Игры ({games.length})
-          </h2>
+          <h3 className="text-lg font-bold text-mint mb-4 text-center">
+            Игры в сессии
+          </h3>
           
           {games.length === 0 ? (
             <div className="text-center py-8 text-gray-400">
-              <p>Игр еще нет</p>
-              <p className="text-sm text-gray-500 mt-2">Начните первую игру</p>
+              <p>Игр в сессии еще не было</p>
+              <p className="text-sm text-gray-500 mt-2">Начните первую игру, чтобы увидеть результаты</p>
+              <button
+                onClick={handleNextGame}
+                className="bg-mint text-black px-6 py-3 rounded-lg hover:bg-mint/80 mt-4 font-medium"
+              >
+                🎮 Начать первую игру
+              </button>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {games.map((game) => (
                 <div key={game.id} className="bg-gray-700 p-4 rounded-lg">
-                  <p className="text-white">Игра #{game.game_number} - {game.status}</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-mint font-bold">Игра #{game.game_number}</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        game.status === 'completed' ? 'bg-green-600 text-white' :
+                        game.status === 'in_progress' ? 'bg-blue-600 text-white' :
+                        game.status === 'cancelled' ? 'bg-red-600 text-white' :
+                        'bg-gray-600 text-white'
+                      }`}>
+                        {game.status === 'completed' ? '✅ Завершена' :
+                         game.status === 'in_progress' ? '🎮 Идет сейчас' :
+                         game.status === 'cancelled' ? '❌ Отменена' :
+                         game.status}
+                      </span>
+                    </div>
+                    <div className="text-gray-400 text-sm">
+                      {game.started_at ? new Date(game.started_at).toLocaleTimeString('ru-RU', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) : '--:--'}
+                    </div>
+                  </div>
+                  
+                  {/* Game details */}
+                  <div className="text-gray-300 text-sm">
+                    <p>ID: {game.id}</p>
+                    <p>Сессия: {game.session_id}</p>
+                    {game.winner_participant_id && (
+                      <p className="text-mint">Победитель: {game.winner_participant_id}</p>
+                    )}
+                    {game.completed_at && game.started_at && (
+                      <p>Длительность: {Math.floor((new Date(game.completed_at).getTime() - new Date(game.started_at).getTime()) / 1000 / 60)}:{(Math.floor((new Date(game.completed_at).getTime() - new Date(game.started_at).getTime()) / 1000) % 60).toString().padStart(2, '0')}</p>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -395,17 +432,19 @@ export default function GameSessionPage() {
           entries={logEntries}
           onEditEntry={handleEditLogEntry}
         />
+      </main>
 
-        {/* End Game Section */}
-        <div className="bg-gray-800 border border-gray-600 rounded-2xl p-4 text-center">
+      {/* Bottom Actions */}
+      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 border border-gray-600 rounded-2xl p-4 w-full max-w-4xl">
+        <div className="flex gap-3">
           <button
-            className="bg-gray-700 text-white border border-gray-600 rounded-full px-8 py-4 font-semibold text-base hover:bg-gray-600 hover:border-gray-500 transition-all duration-250"
-            onClick={handleEndGame}
+            onClick={handleNextGame}
+            className="flex-1 bg-mint text-black px-6 py-4 rounded-full font-bold text-base hover:bg-mint/80 transition-all duration-250"
           >
-            🏁 Завершить игру
+            🎲 Следующая игра
           </button>
         </div>
-      </main>
+      </div>
 
       {/* Score Modal */}
       <ScoreModal
