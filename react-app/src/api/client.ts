@@ -3,12 +3,14 @@ import { toast } from 'sonner'
 
 // API Base URLs для разных сервисов
 const AUTH_SERVICE_URL = 'http://localhost:8000'        // Auth через API Gateway
+const AUTH_SERVICE_DIRECT_URL = 'http://localhost:8001' // Auth Service напрямую
 const TEMPLATE_SERVICE_URL = 'http://localhost:8000'    // Template через API Gateway  
 const GAME_SERVICE_URL = 'http://localhost:8000'        // Game через API Gateway
 const API_GATEWAY_URL = 'http://localhost:8000'         // API Gateway
 
 class ApiClient {
   private authClient: any
+  private authDirectClient: any
   private templateClient: any
   private gameClient: any
   private refreshingToken: boolean
@@ -18,6 +20,14 @@ class ApiClient {
     // Создаем отдельные клиенты для каждого сервиса
     this.authClient = axios.create({
       baseURL: AUTH_SERVICE_URL,
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    this.authDirectClient = axios.create({
+      baseURL: AUTH_SERVICE_DIRECT_URL,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -47,7 +57,7 @@ class ApiClient {
 
   setupInterceptors() {
     // Настраиваем перехватчики для всех клиентов
-    const clients = [this.authClient, this.templateClient, this.gameClient]
+    const clients = [this.authClient, this.authDirectClient, this.templateClient, this.gameClient]
     
     clients.forEach(client => {
       // Request interceptor
@@ -265,6 +275,10 @@ class ApiClient {
   // Геттеры для прямого доступа к клиентам (для сервисов)
   getAuthClient() {
     return this.authClient
+  }
+
+  getAuthDirectClient() {
+    return this.authDirectClient
   }
 
   getTemplateClient() {

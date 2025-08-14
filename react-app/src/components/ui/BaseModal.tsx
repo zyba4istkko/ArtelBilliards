@@ -1,5 +1,6 @@
 import React from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody } from '@nextui-org/react'
+import tokens from '../../styles/design-tokens'
 
 interface BaseModalProps {
   open: boolean
@@ -20,7 +21,7 @@ export function BaseModal({ open, onClose, title, children, size = 'lg' }: BaseM
         __html: `
           .modal-scrollbar {
             scrollbar-width: thin;
-            scrollbar-color: #4a4a4a #2a2a2a;
+            scrollbar-color: ${tokens.colors.gray500} ${tokens.colors.gray700};
           }
           
           .modal-scrollbar::-webkit-scrollbar {
@@ -28,17 +29,17 @@ export function BaseModal({ open, onClose, title, children, size = 'lg' }: BaseM
           }
           
           .modal-scrollbar::-webkit-scrollbar-track {
-            background: #2a2a2a;
+            background: ${tokens.colors.gray700};
             border-radius: 10px;
           }
           
           .modal-scrollbar::-webkit-scrollbar-thumb {
-            background: #4a4a4a;
+            background: ${tokens.colors.gray500};
             border-radius: 10px;
           }
           
           .modal-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #85DCCB;
+            background: ${tokens.colors.mint};
           }
         `
       }} />
@@ -56,17 +57,23 @@ export function BaseModal({ open, onClose, title, children, size = 'lg' }: BaseM
         classNames={{
           backdrop: "bg-black/80",
           wrapper: "p-6 flex items-center justify-center",
-          base: "bg-gray-800 border border-gray-600 max-h-[85vh] max-w-[85vw] w-full rounded-lg overflow-hidden",
-          header: "border-b border-gray-600 flex-shrink-0 bg-gray-800 px-6 py-4 rounded-t-lg",
-          body: "py-6 px-6 overflow-y-auto modal-scrollbar bg-gray-800",
-          closeButton: "hover:bg-gray-600 text-gray-300 hover:text-white transition-colors z-50"
+          base: "max-h-[85vh] max-w-[85vw] w-full rounded-lg overflow-hidden",
+          header: "flex-shrink-0 px-6 py-4 rounded-t-lg",
+          body: "py-6 px-6 overflow-y-auto modal-scrollbar",
+          closeButton: "transition-colors z-50"
         }}
       >
-        <ModalContent className="rounded-lg overflow-hidden">
-          <ModalHeader className="flex flex-col gap-1">
-            <h2 className="text-xl font-bold text-white">{title}</h2>
+        <ModalContent className="rounded-lg overflow-hidden" style={{
+          backgroundColor: tokens.colors.gray800,
+          border: `1px solid ${tokens.colors.gray600}`
+        }}>
+          <ModalHeader className="flex flex-col gap-1" style={{
+            backgroundColor: tokens.colors.gray800,
+            borderBottom: `1px solid ${tokens.colors.gray600}`
+          }}>
+            <h2 style={{ color: tokens.colors.white }} className="text-xl font-bold">{title}</h2>
           </ModalHeader>
-          <ModalBody>
+          <ModalBody style={{ backgroundColor: tokens.colors.gray800 }}>
             {children}
           </ModalBody>
         </ModalContent>

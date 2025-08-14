@@ -86,6 +86,91 @@ async def get_current_active_user(
     return current_user
 
 
+# ==================== SEARCH ENDPOINT ====================
+
+@router.get("/search", response_model=List[UserResponse])
+async def search_users(
+    q: str = Query(..., description="Search query (username or email, min 2 chars, max 5 results)"),
+    current_user: dict = Depends(get_current_active_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """Поиск пользователей по username или email (для добавления в друзья)
+    
+    Возвращает максимум 5 результатов для лучшего UX.
+    """
+    
+    if len(q.strip()) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Search query must be at least 2 characters long"
+        )
+    
+    try:
+        # Используем реальный поиск через AuthService
+        users = await auth_service.search_users(q, exclude_user_id=current_user['id'])
+        
+        # Преобразуем в формат UserResponse
+        user_responses = []
+        for user in users:
+            try:
+                user_response = UserResponse(**user)
+                user_responses.append(user_response)
+            except Exception as e:
+                logger.warning(f"Failed to create UserResponse for user {user.get('id')}: {e}")
+                continue
+        
+        return user_responses
+        
+    except Exception as e:
+        logger.error(f"Search users error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to search users"
+        )
+
+
+# ==================== TEST ENDPOINT (временно) ====================
+
+@router.get("/search-test", response_model=List[UserResponse])
+async def search_users_test(
+    q: str = Query(..., description="Search query (username or email, min 2 chars, max 5 results)"),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """Временный endpoint для тестирования поиска без аутентификации
+    
+    Возвращает максимум 5 результатов для лучшего UX.
+    """
+    
+    if len(q.strip()) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Search query must be at least 2 characters long"
+        )
+    
+    try:
+        # Используем реальный поиск через AuthService
+        users = await auth_service.search_users(q)
+        
+        # Преобразуем в формат UserResponse
+        user_responses = []
+        for user in users:
+            try:
+                user_response = UserResponse(**user)
+                user_responses.append(user_response)
+            except Exception as e:
+                logger.warning(f"Failed to create UserResponse for user {user.get('id')}: {e}")
+                continue
+        
+        return user_responses
+        
+    except Exception as e:
+        logger.error(f"Search users test error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to search users"
+        )
+
+
 # ==================== USER PROFILE ENDPOINTS ====================
 
 @router.get("/me", response_model=UserResponse)

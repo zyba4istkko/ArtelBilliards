@@ -40,6 +40,47 @@ class AuthService:
         query = users_table.select().where(users_table.c.email == email)
         return await self.db.fetch_one(query)
     
+    async def search_users(self, query: str, exclude_user_id: Optional[UUID] = None) -> List[Dict[str, Any]]:
+        """Поиск пользователей по username, email, first_name, last_name
+        
+        Args:
+            query: Поисковый запрос (минимум 2 символа)
+            exclude_user_id: ID пользователя для исключения из результатов
+            
+        Returns:
+            Список пользователей (максимум 5 результатов)
+        """
+        if len(query.strip()) < 2:
+            return []
+        
+        # Строим поисковый запрос
+        search_query = f"%{query.lower()}%"
+        
+        # Базовый запрос
+        base_query = users_table.select().where(
+            users_table.c.is_active == True
+        )
+        
+        # Добавляем поисковые условия
+        search_conditions = (
+            users_table.c.username.ilike(search_query) |
+            users_table.c.email.ilike(search_query) |
+            users_table.c.first_name.ilike(search_query) |
+            users_table.c.last_name.ilike(search_query)
+        )
+        
+        base_query = base_query.where(search_conditions)
+        
+        # Исключаем конкретного пользователя если указан
+        if exclude_user_id:
+            base_query = base_query.where(users_table.c.id != exclude_user_id)
+        
+        # Ограничиваем результаты для UI (максимум 5 пользователей)
+        base_query = base_query.limit(5)
+        
+        users = await self.db.fetch_all(base_query)
+        return users
+    
     async def create_user(self, user_data: UserCreate) -> Dict[str, Any]:
         """Создание нового пользователя"""
         user_id = uuid4()
