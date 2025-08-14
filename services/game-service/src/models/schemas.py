@@ -60,10 +60,10 @@ class GameTypeResponse(BaseModel):
 # Session Models
 class CreateSessionRequest(BaseModel):
     name: str = Field(min_length=1, max_length=100)
-    game_type_id: int
-    template_id: Optional[UUID] = None
+    game_type_id: Optional[int] = None  # Опциональный
+    template_id: UUID  # Обязательный UUID
     max_players: int = Field(ge=2, le=8)
-    description: Optional[str] = Field(max_length=500)
+    description: Optional[str] = Field(max_length=500, default=None)  # Опциональный с дефолтом
     rules: Optional[Dict[str, Any]] = None
 
 

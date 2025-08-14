@@ -15,7 +15,7 @@ export class TemplateService {
   /**
    * Получить список всех шаблонов с фильтрацией
    */
-  static async getTemplates(params: TemplateSearchParams = {}): Promise<GameTemplateListResponse> {
+  static async getTemplates(params: TemplateSearchParams = {}): Promise<GameTemplate[]> {
     const queryParams = new URLSearchParams()
     
     if (params.page) queryParams.append('page', params.page.toString())

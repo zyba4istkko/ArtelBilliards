@@ -152,6 +152,9 @@ async def proxy_game_sessions_root(request: Request):
     # Get request body
     body = await request.body()
     
+    print(f"🔍 API Gateway: Proxying {request.method} to {url}")
+    print(f"🔍 API Gateway: Request body: {body}")
+    
     try:
         async with httpx.AsyncClient() as client:
             response = await client.request(
@@ -163,20 +166,29 @@ async def proxy_game_sessions_root(request: Request):
                 timeout=30.0
             )
             
+            print(f"🔍 API Gateway: Response status: {response.status_code}")
+            print(f"🔍 API Gateway: Response content: {response.content}")
+            print(f"🔍 API Gateway: Response headers: {dict(response.headers)}")
+            
             # Remove problematic headers
             response_headers = dict(response.headers)
             response_headers.pop("content-length", None)
             response_headers.pop("content-encoding", None)
             
+            response_content = response.json() if response.content else None
+            print(f"🔍 API Gateway: Final response content: {response_content}")
+            
             return JSONResponse(
-                content=response.json() if response.content else None,
+                content=response_content,
                 status_code=response.status_code,
                 headers=response_headers
             )
             
     except httpx.RequestError as e:
+        print(f"❌ API Gateway: Request error: {e}")
         raise HTTPException(status_code=503, detail=f"Game Service unavailable: {str(e)}")
     except Exception as e:
+        print(f"❌ API Gateway: Internal error: {e}")
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 @app.api_route("/api/v1/sessions/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])

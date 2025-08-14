@@ -2,15 +2,19 @@
 Game Service Main Application
 """
 
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from .core.database import connect_to_db, disconnect_from_db, create_tables
 from .core.config import settings
 from .api import health, sessions, games
 
+# Настройка логирования
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -55,6 +59,26 @@ app = FastAPI(
     description="Микросервис управления играми и сессиями",
     lifespan=lifespan
 )
+
+# Middleware для логирования запросов
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Логирование всех входящих запросов"""
+    logger.info(f"📥 {request.method} {request.url}")
+    
+    # Логируем тело запроса для POST/PUT
+    if request.method in ["POST", "PUT"]:
+        try:
+            body = await request.body()
+            if body:
+                logger.info(f"📦 Request body: {body.decode()}")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not read request body: {e}")
+    
+    response = await call_next(request)
+    
+    logger.info(f"📤 {request.method} {request.url} - {response.status_code}")
+    return response
 
 # CORS middleware
 app.add_middleware(

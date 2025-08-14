@@ -81,8 +81,8 @@ export interface MoscowPyramidRules extends BaseGameRules {
 }
 
 export interface GameTemplate {
-  id: string
-  creator_user_id: string
+  id: string  // UUID в виде string
+  creator_user_id: string  // UUID в виде string
   name: string
   description: string
   game_type: GameType
@@ -133,7 +133,7 @@ export interface GameSession {
   creator_user_id: string
   name: string
   description?: string
-  status: 'waiting' | 'active' | 'paused' | 'completed' | 'cancelled'
+  status: 'waiting' | 'in_progress' | 'completed' | 'cancelled'
   max_players: number
   current_players: number
   created_at: string
@@ -143,13 +143,21 @@ export interface GameSession {
 
 export interface SessionPlayer {
   id: string
-  session_id: string
   user_id: string
+  display_name: string
   username: string
-  position: number
-  score: number
-  is_ready: boolean
+  session_role: 'creator' | 'participant'
+  is_empty_user: boolean
   joined_at: string
+  queue_position: number
+  current_score: number
+  is_active: boolean
+  can_modify_settings: boolean
+  can_kick_players: boolean
+  can_change_rules: boolean
+  session_balance_rubles: number
+  total_games_played: number
+  total_balls_potted: number
 }
 
 // Game Types

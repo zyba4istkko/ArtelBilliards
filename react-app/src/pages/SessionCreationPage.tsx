@@ -17,7 +17,8 @@ import { SimplifiedTemplateCard } from '../components/ui/SimplifiedTemplateCard'
 import { PlayerManagement } from '../components/ui/PlayerManagement'
 import { SessionSummary } from '../components/ui/SessionSummary'
 import { TemplateService } from '../api/services/templateService'
-import type { GameTemplate } from '../api/types'
+import { SessionService } from '../api/services/sessionService'
+import type { GameTemplate, Player } from '../api/types'
 import tokens from '../styles/design-tokens'
 
 function SessionCreationPage() {
@@ -38,7 +39,7 @@ function SessionCreationPage() {
   const [error, setError] = useState<string | null>(null)
 
   // Player management state
-  const [players, setPlayers] = useState<any[]>([])
+  const [players, setPlayers] = useState<Player[]>([])
   const [isStarting, setIsStarting] = useState(false)
 
   // Load templates on component mount
@@ -58,8 +59,8 @@ function SessionCreationPage() {
       console.log('🔍 SessionCreationPage: Тип ответа:', typeof response)
       console.log('🔍 SessionCreationPage: Это массив?', Array.isArray(response))
       
-      // API возвращает массив напрямую, а не объект с полем templates
-      const templatesArray = Array.isArray(response) ? response : (response.templates || [])
+      // API возвращает массив GameTemplateResponse напрямую
+      const templatesArray = Array.isArray(response) ? response : []
       console.log('🔍 SessionCreationPage: templatesArray:', templatesArray)
       console.log('🔍 SessionCreationPage: Длина массива:', templatesArray.length)
       
@@ -104,18 +105,45 @@ function SessionCreationPage() {
     navigate('/dashboard')
   }
 
-  const handleStartGame = () => {
-    setIsStarting(true)
-    // TODO: Implement actual game starting logic
-    console.log('🚀 Начинаю игру...')
+  const handleStartGame = async () => {
+    if (!selectedTemplate || players.length === 0) return
     
-    // Переходим на страницу игровой сессии
-    setTimeout(() => {
+    setIsStarting(true)
+    console.log('�� Начинаю игру...')
+    console.log('📋 Данные для создания сессии:', {
+      template: selectedTemplate,
+      players: players,
+      template_id: selectedTemplate.id
+    })
+    
+    try {
+      // Создаем сессию через API
+      const sessionData = await SessionService.createSession({
+        name: `${selectedTemplate.name} с ${players[0].displayName}`,
+        template_id: selectedTemplate.id,
+        max_players: players.length
+      })
+      
+      console.log('✅ Сессия создана:', sessionData)
+      console.log('🔍 Тип sessionData:', typeof sessionData)
+      console.log('🔍 sessionData.id:', sessionData?.id)
+      
+      // Проверяем что получили правильные данные
+      if (!sessionData || !sessionData.id) {
+        throw new Error(`Invalid session data received: ${JSON.stringify(sessionData)}`)
+      }
+      
+      // Переходим на страницу игровой сессии с реальным UUID
+      setTimeout(() => {
+        setIsStarting(false)
+        navigate(`/game-session/${sessionData.id}`)
+      }, 1000)
+      
+    } catch (error) {
+      console.error('❌ Ошибка создания сессии:', error)
       setIsStarting(false)
-      // Создаем уникальный ID сессии (пока моковый)
-      const sessionId = `session_${Date.now()}`
-      navigate(`/game-session/${sessionId}`)
-    }, 1000)
+      // TODO: Показать ошибку пользователю
+    }
   }
 
   const renderStepContent = () => {
