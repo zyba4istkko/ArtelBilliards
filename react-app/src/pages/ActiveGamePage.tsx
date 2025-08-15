@@ -55,6 +55,7 @@ interface LogEntry {
   timestamp: string
   addedBy: string
   tag?: string
+  isDeleted?: boolean
 }
 
 export default function ActiveGamePage({}: ActiveGamePageProps) {
@@ -64,6 +65,8 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
   // State
   const [gameStartTime] = useState(Date.now())
   const [gameTime, setGameTime] = useState('00:00')
+  const [currentUser] = useState('Ты') // Текущий пользователь
+  const [isCreator] = useState(true) // Только creator может удалять записи
   const [players, setPlayers] = useState<Player[]>([
     {
       id: '1',
@@ -102,16 +105,19 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
       description: 'Игра началась! Первый ход: Ты',
       points: 0,
       timestamp: '00:00',
-      addedBy: 'Система'
+      addedBy: 'Система',
+      isDeleted: false
     }
   ])
   
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false)
   const [isEndGameModalOpen, setIsEndGameModalOpen] = useState(false)
+  const [isEditLogModalOpen, setIsEditLogModalOpen] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
   const [selectedBall, setSelectedBall] = useState<Ball | null>(null)
   const [selectedTag, setSelectedTag] = useState<string>('')
   const [customDescription, setCustomDescription] = useState('')
+  const [editingLogEntry, setEditingLogEntry] = useState<LogEntry | null>(null)
 
   // Timer effect
   useEffect(() => {
@@ -196,7 +202,8 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
       points: selectedBall.points,
       timestamp: gameTime,
       addedBy: selectedPlayer.name,
-      tag: selectedTag || undefined
+      tag: selectedTag || undefined,
+      isDeleted: false
     }
 
     setLogEntries(prev => [newLogEntry, ...prev])
@@ -239,11 +246,91 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
       points: -1,
       timestamp: gameTime,
       addedBy: selectedPlayer.name,
-      tag: selectedTag || undefined
+      tag: selectedTag || undefined,
+      isDeleted: false
     }
 
     setLogEntries(prev => [newLogEntry, ...prev])
     handleCloseScoreModal()
+  }
+
+  const handleEditLogEntry = (entry: LogEntry) => {
+    setEditingLogEntry(entry)
+    setIsEditLogModalOpen(true)
+  }
+
+  const handleUpdateLogEntry = (updatedEntry: LogEntry) => {
+    setLogEntries(prev => prev.map(entry => 
+      entry.id === updatedEntry.id ? updatedEntry : entry
+    ))
+    setIsEditLogModalOpen(false)
+    setEditingLogEntry(null)
+  }
+
+  const handleDeleteLogEntry = (entryId: string) => {
+    // Вместо удаления помечаем запись как удаленную
+    setLogEntries(prev => {
+      const updated = prev.map(entry => 
+        entry.id === entryId 
+          ? { ...entry, isDeleted: true }
+          : entry
+      )
+      
+      // Пересчитываем состояние игры с обновленными записями
+      recalculateGameState(updated)
+      
+      return updated
+    })
+    
+    setIsEditLogModalOpen(false)
+    setEditingLogEntry(null)
+  }
+
+  const recalculateGameState = (entries?: LogEntry[]) => {
+    // Используем переданные записи или текущее состояние
+    const logToUse = entries || logEntries
+    
+    // Создаем копию игроков с начальными значениями
+    const updatedPlayers = players.map(player => ({
+      ...player,
+      points: 0,
+      money: 0,
+      balls: [],
+      fouls: []
+    }))
+
+    // Проходим по всем активным записям лога (не удаленным)
+    const activeEntries = logToUse.filter(entry => !entry.isDeleted)
+    
+    activeEntries.forEach(entry => {
+      const player = updatedPlayers.find(p => p.name === entry.playerName)
+      if (!player) return
+
+      if (entry.type === 'ball') {
+        // Находим шар по описанию
+        const ball = ballTypes.find(ball => 
+          entry.description.toLowerCase().includes(ball.name.toLowerCase())
+        )
+        if (ball) {
+          const newBall = { ...ball, id: entry.id }
+          player.balls.push(newBall)
+          player.points += ball.points
+          player.money += (ball.points * 10)
+        }
+      } else if (entry.type === 'foul') {
+        // Добавляем штраф
+        const newFoul: Foul = {
+          id: entry.id,
+          timestamp: entry.timestamp,
+          tag: entry.tag
+        }
+        player.fouls.push(newFoul)
+        player.points -= 1
+        player.money = player.points * 10
+      }
+    })
+
+    setPlayers(updatedPlayers)
   }
 
   const handleEndGame = () => {
@@ -400,14 +487,22 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
           <CardBody className="pt-0">
             <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
               {logEntries.map((entry) => (
-                <div key={entry.id} className="flex justify-between items-start p-3 bg-gray-700 rounded-lg">
+                <div key={entry.id} className={`flex justify-between items-start p-3 rounded-lg ${
+                  entry.isDeleted 
+                    ? 'bg-gray-600 border border-gray-500 opacity-60' 
+                    : 'bg-gray-700'
+                }`}>
                   <div className="flex items-center gap-3 flex-1">
                     <div className="text-lg">
                       {getEventIcon(entry)}
                     </div>
                     <div className="flex-1">
-                      <div className="text-white text-sm">{entry.description}</div>
-                      {entry.tag && (
+                      <div className={`text-sm ${
+                        entry.isDeleted ? 'text-gray-400 line-through' : 'text-white'
+                      }`}>
+                        {entry.isDeleted ? `${entry.description} (УДАЛЕНО)` : entry.description}
+                      </div>
+                      {entry.tag && !entry.isDeleted && (
                         <Chip size="sm" variant="flat" className="mt-1">
                           {entry.tag}
                         </Chip>
@@ -417,8 +512,22 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
                       </div>
                     </div>
                   </div>
-                  <div className="text-xs text-gray-300 font-mono">
-                    {entry.timestamp}
+                  <div className="flex items-center gap-2">
+                    {/* Показываем кнопку редактирования только creator и только для неудаленных записей */}
+                    {!entry.isDeleted && isCreator && (
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        className="text-gray-400 hover:text-white"
+                        onClick={() => handleEditLogEntry(entry)}
+                      >
+                        <Edit2 size={16} />
+                      </Button>
+                    )}
+                    <div className="text-xs text-gray-300 font-mono">
+                      {entry.timestamp}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -575,6 +684,115 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
             >
               {selectedBall ? 'Добавить очки' : 'Добавить штраф'}
             </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Edit Log Entry Modal */}
+      <Modal 
+        isOpen={isEditLogModalOpen} 
+        onClose={() => setIsEditLogModalOpen(false)}
+        size="lg"
+        classNames={{
+          base: "bg-gray-800 border border-gray-600 rounded-xl",
+          header: "bg-gray-800 text-white rounded-t-xl",
+          body: "bg-gray-800 text-white",
+          footer: "bg-gray-800 rounded-b-xl"
+        }}
+      >
+        <ModalContent>
+          <ModalHeader>
+            <h3 className="text-xl font-bold text-white">Редактировать событие</h3>
+          </ModalHeader>
+          <ModalBody>
+            {editingLogEntry && (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-300 mb-2 block">
+                    Описание
+                  </label>
+                  <Input
+                    value={editingLogEntry.description}
+                    onChange={(e) => setEditingLogEntry({
+                      ...editingLogEntry,
+                      description: e.target.value
+                    })}
+                    variant="bordered"
+                    classNames={{
+                      base: "bg-gray-700",
+                      input: "text-white bg-gray-700 border-gray-500",
+                      inputWrapper: "bg-gray-700 border-gray-500 hover:border-gray-400"
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-300 mb-2 block">
+                    Тег
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {tagOptions.map((tag) => (
+                      <Button
+                        key={tag}
+                        size="sm"
+                        variant={editingLogEntry.tag === tag ? "solid" : "bordered"}
+                        color={editingLogEntry.tag === tag ? "primary" : "default"}
+                        className={`px-3 py-1 ${
+                          editingLogEntry.tag === tag 
+                            ? "bg-mint text-white" 
+                            : "bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
+                        }`}
+                        onClick={() => setEditingLogEntry({
+                          ...editingLogEntry,
+                          tag: editingLogEntry.tag === tag ? undefined : tag
+                        })}
+                      >
+                        {tag}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 text-sm text-gray-400">
+                  <span>Игрок: {editingLogEntry.playerName}</span>
+                  <span>Очки: {editingLogEntry.points}</span>
+                  <span>Время: {editingLogEntry.timestamp}</span>
+                </div>
+              </div>
+            )}
+          </ModalBody>
+          <ModalFooter className="flex justify-between">
+            {/* Кнопка удаления только для creator */}
+            {isCreator && (
+              <Button 
+                color="danger" 
+                variant="bordered"
+                onPress={() => editingLogEntry && handleDeleteLogEntry(editingLogEntry.id)}
+                className="bg-gray-700 border-red-500 text-red-500 hover:bg-gray-600"
+              >
+                Удалить
+              </Button>
+            )}
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="bordered" 
+                onPress={() => setIsEditLogModalOpen(false)}
+                className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
+              >
+                Отмена
+              </Button>
+              {/* Кнопка сохранения для creator */}
+              {isCreator && (
+                <Button 
+                  color="success" 
+                  onPress={() => editingLogEntry && handleUpdateLogEntry(editingLogEntry)}
+                  className="bg-mint text-white hover:bg-green-600"
+                >
+                  Сохранить
+                </Button>
+              )}
+            </div>
           </ModalFooter>
         </ModalContent>
       </Modal>
