@@ -14,7 +14,7 @@ from ..models.schemas import (
 )
 from ..services.template_service import TemplateService
 
-router = APIRouter(prefix="/templates", tags=["templates"])
+router = APIRouter(tags=["templates"])
 
 # Category endpoints
 @router.post("/categories", response_model=TemplateCategoryResponse)
@@ -63,28 +63,7 @@ async def delete_category(category_id: int, db=Depends(get_db_session)):
         raise HTTPException(status_code=404, detail="Категория не найдена")
     return SuccessResponse(message="Категория успешно удалена")
 
-# Template endpoints
-@router.post("/", response_model=GameTemplateResponse)
-async def create_template(
-    template_data: GameTemplateCreate,
-    db=Depends(get_db_session)
-):
-    """Создать новый шаблон игры"""
-    try:
-        return await TemplateService.create_template(template_data)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка создания шаблона: {str(e)}")
-
-@router.get("/{template_id}", response_model=GameTemplateResponse)
-async def get_template(template_id: UUID, db=Depends(get_db_session)):
-    """Получить шаблон по ID"""
-    template = await TemplateService.get_template(template_id)
-    if not template:
-        raise HTTPException(status_code=404, detail="Шаблон не найден")
-    return template
-
+# Template endpoints - основной роут должен быть первым
 @router.get("/", response_model=List[GameTemplateResponse])
 async def get_templates(
     category_id: Optional[int] = Query(None, description="ID категории"),
@@ -109,6 +88,19 @@ async def get_templates(
     else:
         return await TemplateService.get_public_templates(limit, offset)
 
+@router.post("/", response_model=GameTemplateResponse)
+async def create_template(
+    template_data: GameTemplateCreate,
+    db=Depends(get_db_session)
+):
+    """Создать новый шаблон игры"""
+    try:
+        return await TemplateService.create_template(template_data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка создания шаблона: {str(e)}")
+
 @router.get("/category/{category_id}", response_model=List[GameTemplateResponse])
 async def get_templates_by_category(
     category_id: int,
@@ -132,6 +124,15 @@ async def get_public_templates(
 async def get_system_templates(db=Depends(get_db_session)):
     """Получить системные шаблоны"""
     return await TemplateService.get_system_templates()
+
+# Общие роуты для шаблонов
+@router.get("/{template_id}", response_model=GameTemplateResponse)
+async def get_template(template_id: UUID, db=Depends(get_db_session)):
+    """Получить шаблон по ID"""
+    template = await TemplateService.get_template(template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Шаблон не найден")
+    return template
 
 @router.put("/{template_id}", response_model=GameTemplateResponse)
 async def update_template(
