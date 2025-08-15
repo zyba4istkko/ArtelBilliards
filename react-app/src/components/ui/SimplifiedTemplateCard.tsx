@@ -11,12 +11,14 @@ interface SimplifiedTemplateCardProps {
   template: GameTemplate
   isSelected: boolean
   onSelect: (template: GameTemplate) => void
+  disabled?: boolean
 }
 
 export function SimplifiedTemplateCard({ 
   template, 
   isSelected, 
-  onSelect 
+  onSelect,
+  disabled = false
 }: SimplifiedTemplateCardProps) {
   
   const getTemplateIcon = (gameType: string) => {
@@ -50,19 +52,20 @@ export function SimplifiedTemplateCard({
     <Card 
       sx={{ 
         height: '100%',
-        cursor: 'pointer',
+        cursor: disabled ? 'not-allowed' : 'pointer',
         transition: 'all 0.3s ease',
         border: `2px solid ${isSelected ? tokens.colors.mint : tokens.colors.gray600}`,
         bgcolor: isSelected ? 'rgba(133, 220, 203, 0.1)' : tokens.colors.gray700,
+        opacity: disabled ? 0.6 : 1,
         '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: isSelected 
+          transform: disabled ? 'none' : 'translateY(-4px)',
+          boxShadow: disabled ? 'none' : (isSelected 
             ? '0 10px 20px rgba(133, 220, 203, 0.25)'
-            : '0 6px 16px rgba(0,0,0,0.16)',
-          borderColor: tokens.colors.mint
+            : '0 6px 16px rgba(0,0,0,0.16)'),
+          borderColor: disabled ? tokens.colors.gray600 : tokens.colors.mint
         }
       }}
-      onClick={() => onSelect(template)}
+      onClick={() => !disabled && onSelect(template)}
     >
       <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
         {/* Header with Icon and Type */}

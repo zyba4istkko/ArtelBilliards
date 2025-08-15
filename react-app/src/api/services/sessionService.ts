@@ -177,23 +177,66 @@ export class SessionService {
   /**
    * Получить игроков в сессии
    */
-  static async getSessionPlayers(sessionId: string): Promise<SessionPlayer[]> {
+  static async getSessionPlayers(id: string): Promise<SessionPlayer[]> {
     // apiClient.get уже возвращает response.data
-    const response = await apiClient.get(`${this.baseUrl}/${sessionId}/players`)
+    const response = await apiClient.get(`${this.baseUrl}/${id}/players`)
     return response
   }
 
   /**
-   * Добавить игрока в сессию (только для админа)
+   * Добавить игрока в сессию
    */
-  static async addPlayerToSession(sessionId: string, userData: {
+  static async addPlayerToSession(sessionId: string, playerData: {
     user_id: string
     display_name: string
-    session_role?: 'creator' | 'participant'
-  }): Promise<BaseResponse> {
-    // apiClient.post уже возвращает response.data
-    const response = await apiClient.post(`${this.baseUrl}/${sessionId}/players`, userData)
-    return response
+    session_role?: string
+  }): Promise<any> {
+    try {
+      const response = await apiClient.post(`${this.baseUrl}/${sessionId}/players`, playerData)
+      return response
+    } catch (error) {
+      console.error('Error adding player to session:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Добавить бота в сессию
+   */
+  static async addBotToSession(sessionId: string, botName: string): Promise<any> {
+    try {
+      const response = await apiClient.post(`${this.baseUrl}/${sessionId}/bots`, { bot_name: botName })
+      return response
+    } catch (error) {
+      console.error('Error adding bot to session:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Удалить участника из сессии
+   */
+  static async removeParticipantFromSession(sessionId: string, participantId: string): Promise<any> {
+    try {
+      const response = await apiClient.delete(`${this.baseUrl}/${sessionId}/participants/${participantId}`)
+      return response
+    } catch (error) {
+      console.error('Error removing participant from session:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Получить участников сессии
+   */
+  static async getSessionParticipants(sessionId: string): Promise<SessionPlayer[]> {
+    try {
+      const response = await apiClient.get(`${this.baseUrl}/${sessionId}/players`)
+      return response
+    } catch (error) {
+      console.error('Error fetching session participants:', error)
+      throw error
+    }
   }
 
   /**

@@ -11,18 +11,19 @@ import {
   Alert
 } from '@mui/material'
 import { ArrowBack } from '@mui/icons-material'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ProgressSteps } from '../components/ui/ProgressSteps'
 import { SimplifiedTemplateCard } from '../components/ui/SimplifiedTemplateCard'
 import { PlayerManagement } from '../components/ui/PlayerManagement'
 import { SessionSummary } from '../components/ui/SessionSummary'
 import { TemplateService } from '../api/services/templateService'
 import { SessionService } from '../api/services/sessionService'
-import type { GameTemplate, Player } from '../api/types'
+import type { GameTemplate, Player, GameSession } from '../api/types'
 import tokens from '../styles/design-tokens'
 
 function SessionCreationPage() {
   const navigate = useNavigate()
+  const { sessionId } = useParams<{ sessionId?: string }>()
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 3
   
@@ -41,6 +42,44 @@ function SessionCreationPage() {
   // Player management state
   const [players, setPlayers] = useState<Player[]>([])
   const [isStarting, setIsStarting] = useState(false)
+
+  // 🔄 НОВОЕ: Состояние созданной сессии
+  const [createdSession, setCreatedSession] = useState<GameSession | null>(null)
+  const [isCreatingSession, setIsCreatingSession] = useState(false)
+
+  // 🔄 НОВОЕ: Загружаем существующую сессию если sessionId есть в URL
+  useEffect(() => {
+    if (sessionId && !createdSession) {
+      loadExistingSession(sessionId)
+    }
+  }, [sessionId, createdSession])
+
+  // 🔄 НОВОЕ: Функция загрузки существующей сессии
+  const loadExistingSession = async (id: string) => {
+    try {
+      console.log('🔍 SessionCreationPage: Загружаю существующую сессию:', id)
+      const session = await SessionService.getSession(id)
+      
+      if (session) {
+        console.log('✅ SessionCreationPage: Сессия загружена:', session)
+        setCreatedSession(session)
+        
+        // Загружаем шаблон для этой сессии
+        if (session.template_id) {
+          const template = await TemplateService.getTemplate(session.template_id)
+          if (template) {
+            setSelectedTemplate(template)
+          }
+        }
+        
+        // Переходим к шагу 2 (управление игроками)
+        setCurrentStep(2)
+      }
+    } catch (error) {
+      console.error('❌ SessionCreationPage: Ошибка загрузки сессии:', error)
+      setError('Ошибка загрузки сессии. Создайте новую.')
+    }
+  }
 
   // Load templates on component mount
   useEffect(() => {
@@ -75,13 +114,107 @@ function SessionCreationPage() {
     }
   }
 
+  // 🔄 НОВАЯ ЛОГИКА: Создание сессии сразу после выбора шаблона
   const handleTemplateSelect = (template: GameTemplate) => {
     setSelectedTemplate(template)
+    
+    // 🔄 Если сессия уже существует - обновляем её, иначе создаем новую
+    if (createdSession) {
+      updateExistingSession(template)
+      // 🔄 НОВОЕ: Игроки сохраняются при смене шаблона
+    } else {
+      createSessionForTemplate(template)
+    }
+  }
+
+  // 🔄 Отдельная функция для создания сессии
+  const createSessionForTemplate = async (template: GameTemplate) => {
+    setIsCreatingSession(true)
+    setError(null)
+    
+    try {
+      console.log('🔍 SessionCreationPage: Создаю сессию для шаблона:', template.id)
+      
+      // Создаем сессию в статусе 'waiting'
+      const sessionData = await SessionService.createSession({
+        name: `${template.name} - Новая игра`,
+        template_id: template.id,
+        max_players: 8, // Максимум игроков по умолчанию
+        description: `Сессия для игры ${template.name}`
+      })
+      
+      console.log('✅ SessionCreationPage: Сессия создана:', sessionData)
+      
+      // 🔄 НОВОЕ: Сохраняем созданную сессию
+      setCreatedSession(sessionData)
+      
+      // 🔄 НОВОЕ: Сразу переходим на URL с ID сессии
+      navigate(`/session/create/${sessionData.id}`)
+      
+      // 🔄 НОВОЕ: Переход к шагу 2 теперь происходит автоматически через useEffect
+      
+    } catch (error) {
+      console.error('❌ SessionCreationPage: Ошибка создания сессии:', error)
+      setError('Ошибка создания сессии. Попробуйте еще раз.')
+    } finally {
+      setIsCreatingSession(false)
+    }
+  }
+
+  // 🔄 Функция обновления существующей сессии
+  const updateExistingSession = async (template: GameTemplate) => {
+    if (!createdSession) return
+    
+    setIsCreatingSession(true)
+    setError(null)
+    
+    try {
+      console.log('🔄 SessionCreationPage: Обновляю сессию для шаблона:', template.id)
+      
+      // Обновляем сессию через API
+      const updatedSession = await SessionService.updateSession(createdSession.id, {
+        name: `${template.name} - Новая игра`,
+        template_id: template.id,
+        description: `Сессия для игры ${template.name}`
+      })
+      
+      console.log('✅ SessionCreationPage: Сессия обновлена:', updatedSession)
+      
+      // Обновляем состояние
+      setCreatedSession(updatedSession)
+      
+    } catch (error) {
+      console.error('❌ SessionCreationPage: Ошибка обновления сессии:', error)
+      setError('Ошибка обновления сессии. Попробуйте еще раз.')
+    } finally {
+      setIsCreatingSession(false)
+    }
+  }
+
+  // 🔄 НОВАЯ ФУНКЦИЯ: Очистка при отмене/возврате
+  const handleBack = async () => {
+    // Если есть созданная сессия и мы еще не добавили игроков - удаляем её
+    if (createdSession && players.length <= 1) {
+      try {
+        console.log('🗑️ SessionCreationPage: Удаляю неиспользованную сессию:', createdSession.id)
+        await SessionService.deleteSession(createdSession.id)
+        console.log('✅ SessionCreationPage: Сессия удалена')
+      } catch (err) {
+        console.warn('⚠️ SessionCreationPage: Не удалось удалить сессию:', err)
+      }
+    }
+    
+    navigate('/dashboard')
   }
 
   const handleNext = () => {
     if (currentStep === 1 && !selectedTemplate) {
       // Cannot proceed without selecting a template
+      return
+    }
+    
+    if (currentStep === 1 && !createdSession) {
+      // 🔄 НОВОЕ: Нельзя перейти дальше без создания сессии
       return
     }
     
@@ -97,54 +230,36 @@ function SessionCreationPage() {
 
   const handlePrev = () => {
     if (currentStep > 1) {
+      // 🔄 НОВОЕ: Просто переходим к предыдущему шагу без очистки сессии
       setCurrentStep(currentStep - 1)
     }
   }
 
-  const handleBack = () => {
-    navigate('/dashboard')
-  }
-
+  // 🔄 ИЗМЕНЕННАЯ ЛОГИКА: Теперь запускаем уже созданную сессию
   const handleStartGame = async () => {
-    if (!selectedTemplate || players.length === 0) return
+    if (!createdSession || players.length === 0) return
     
     setIsStarting(true)
-    console.log('�� Начинаю игру...')
-    console.log('📋 Данные для создания сессии:', {
-      template: selectedTemplate,
-      players: players,
-      template_id: selectedTemplate.id
-    })
+    console.log('🚀 Начинаю игру для сессии:', createdSession.id)
     
     try {
-      // Создаем сессию через API
-      const sessionData = await SessionService.createSession({
-        name: `${selectedTemplate.name} с ${players[0].displayName}`,
-        creator_display_name: players[0].displayName,  // Имя создателя
-        bot_display_name: players[1]?.displayName || "Бот Игорь",  // Имя бота (второй игрок)
-        template_id: selectedTemplate.id,
-        max_players: players.length
-      })
+      // 🔄 УБИРАЕМ: Добавление игроков - они уже добавлены на шаге 2
+      // Теперь только запускаем сессию
       
-      console.log('✅ Сессия создана:', sessionData)
-      console.log('🔍 Тип sessionData:', typeof sessionData)
-      console.log('🔍 sessionData.id:', sessionData?.id)
+      // 🔄 Запускаем сессию (меняем статус на 'in_progress')
+      const updatedSession = await SessionService.startSession(createdSession.id)
+      console.log('✅ Сессия запущена:', updatedSession)
       
-      // Проверяем что получили правильные данные
-      if (!sessionData || !sessionData.id) {
-        throw new Error(`Invalid session data received: ${JSON.stringify(sessionData)}`)
-      }
-      
-      // Переходим на страницу игровой сессии с реальным UUID
+      // Переходим на страницу игровой сессии
       setTimeout(() => {
         setIsStarting(false)
-        navigate(`/game-session/${sessionData.id}`)
+        navigate(`/game-session/${createdSession.id}`)
       }, 1000)
       
     } catch (error) {
-      console.error('❌ Ошибка создания сессии:', error)
+      console.error('❌ Ошибка запуска сессии:', error)
       setIsStarting(false)
-      // TODO: Показать ошибку пользователю
+      setError('Ошибка запуска сессии. Попробуйте еще раз.')
     }
   }
 
@@ -198,6 +313,7 @@ function SessionCreationPage() {
                       template={template}
                       isSelected={selectedTemplate?.id === template.id}
                       onSelect={handleTemplateSelect}
+                      disabled={isCreatingSession} // 🔄 Блокируем выбор во время создания сессии
                     />
                   </Grid>
                 ))}
@@ -216,6 +332,16 @@ function SessionCreationPage() {
                 <Typography variant="body2" sx={{ color: tokens.colors.mint, fontWeight: 600 }}>
                   ✅ Выбран шаблон: {selectedTemplate.name}
                 </Typography>
+                {isCreatingSession && (
+                  <Typography variant="body2" sx={{ color: tokens.colors.mint, mt: 1 }}>
+                    🔄 Создание сессии...
+                  </Typography>
+                )}
+                {createdSession && (
+                  <Typography variant="body2" sx={{ color: tokens.colors.mint, mt: 1 }}>
+                    ✅ Сессия создана: {createdSession.name}
+                  </Typography>
+                )}
               </Box>
             )}
           </Box>
@@ -226,6 +352,7 @@ function SessionCreationPage() {
           <PlayerManagement 
             onPlayersChange={setPlayers}
             selectedTemplate={selectedTemplate}
+            sessionId={createdSession?.id} // 🔄 Передаем ID созданной сессии
           />
         )
       case 3:
@@ -235,6 +362,7 @@ function SessionCreationPage() {
             players={players}
             onStartGame={handleStartGame}
             isStarting={isStarting}
+            sessionId={createdSession?.id} // 🔄 Передаем ID созданной сессии
           />
         )
       default:
@@ -320,9 +448,10 @@ function SessionCreationPage() {
               variant="contained"
               onClick={handleNext}
               disabled={
-                (currentStep === 1 && !selectedTemplate) || 
+                (currentStep === 1 && (!selectedTemplate || !createdSession)) || // 🔄 НОВОЕ: проверяем создание сессии
                 (currentStep === 2 && players.length < 2) ||
-                isStarting
+                isStarting ||
+                isCreatingSession // 🔄 Блокируем во время создания сессии
               }
               sx={{
                 bgcolor: tokens.colors.mint,
@@ -338,7 +467,7 @@ function SessionCreationPage() {
                 }
               }}
             >
-              Далее
+              {isCreatingSession ? 'Создание сессии...' : 'Далее'}
             </Button>
           </Box>
         )}

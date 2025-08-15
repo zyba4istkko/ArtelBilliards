@@ -69,6 +69,15 @@ class CreateSessionRequest(BaseModel):
     rules: Optional[Dict[str, Any]] = None
 
 
+class UpdateSessionRequest(BaseModel):
+    """Схема для обновления сессии - все поля опциональные"""
+    name: Optional[str] = Field(min_length=1, max_length=100, default=None)
+    template_id: Optional[UUID] = None
+    max_players: Optional[int] = Field(ge=2, le=8, default=None)
+    description: Optional[str] = Field(max_length=500, default=None)
+    rules: Optional[Dict[str, Any]] = None
+
+
 class SessionParticipantResponse(BaseModel):
     id: UUID
     user_id: Optional[UUID]
@@ -119,6 +128,7 @@ class JoinSessionRequest(BaseModel):
 class InvitePlayerRequest(BaseModel):
     user_id: Optional[UUID] = None
     display_name: str
+    session_role: str = "participant"  # 🔄 ДОБАВЛЯЕМ: Роль участника по умолчанию
     as_empty_user: bool = False
 
 

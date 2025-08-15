@@ -10,6 +10,7 @@ interface SessionSummaryProps {
   players: Player[]
   onStartGame: () => void
   isStarting?: boolean
+  sessionId?: string
 }
 
 export function SessionSummary({ selectedTemplate, players, onStartGame, isStarting = false }: SessionSummaryProps) {

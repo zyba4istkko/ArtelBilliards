@@ -82,6 +82,7 @@ function App() {
             }>
               <Route index element={<SessionPage />} />
               <Route path="create" element={<SessionCreationPage />} />
+              <Route path="create/:sessionId" element={<SessionCreationPage />} />
               <Route path=":sessionId" element={<SessionPage />} />
             </Route>
             

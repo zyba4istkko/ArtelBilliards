@@ -45,7 +45,7 @@ export default function ActiveGamesSection({
       
       // Получаем активные сессии пользователя через новый endpoint /filter
       const sessions = await SessionService.getSessionsByFilter({
-        status: 'in_progress',
+        // status: 'in_progress', // Убираю фильтр по статусу чтобы показывать все сессии
         user_id: user.id,
         limit: maxSessions,
         offset: 0
