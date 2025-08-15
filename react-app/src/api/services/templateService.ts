@@ -10,7 +10,7 @@ import type {
  * Template Service API
  */
 export class TemplateService {
-  private static baseUrl = '/api/v1/templates/'  // Добавлен trailing slash для FastAPI
+  private static baseUrl = '/api/v1/templates'  // Убираем trailing slash
 
   /**
    * Получить список всех шаблонов с фильтрацией

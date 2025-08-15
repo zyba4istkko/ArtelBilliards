@@ -76,6 +76,8 @@ class UpdateSessionRequest(BaseModel):
     max_players: Optional[int] = Field(ge=2, le=8, default=None)
     description: Optional[str] = Field(max_length=500, default=None)
     rules: Optional[Dict[str, Any]] = None
+    status: Optional[SessionStatus] = None  # 🔄 ДОБАВЛЯЕМ: обновление статуса
+    creation_step: Optional[int] = None  # 🔄 ДОБАВЛЯЕМ: обновление шага
 
 
 class SessionParticipantResponse(BaseModel):
@@ -100,17 +102,19 @@ class SessionResponse(BaseModel):
     id: UUID
     creator_user_id: UUID
     game_type: GameTypeResponse
-    template_id: Optional[UUID]
+    template_id: Optional[UUID] = None
     name: str
+    description: Optional[str] = None
     status: SessionStatus
     max_players: int
     current_players_count: int
-    rules: Optional[Dict[str, Any]]
+    rules: Optional[Dict[str, Any]] = None
     participants: List[SessionParticipantResponse]
     created_at: datetime
-    started_at: Optional[datetime]
-    completed_at: Optional[datetime]
-    updated_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    creation_step: int = 1  # 🔄 ДОБАВЛЯЕМ: шаг создания (1-3)
 
 
 class SessionListResponse(BaseModel):

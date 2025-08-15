@@ -2,7 +2,7 @@
 Session Service - Управление игровыми сессиями
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -229,7 +229,8 @@ class SessionService:
             created_at=db_session.created_at,
             started_at=db_session.started_at,
             completed_at=db_session.completed_at,
-            updated_at=db_session.updated_at
+            updated_at=db_session.updated_at,
+            creation_step=getattr(db_session, 'creation_step', 1)  # 🔄 ДОБАВЛЯЕМ: шаг создания с fallback
         )
         
         return session
@@ -271,7 +272,8 @@ class SessionService:
                 GameSession.created_at,
                 GameSession.started_at,
                 GameSession.completed_at,
-                GameSession.updated_at
+                GameSession.updated_at,
+                GameSession.creation_step  # 🔄 ДОБАВЛЯЕМ: шаг создания
             ).where(GameSession.creator_user_id == user_id)
             
             participant_query = select(
@@ -286,7 +288,8 @@ class SessionService:
                 GameSession.created_at,
                 GameSession.started_at,
                 GameSession.completed_at,
-                GameSession.updated_at
+                GameSession.updated_at,
+                GameSession.creation_step  # 🔄 ДОБАВЛЯЕМ: шаг создания
             ).join(
                 SessionParticipant,
                 SessionParticipant.session_id == GameSession.id
@@ -395,7 +398,8 @@ class SessionService:
                         created_at=db_session.created_at,
                         started_at=db_session.started_at,
                         completed_at=db_session.completed_at,
-                        updated_at=db_session.updated_at
+                        updated_at=db_session.updated_at,
+                        creation_step=getattr(db_session, 'creation_step', 1)  # 🔄 ДОБАВЛЯЕМ: шаг создания с fallback
                     )
                     sessions.append(session)
                     print(f"✅ Сессия {session_id} успешно обработана")
@@ -639,7 +643,7 @@ class SessionService:
             
             # Помечаем участника как неактивного
             db_participant.is_active = False
-            db_participant.left_at = datetime.utcnow()
+            db_participant.left_at = datetime.now(timezone.utc)
             
             # Обновляем количество игроков в сессии
             db_session.current_players_count -= 1
@@ -743,6 +747,14 @@ class SessionService:
     async def update_session(db: AsyncSession, session_id: UUID, updates: Dict[str, Any], current_user_id: str) -> SessionResponse:
         """Обновление настроек сессии"""
         try:
+            print(f"🔍 DEBUG: update_session - НАЧАЛО ФУНКЦИИ")
+            print(f"🔍 DEBUG: update_session - session_id={session_id}, updates={updates}, current_user_id={current_user_id}")
+            print(f"🔍 DEBUG: updates type: {type(updates)}, updates keys: {list(updates.keys()) if updates else 'None'}")
+            
+            # Проверяем, есть ли поля для обновления
+            if not updates:
+                raise ValueError("No fields to update")
+            
             # Получаем сессию из базы
             from sqlalchemy import select
             session_query = await db.execute(
@@ -753,64 +765,103 @@ class SessionService:
             if not db_session:
                 raise ValueError("Session not found")
             
-            # Приводим current_user_id к UUID для сравнения
-            from uuid import UUID as UUIDType
-            current_user_uuid = UUIDType(current_user_id)
+            print(f"🔍 DEBUG: Found session - creator_user_id={db_session.creator_user_id}, current_user_id={current_user_id}")
             
-            # Проверяем права на изменение
-            if db_session.creator_user_id != current_user_uuid:
-                raise ValueError("Only session creator can modify settings")
+            # Проверяем права доступа
+            if str(db_session.creator_user_id) != current_user_id:
+                raise ValueError("Only session creator can update session")
             
-            # Проверяем что сессия не в процессе игры
-            if db_session.status == "in_progress":
-                raise ValueError("Cannot modify session while game is in progress")
+            print(f"🔍 DEBUG: Access granted, updating fields...")
             
-            # Обновляем только переданные поля
-            if updates.get("name") is not None:
+            # Обновляем поля
+            updated_fields = []
+            
+            if "name" in updates and updates["name"] is not None:
                 db_session.name = updates["name"]
+                updated_fields.append("name")
+                print(f"🔍 DEBUG: Updated name to: {updates['name']}")
             
-            if updates.get("template_id") is not None:
-                db_session.template_id = updates["template_id"]
-            
-            if updates.get("max_players") is not None:
-                # Проверяем что новое количество не меньше текущего количества игроков
-                if updates["max_players"] < db_session.current_players_count:
-                    raise ValueError(f"Cannot reduce max_players below current count ({db_session.current_players_count})")
-                db_session.max_players = updates["max_players"]
-            
-            if updates.get("description") is not None:
+            if "description" in updates and updates["description"] is not None:
                 db_session.description = updates["description"]
+                updated_fields.append("description")
+                print(f"🔍 DEBUG: Updated description to: {updates['description']}")
             
-            if updates.get("rules") is not None:
+            if "max_players" in updates and updates["max_players"] is not None:
+                max_players = updates["max_players"]
+                if max_players < 2 or max_players > 8:
+                    raise ValueError("max_players must be between 2 and 8")
+                db_session.max_players = max_players
+                updated_fields.append("max_players")
+                print(f"🔍 DEBUG: Updated max_players to: {max_players}")
+            
+            if "rules" in updates and updates["rules"] is not None:
                 db_session.rules = updates["rules"]
+                updated_fields.append("rules")
+                print(f"🔍 DEBUG: Updated rules")
             
-            # 🔄 НОВОЕ: Поддержка обновления статуса сессии
-            if updates.get("status") is not None:
-                # Проверяем валидность перехода статуса
-                if db_session.status == "waiting" and updates["status"] == "in_progress":
-                    # Можно запустить сессию только если есть минимум 2 игрока
+            if "status" in updates and updates["status"] is not None:
+                status = updates["status"]
+                print(f"🔍 DEBUG: status value: {status}, type: {type(status)}")
+                print(f"🔍 DEBUG: current_players_count: {db_session.current_players_count}, type: {type(db_session.current_players_count)}")
+                print(f"🔍 DEBUG: current_players_count < 2: {db_session.current_players_count < 2}")
+                
+                if status == "in_progress":
+                    # Проверяем что есть минимум 2 игрока
+                    print(f"🔍 DEBUG: Проверяю условие для in_progress: current_players_count >= 2")
                     if db_session.current_players_count < 2:
+                        print(f"❌ DEBUG: Ошибка: current_players_count ({db_session.current_players_count}) < 2")
                         raise ValueError("Cannot start session with less than 2 players")
-                    db_session.status = updates["status"]
-                    db_session.started_at = datetime.utcnow()
-                elif updates["status"] in ["waiting", "completed", "cancelled"]:
-                    db_session.status = updates["status"]
+                    print(f"✅ DEBUG: Условие выполнено: current_players_count ({db_session.current_players_count}) >= 2")
+                    db_session.status = status
+                    db_session.started_at = datetime.now(timezone.utc)
+                    updated_fields.append("status")
+                    updated_fields.append("started_at")
+                    print(f"🔍 DEBUG: Updated status to: {status}")
+                elif status in ["waiting", "completed", "cancelled"]:
+                    db_session.status = status
+                    updated_fields.append("status")
+                    print(f"🔍 DEBUG: Updated status to: {status}")
                 else:
-                    raise ValueError(f"Invalid status transition from {db_session.status} to {updates['status']}")
+                    print(f"❌ DEBUG: Неверный статус: {status}")
+                    raise ValueError(f"Invalid status: {status}")
             
-            # Обновляем timestamp
-            db_session.updated_at = datetime.utcnow()
+            if "creation_step" in updates:
+                creation_step = updates["creation_step"]
+                print(f"🔍 DEBUG: creation_step value: {creation_step}, type: {type(creation_step)}")
+                if creation_step is not None:
+                    if creation_step < 1 or creation_step > 3:
+                        raise ValueError("creation_step must be between 1 and 3")
+                    db_session.creation_step = creation_step
+                    updated_fields.append("creation_step")
+                    print(f"🔍 DEBUG: Updated creation_step to: {creation_step}")
+                else:
+                    print(f"🔍 DEBUG: creation_step is None, skipping update")
+            
+            print(f"🔍 DEBUG: Updated fields: {updated_fields}")
+            
+            if not updated_fields:
+                raise ValueError("No fields to update")
+            
+            # Обновляем время
+            db_session.updated_at = datetime.now(timezone.utc)
+            updated_fields.append("updated_at")
+            
+            print(f"🔍 DEBUG: Committing changes to database...")
             
             # Сохраняем изменения
             await db.commit()
             await db.refresh(db_session)
             
-            print(f"✅ Сессия {session_id} успешно обновлена")
+            print(f"🔍 DEBUG: Changes committed successfully")
             
             # Возвращаем обновленную сессию
             return await SessionService.get_session(db, session_id)
             
         except Exception as e:
+            print(f"❌ DEBUG: Error in update_session: {str(e)}")
+            print(f"❌ DEBUG: Error type: {type(e)}")
+            import traceback
+            print(f"❌ DEBUG: Full traceback:")
+            traceback.print_exc()
             await db.rollback()
-            print(f"❌ Ошибка при обновлении сессии {session_id}: {e}")
             raise

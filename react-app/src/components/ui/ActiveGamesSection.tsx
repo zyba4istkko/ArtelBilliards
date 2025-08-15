@@ -26,7 +26,7 @@ interface ActiveGamesSectionProps {
 
 export default function ActiveGamesSection({ 
   title = "Активные игры",
-  maxSessions = 5
+  maxSessions = 10  // 🔄 УВЕЛИЧИВАЕМ: с 5 до 10 сессий
 }: ActiveGamesSectionProps) {
   const navigate = useNavigate()
   const user = useUser()
@@ -43,6 +43,8 @@ export default function ActiveGamesSection({
       setIsLoading(true)
       setError(null)
       
+      console.log('🔍 ActiveGamesSection: Начинаю загрузку активных сессий для пользователя:', user.id)
+      
       // Получаем активные сессии пользователя через новый endpoint /filter
       const sessions = await SessionService.getSessionsByFilter({
         // status: 'in_progress', // Убираю фильтр по статусу чтобы показывать все сессии
@@ -51,9 +53,43 @@ export default function ActiveGamesSection({
         offset: 0
       })
       
-      setSessions(sessions)
+      console.log('🔍 ActiveGamesSection: Параметры запроса:', { user_id: user.id, limit: maxSessions, offset: 0 })
+      console.log('🔍 ActiveGamesSection: Получены сессии от API:', sessions)
+      console.log('🔍 ActiveGamesSection: Тип ответа:', typeof sessions)
+      console.log('🔍 ActiveGamesSection: Это массив?', Array.isArray(sessions))
+      console.log('🔍 ActiveGamesSection: Количество сессий:', sessions?.length || 0)
+      
+      if (Array.isArray(sessions)) {
+        console.log('🔍 ActiveGamesSection: Детальная информация о сессиях:')
+        sessions.forEach((session, index) => {
+          console.log(`🔍 ActiveGamesSection: Сессия ${index + 1}:`, {
+            id: session.id,
+            name: session.name,
+            status: session.status,
+            current_players_count: session.current_players_count,
+            max_players: session.max_players,
+            participants_count: session.participants?.length || 0,
+            created_at: session.created_at,
+            template_id: session.template_id,
+            creator_user_id: session.creator_user_id
+          })
+        })
+        
+        // Сортируем сессии по дате создания (новые сначала)
+        const sortedSessions = sessions.sort((a, b) => {
+          const dateA = new Date(a.created_at).getTime()
+          const dateB = new Date(b.created_at).getTime()
+          return dateB - dateA // Новые сначала
+        })
+        
+        console.log(`🔍 ActiveGamesSection: Сессии отсортированы по дате создания (новые сначала)`)
+        console.log('🔍 ActiveGamesSection: Итоговый список сессий:', sortedSessions.map(s => ({ id: s.id, name: s.name, status: s.status })))
+        setSessions(sortedSessions)
+      } else {
+        setSessions([])
+      }
     } catch (err: any) {
-      console.error('Failed to load active sessions:', err)
+      console.error('❌ ActiveGamesSection: Ошибка загрузки активных сессий:', err)
       setError('Не удалось загрузить активные игры')
     } finally {
       setIsLoading(false)
@@ -66,8 +102,21 @@ export default function ActiveGamesSection({
   }, [user])
 
   // Обработчик перехода в сессию
-  const handleJoinSession = (sessionId: string) => {
-    navigate(`/game-session/${sessionId}`)
+  const handleJoinSession = (session: GameSession) => {
+    console.log(`🔍 ActiveGamesSection: Переход в сессию: ${session.id}`)
+    console.log(`🔍 ActiveGamesSection: Шаг создания: ${session.creation_step}`)
+    console.log(`🔍 ActiveGamesSection: Статус сессии: ${session.status}`)
+    
+    // 🔄 РАЗНЫЕ ДЕЙСТВИЯ В ЗАВИСИМОСТИ ОТ ШАГА И СТАТУСА
+    if (session.creation_step < 3 || session.status === 'waiting') {
+      // Сессия в процессе создания или ожидает игроков - переходим на страницу создания
+      console.log(`🔍 ActiveGamesSection: URL перехода: /session/create/${session.id}`)
+      navigate(`/session/create/${session.id}`)
+    } else {
+      // Сессия готова и запущена - переходим в игру
+      console.log(`🔍 ActiveGamesSection: URL перехода: /game-session/${session.id}`)
+      navigate(`/game-session/${session.id}`)
+    }
   }
 
   // Обработчик обновления
@@ -256,21 +305,24 @@ export default function ActiveGamesSection({
                       boxShadow: 2
                     }
                   }}
-                  onClick={() => handleJoinSession(session.id)}
+                  onClick={() => handleJoinSession(session)}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       <FiberManualRecord sx={{ 
                         fontSize: 12,
                         color: status.color === 'success' ? 'success.main' : 
                                status.color === 'warning' ? 'warning.main' : 
-                               status.color === 'info' ? 'info.main' : 'text.secondary'
+                               'text.secondary'
                       }} />
                       <Box>
                         <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                           {gameIcon} {session.name}
                         </Typography>
                         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {timeText} • {session.current_players}/{session.max_players} игроков
+                          {timeText} • {session.current_players_count}/{session.max_players} игроков
+                          {session.status === 'waiting' && session.creation_step < 3 && ` • Создание (${session.creation_step}/3)`}
+                          {session.status === 'waiting' && session.creation_step >= 3 && ` • Готова к запуску`}
+                          {session.status === 'in_progress' && ` • Игра идет`}
                         </Typography>
                       </Box>
                     </Box>
@@ -300,3 +352,4 @@ export default function ActiveGamesSection({
     </Box>
   )
 }
+

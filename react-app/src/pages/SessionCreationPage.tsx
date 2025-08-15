@@ -66,14 +66,64 @@ function SessionCreationPage() {
         
         // Загружаем шаблон для этой сессии
         if (session.template_id) {
-          const template = await TemplateService.getTemplate(session.template_id)
-          if (template) {
-            setSelectedTemplate(template)
+          try {
+            console.log('🔍 SessionCreationPage: Загружаю шаблон для сессии:', session.template_id)
+            const template = await TemplateService.getTemplate(session.template_id)
+            if (template) {
+              console.log('✅ SessionCreationPage: Шаблон загружен:', template)
+              setSelectedTemplate(template)
+            }
+          } catch (templateError) {
+            console.error('❌ SessionCreationPage: Ошибка загрузки шаблона:', templateError)
+            // Не блокируем загрузку сессии, если шаблон не загрузился
           }
         }
         
-        // Переходим к шагу 2 (управление игроками)
-        setCurrentStep(2)
+        // 🔄 НОВОЕ: Загружаем участников сессии из базы данных
+        try {
+          console.log('🔍 SessionCreationPage: Загружаю участников сессии...')
+          const participants = await SessionService.getSessionParticipants(id)
+          console.log('✅ SessionCreationPage: Участники загружены:', participants)
+          
+          // Преобразуем участников в формат Player для локального состояния
+          const sessionPlayers = participants.map(participant => ({
+            id: participant.id,
+            username: participant.display_name, // 🔄 ИСПРАВЛЯЕМ: используем display_name как username
+            displayName: participant.display_name,
+            isBot: participant.is_empty_user,
+            email: undefined,
+            first_name: undefined,
+            last_name: undefined,
+            avatar_url: undefined,
+            is_online: undefined,
+            last_seen: undefined
+          }))
+          
+          console.log('✅ SessionCreationPage: Участники преобразованы в локальное состояние:', sessionPlayers)
+          setPlayers(sessionPlayers)
+        } catch (participantsError) {
+          console.error('❌ SessionCreationPage: Ошибка загрузки участников:', participantsError)
+          // Не блокируем загрузку сессии, если участники не загрузились
+        }
+        
+        // 🔄 НОВОЕ: Устанавливаем правильный шаг на основе creation_step из базы
+        const sessionStep = session.creation_step || 1
+        console.log(`🔍 SessionCreationPage: Устанавливаю шаг ${sessionStep} на основе creation_step из базы`)
+        
+        // 🔄 НОВОЕ: Проверяем статус сессии
+        if (session.status === 'in_progress') {
+          console.log('🔄 SessionCreationPage: Сессия уже запущена, переходим в игру')
+          // Если сессия уже запущена - сразу переходим в игру
+          setTimeout(() => {
+            navigate(`/game-session/${session.id}`)
+          }, 1000)
+          return
+        }
+        
+        setCurrentStep(sessionStep)
+        
+        // 🔄 УБИРАЕМ: Автоматическое исправление статуса при загрузке
+        // Теперь пользователь сам решает, когда запускать сессию
       }
     } catch (error) {
       console.error('❌ SessionCreationPage: Ошибка загрузки сессии:', error)
@@ -127,6 +177,27 @@ function SessionCreationPage() {
     }
   }
 
+  // 🔄 НОВОЕ: Функция форматирования даты для названия сессии
+  const formatSessionDate = (date: Date) => {
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / (1000 * 60))
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    
+    if (diffMins < 1) return 'Только что'
+    if (diffMins < 60) return `${diffMins} мин назад`
+    if (diffHours < 24) return `${diffHours} ч назад`
+    if (diffDays < 7) return `${diffDays} дн назад`
+    
+    // Если больше недели - показываем полную дату
+    return date.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  }
+
   // 🔄 Отдельная функция для создания сессии
   const createSessionForTemplate = async (template: GameTemplate) => {
     setIsCreatingSession(true)
@@ -135,9 +206,12 @@ function SessionCreationPage() {
     try {
       console.log('🔍 SessionCreationPage: Создаю сессию для шаблона:', template.id)
       
+      const now = new Date()
+      const sessionDate = formatSessionDate(now)
+      
       // Создаем сессию в статусе 'waiting'
       const sessionData = await SessionService.createSession({
-        name: `${template.name} - Новая игра`,
+        name: `${template.name} - ${sessionDate}`,
         template_id: template.id,
         max_players: 8, // Максимум игроков по умолчанию
         description: `Сессия для игры ${template.name}`
@@ -171,9 +245,12 @@ function SessionCreationPage() {
     try {
       console.log('🔄 SessionCreationPage: Обновляю сессию для шаблона:', template.id)
       
+      const now = new Date()
+      const sessionDate = formatSessionDate(now)
+      
       // Обновляем сессию через API
       const updatedSession = await SessionService.updateSession(createdSession.id, {
-        name: `${template.name} - Новая игра`,
+        name: `${template.name} - ${sessionDate}`,
         template_id: template.id,
         description: `Сессия для игры ${template.name}`
       })
@@ -207,7 +284,7 @@ function SessionCreationPage() {
     navigate('/dashboard')
   }
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep === 1 && !selectedTemplate) {
       // Cannot proceed without selecting a template
       return
@@ -223,6 +300,24 @@ function SessionCreationPage() {
       return
     }
     
+    // 🔄 НОВОЕ: Обновляем шаг создания в базе данных
+    if (createdSession && currentStep < totalSteps) {
+      try {
+        const nextStep = currentStep + 1
+        console.log(`🔄 SessionCreationPage: Обновляю шаг создания с ${currentStep} на ${nextStep}`)
+        
+        // 🔄 ИСПРАВЛЯЕМ: НЕ запускаем сессию автоматически при переходе на шаг 3
+        // Пользователь сам решит, когда запускать сессию
+        await SessionService.updateSession(createdSession.id, {
+          creation_step: nextStep
+        })
+        console.log(`✅ SessionCreationPage: Шаг создания обновлен на ${nextStep}`)
+      } catch (error) {
+        console.error('❌ SessionCreationPage: Ошибка обновления шага:', error)
+        // Не блокируем переход, но логируем ошибку
+      }
+    }
+    
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
     }
@@ -235,20 +330,23 @@ function SessionCreationPage() {
     }
   }
 
-  // 🔄 ИЗМЕНЕННАЯ ЛОГИКА: Теперь запускаем уже созданную сессию
+  // 🔄 ИСПРАВЛЕННАЯ ЛОГИКА: Теперь запускаем сессию при нажатии кнопки
   const handleStartGame = async () => {
     if (!createdSession || players.length === 0) return
     
     setIsStarting(true)
-    console.log('🚀 Начинаю игру для сессии:', createdSession.id)
+    console.log('🚀 Запускаем сессию:', createdSession.id)
     
     try {
-      // 🔄 УБИРАЕМ: Добавление игроков - они уже добавлены на шаге 2
-      // Теперь только запускаем сессию
+      // 🔄 НОВОЕ: Запускаем сессию (меняем статус на in_progress)
+      console.log('🔄 SessionCreationPage: Запускаю сессию...')
+      await SessionService.updateSession(createdSession.id, {
+        status: 'in_progress'
+      })
+      console.log('✅ SessionCreationPage: Сессия запущена')
       
-      // 🔄 Запускаем сессию (меняем статус на 'in_progress')
-      const updatedSession = await SessionService.startSession(createdSession.id)
-      console.log('✅ Сессия запущена:', updatedSession)
+      // Обновляем локальное состояние
+      setCreatedSession(prev => prev ? { ...prev, status: 'in_progress' } : null)
       
       // Переходим на страницу игровой сессии
       setTimeout(() => {

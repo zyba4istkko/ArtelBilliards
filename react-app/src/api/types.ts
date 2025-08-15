@@ -129,28 +129,40 @@ export interface GameTemplateListResponse {
 // Game Session Types
 export interface GameSession {
   id: string
-  template_id: string
   creator_user_id: string
+  game_type: GameTypeResponse
+  template_id?: string
   name: string
   description?: string
   status: 'waiting' | 'in_progress' | 'completed' | 'cancelled'
   max_players: number
-  current_players: number
-  participants: SessionPlayer[]  // Добавляю участников сессии
+  current_players_count: number  // 🔄 ИСПРАВЛЯЕМ: было current_players
+  rules?: Record<string, any>
+  participants: SessionPlayer[]  // 🔄 ИСПРАВЛЯЕМ: теперь соответствует backend
   created_at: string
   started_at?: string
-  finished_at?: string
+  completed_at?: string
+  updated_at?: string
+  creation_step: number  // 🔄 ДОБАВЛЯЕМ: шаг создания (1-3)
+}
+
+export interface GameTypeResponse {
+  id: number
+  name: string
+  display_name: string
+  description?: string
+  default_rules: Record<string, any>
+  is_active: boolean
 }
 
 export interface SessionPlayer {
   id: string
-  user_id: string
+  user_id?: string  // 🔄 ИСПРАВЛЯЕМ: может быть undefined для ботов
   display_name: string
-  username: string
-  session_role: 'creator' | 'participant'
+  session_role: 'creator' | 'participant' | 'spectator'  // 🔄 ИСПРАВЛЯЕМ: добавляем spectator
   is_empty_user: boolean
   joined_at: string
-  queue_position: number
+  queue_position?: number  // 🔄 ИСПРАВЛЯЕМ: может быть undefined
   current_score: number
   is_active: boolean
   can_modify_settings: boolean

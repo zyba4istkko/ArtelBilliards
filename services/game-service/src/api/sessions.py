@@ -249,6 +249,10 @@ async def update_session(
             updates["description"] = request.description
         if request.rules is not None:
             updates["rules"] = request.rules
+        if request.status is not None:  # 🔄 ДОБАВЛЯЕМ: обработку status
+            updates["status"] = request.status
+        if request.creation_step is not None:  # 🔄 ДОБАВЛЯЕМ: обработку creation_step
+            updates["creation_step"] = request.creation_step
         
         if not updates:
             raise HTTPException(status_code=400, detail="No fields to update")

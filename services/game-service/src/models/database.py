@@ -46,6 +46,7 @@ class GameSession(Base):
     max_players = Column(Integer, default=8)
     current_players_count = Column(Integer, default=0)
     rules = Column(JSON)  # Конкретные правила для сессии
+    creation_step = Column(Integer, default=1)  # 🔄 ДОБАВЛЯЕМ: шаг создания (1-3)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     started_at = Column(DateTime(timezone=True))
     completed_at = Column(DateTime(timezone=True))
