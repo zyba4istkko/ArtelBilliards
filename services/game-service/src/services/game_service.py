@@ -16,7 +16,7 @@ from ..models.schemas import (
     GameEventResponse, GameResultResponse, GameScoresResponse,
     QueueGenerationRequest, QueueResponse, GameStatus, GameEventType
 )
-from ..models.database import Game, GameQueue, GameSession, SessionParticipant
+from ..models.database import Game, GameQueue, GameSession, SessionParticipant, GameEvent
 from .queue_algorithms import get_queue_algorithm
 
 
@@ -355,19 +355,141 @@ class GameService:
     ) -> GameEventResponse:
         """Добавление игрового события"""
         
-        # TODO: Реализовать добавление событий в БД
-        # Пока возвращаем заглушку
-        event_id = UUID("fedcba98-7654-3210-fedc-ba9876543210")
+        try:
+            print(f"🎮 GameService.add_game_event: Начинаем добавление события для игры {game_id}")
+            print(f"🎮 GameService.add_game_event: Request: {request}")
+            
+            # 1. Проверяем существование игры
+            game_query = select(Game).where(Game.id == game_id)
+            game_result = await db.execute(game_query)
+            game = game_result.scalar_one_or_none()
+            
+            if not game:
+                print(f"❌ GameService.add_game_event: Игра {game_id} не найдена!")
+                raise ValueError(f"Game {game_id} not found")
+            
+            print(f"🎮 GameService.add_game_event: Игра найдена: {game.id}, статус: {game.status}")
+            
+            # 2. Проверяем существование участника
+            participant_query = select(SessionParticipant).where(SessionParticipant.id == request.participant_id)
+            participant_result = await db.execute(participant_query)
+            participant = participant_result.scalar_one_or_none()
+            
+            if not participant:
+                print(f"❌ GameService.add_game_event: Участник {request.participant_id} не найден!")
+                raise ValueError(f"Participant {request.participant_id} not found")
+            
+            print(f"🎮 GameService.add_game_event: Участник найден: {participant.id}, {participant.display_name}")
+            
+            # 3. Определяем следующий номер последовательности
+            sequence_query = select(func.coalesce(func.max(GameEvent.sequence_number), 0)).where(
+                GameEvent.game_id == game_id
+            )
+            sequence_result = await db.execute(sequence_query)
+            next_sequence = sequence_result.scalar() + 1
+            
+            print(f"🎮 GameService.add_game_event: Следующий номер последовательности: {next_sequence}")
+            
+            # 4. Создаем событие в базе данных
+            new_event = GameEvent(
+                game_id=game_id,
+                participant_id=request.participant_id,
+                event_type=request.event_type.value if hasattr(request.event_type, 'value') else str(request.event_type),
+                event_data=request.event_data,
+                sequence_number=next_sequence
+            )
+            
+            db.add(new_event)
+            await db.commit()
+            await db.refresh(new_event)
+            
+            print(f"✅ GameService.add_game_event: Событие сохранено в БД с ID: {new_event.id}")
+            
+            # 5. Возвращаем ответ
+            return GameEventResponse(
+                id=new_event.id,
+                game_id=new_event.game_id,
+                participant_id=new_event.participant_id,
+                event_type=request.event_type,
+                event_data=new_event.event_data,
+                sequence_number=new_event.sequence_number,
+                created_at=new_event.created_at
+            )
+            
+        except Exception as e:
+            print(f"❌ GameService.add_game_event: Ошибка: {str(e)}")
+            await db.rollback()
+            raise
+    
+    @staticmethod
+    async def get_game_events(
+        db: AsyncSession, 
+        game_id: UUID, 
+        limit: int = 50, 
+        offset: int = 0
+    ) -> List[GameEventResponse]:
+        """Получение событий игры"""
         
-        return GameEventResponse(
-            id=event_id,
-            game_id=game_id,
-            participant_id=request.participant_id,
-            event_type=request.event_type,
-            event_data=request.event_data,
-            sequence_number=1,
-            created_at=datetime.now()
-        )
+        try:
+            print(f"🎮 GameService.get_game_events: Получаем события для игры {game_id}")
+            print(f"🎮 GameService.get_game_events: limit={limit}, offset={offset}")
+            
+            # 1. Проверяем существование игры
+            game_query = select(Game).where(Game.id == game_id)
+            game_result = await db.execute(game_query)
+            game = game_result.scalar_one_or_none()
+            
+            if not game:
+                print(f"❌ GameService.get_game_events: Игра {game_id} не найдена!")
+                return []
+            
+            print(f"🎮 GameService.get_game_events: Игра найдена: {game.id}, статус: {game.status}")
+            
+            # 2. Получаем события из БД
+            events_query = select(GameEvent).where(
+                GameEvent.game_id == game_id
+            ).order_by(
+                GameEvent.sequence_number.desc()
+            ).offset(offset).limit(limit)
+            
+            print(f"🎮 GameService.get_game_events: SQL запрос: {events_query}")
+            
+            events_result = await db.execute(events_query)
+            events = events_result.scalars().all()
+            
+            print(f"🎮 GameService.get_game_events: Найдено событий: {len(events)}")
+            for event in events:
+                print(f"🎮 GameService.get_game_events: Событие {event.id}: {event.event_type}, участник: {event.participant_id}")
+            
+            # 3. Преобразуем в GameEventResponse
+            from ..models.schemas import GameEventType
+            
+            result = []
+            for event in events:
+                # Определяем тип события
+                try:
+                    event_type = GameEventType(event.event_type)
+                except ValueError:
+                    # Если тип не распознан, используем как есть
+                    event_type = event.event_type
+                
+                response = GameEventResponse(
+                    id=event.id,
+                    game_id=event.game_id,
+                    participant_id=event.participant_id,
+                    event_type=event_type,
+                    event_data=event.event_data,
+                    sequence_number=event.sequence_number,
+                    created_at=event.created_at
+                )
+                result.append(response)
+            
+            print(f"🎮 GameService.get_game_events: Возвращаем {len(result)} событий")
+            return result
+            
+        except Exception as e:
+            print(f"❌ GameService.get_game_events: Ошибка: {str(e)}")
+            return []
     
     @staticmethod
     async def get_game_scores(db: AsyncSession, game_id: UUID) -> GameScoresResponse:

@@ -107,14 +107,18 @@ export default function ActiveGamesSection({
     console.log(`🔍 ActiveGamesSection: Шаг создания: ${session.creation_step}`)
     console.log(`🔍 ActiveGamesSection: Статус сессии: ${session.status}`)
     
-    // 🔄 РАЗНЫЕ ДЕЙСТВИЯ В ЗАВИСИМОСТИ ОТ ШАГА И СТАТУСА
-    if (session.creation_step < 3 || session.status === 'waiting') {
+    // 🔄 ИСПРАВЛЯЕМ: Убираем двойной переход
+    if (session.status === 'in_progress') {
+      // Сессия уже запущена - сразу переходим в игру
+      console.log(`🔍 ActiveGamesSection: Сессия запущена, переходим в игру: /game-session/${session.id}`)
+      navigate(`/game-session/${session.id}`)
+    } else if (session.creation_step < 3 || session.status === 'waiting') {
       // Сессия в процессе создания или ожидает игроков - переходим на страницу создания
-      console.log(`🔍 ActiveGamesSection: URL перехода: /session/create/${session.id}`)
+      console.log(`🔍 ActiveGamesSection: Сессия в создании, переходим на: /session/create/${session.id}`)
       navigate(`/session/create/${session.id}`)
     } else {
-      // Сессия готова и запущена - переходим в игру
-      console.log(`🔍 ActiveGamesSection: URL перехода: /game-session/${session.id}`)
+      // Сессия готова к запуску - переходим в игру
+      console.log(`🔍 ActiveGamesSection: Сессия готова, переходим в игру: /game-session/${session.id}`)
       navigate(`/game-session/${session.id}`)
     }
   }

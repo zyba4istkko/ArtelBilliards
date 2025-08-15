@@ -64,7 +64,13 @@ export const gameService = {
    * Добавление игрового события
    */
   async addGameEvent(gameId: string, eventData: any): Promise<any> {
+    console.log('🎮 gameService.addGameEvent: Отправляем событие для игры:', gameId)
+    console.log('🎮 gameService.addGameEvent: Данные события:', eventData)
+    
+    // ✅ Правильный URL: /api/v1/games/{gameId}/events
     const response = await apiClient.getGameClient().post(`/api/v1/games/${gameId}/events`, eventData)
+    
+    console.log('🎮 gameService.addGameEvent: Ответ от API:', response.data)
     return response.data
   },
 

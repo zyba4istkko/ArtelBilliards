@@ -74,48 +74,9 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
   const [currentGame, setCurrentGame] = useState<any>(null)
   const [session, setSession] = useState<any>(null)
   
-  const [players, setPlayers] = useState<Player[]>([
-    {
-      id: '1',
-      name: 'Ты',
-      avatar: 'Т',
-      points: 0,
-      money: 0,
-      balls: [],
-      fouls: []
-    },
-    {
-      id: '2',
-      name: 'Игорь',
-      avatar: 'И',
-      points: 0,
-      money: 0,
-      balls: [],
-      fouls: []
-    },
-    {
-      id: '3',
-      name: 'Александр',
-      avatar: 'А',
-      points: 0,
-      money: 0,
-      balls: [],
-      fouls: []
-    }
-  ])
+  const [players, setPlayers] = useState<Player[]>([])
   
-  const [logEntries, setLogEntries] = useState<LogEntry[]>([
-    {
-      id: '1',
-      type: 'game_start',
-      playerName: 'Система',
-      description: 'Игра началась! Первый ход: Ты',
-      points: 0,
-      timestamp: '00:00',
-      addedBy: 'Система',
-      isDeleted: false
-    }
-  ])
+  const [logEntries, setLogEntries] = useState<LogEntry[]>([])
   
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false)
   const [isEndGameModalOpen, setIsEndGameModalOpen] = useState(false)
@@ -152,17 +113,77 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
         console.log('✅ Участники получены:', participants)
         
         // 4. Преобразуем участников в формат Player
-        const transformedPlayers = participants.map((participant: any) => ({
-          id: participant.id,
-          name: participant.display_name || 'Игрок',
-          avatar: (participant.display_name || 'И')[0].toUpperCase(),
-          points: participant.current_score || 0,
-          money: participant.session_balance_rubles || 0,
-          balls: [],
-          fouls: []
-        }))
+        const transformedPlayers = participants.map((participant: any) => {
+          console.log('🎯 Преобразуем участника:', participant)
+          console.log('🎯 participant.id:', participant.id, 'тип:', typeof participant.id)
+          console.log('🎯 participant.display_name:', participant.display_name)
+          
+          return {
+            id: participant.id,
+            name: participant.display_name || 'Игрок',
+            avatar: (participant.display_name || 'И')[0].toUpperCase(),
+            points: participant.current_score || 0,
+            // 🔄 ИСПРАВЛЯЕМ: session_balance_rubles приходит в копейках, делим на 100
+            money: (participant.session_balance_rubles || 0) / 100,
+            balls: [],
+            fouls: []
+          }
+        })
         
-        setPlayers(transformedPlayers)
+                 console.log('🎯 transformedPlayers:', transformedPlayers)
+         
+         // ✅ Проверяем, что участники загрузились
+         if (transformedPlayers.length === 0) {
+           throw new Error('Не удалось загрузить участников сессии')
+         }
+         
+         setPlayers(transformedPlayers)
+
+        // 5. 🔄 ИСПРАВЛЯЕМ: Загружаем события игры из базы данных
+        try {
+          const gameEvents = await gameService.getGameEvents(gameId)
+          console.log('✅ События игры загружены:', gameEvents)
+          
+          // Преобразуем события в LogEntry
+          const loadedLogEntries: LogEntry[] = gameEvents.map((event: any) => {
+            if (event.event_type === 'shot') {
+              return {
+                id: event.id,
+                type: 'ball',
+                playerName: event.event_data.participant_name,
+                description: `${event.event_data.participant_name} забил ${event.event_data.ball_name.toLowerCase()} шар (+${event.event_data.points})`,
+                points: event.event_data.points,
+                timestamp: event.event_data.timestamp || '00:00',
+                addedBy: event.event_data.participant_name,
+                tag: event.event_data.tag || undefined,
+                isDeleted: false
+              }
+            } else if (event.event_type === 'foul') {
+              return {
+                id: event.id,
+                type: 'foul',
+                playerName: event.event_data.participant_name,
+                description: `${event.event_data.participant_name} совершил штраф (-1 очко)`,
+                points: -1,
+                timestamp: event.event_data.timestamp || '00:00',
+                addedBy: event.event_data.participant_name,
+                tag: event.event_data.tag || undefined,
+                isDeleted: false
+              }
+            }
+            return null
+          }).filter(Boolean) as LogEntry[]
+
+          if (loadedLogEntries.length > 0) {
+            setLogEntries(prev => [...loadedLogEntries, ...prev])
+            // Пересчитываем состояние игры на основе загруженных событий
+            recalculateGameState(loadedLogEntries)
+          }
+        } catch (error: any) {
+          console.error('❌ Ошибка загрузки событий игры:', error)
+          // Не показываем ошибку пользователю, так как это не критично
+        }
+        
         setIsLoading(false)
         
       } catch (error: any) {
@@ -235,83 +256,127 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
     setSelectedTag(tag === selectedTag ? '' : tag)
   }
 
-  const handleAddScore = () => {
-    if (!selectedPlayer || !selectedBall) return
+  const handleAddScore = async () => {
+    if (!selectedPlayer || !selectedBall || !currentGame) return
 
-    const updatedPlayers = players.map(player => {
-      if (player.id === selectedPlayer.id) {
-        const newBall = { ...selectedBall, id: `${Date.now()}` }
-        return {
-          ...player,
-          points: player.points + selectedBall.points,
-          money: player.money + (selectedBall.points * 10),
-          balls: [...player.balls, newBall]
+    try {
+      console.log('🎯 handleAddScore: Начинаем добавление очков')
+      console.log('🎯 handleAddScore: selectedPlayer:', selectedPlayer)
+      console.log('🎯 handleAddScore: selectedBall:', selectedBall)
+      console.log('🎯 handleAddScore: currentGame:', currentGame)
+      
+      // ИСПРАВЛЯЕМ: Правильная структура данных для API
+      const eventData = {
+        event_type: 'shot',                    // ✅ Правильно
+        participant_id: selectedPlayer.id,     // ✅ НУЖЕН на верхнем уровне!
+        event_data: {                          // ✅ event_data как отдельный объект
+          participant_name: selectedPlayer.name,
+          ball_type: selectedBall.type,
+          ball_name: selectedBall.name,
+          points: selectedBall.points,
+          tag: selectedTag || null,
+          timestamp: gameTime
         }
       }
-      return player
-    })
 
-    setPlayers(updatedPlayers)
+      console.log('🎯 handleAddScore: Отправляем eventData в API:', eventData)
+      console.log('🎯 handleAddScore: participant_id тип:', typeof selectedPlayer.id)
+      console.log('🎯 handleAddScore: participant_id значение:', selectedPlayer.id)
+      console.log('🎯 handleAddScore: Вызываем gameService.addGameEvent...')
+      
+      const result = await gameService.addGameEvent(currentGame.id, eventData)
+      console.log('🎯 handleAddScore: API вернул результат:', result)
+      console.log('✅ Событие сохранено в базу:', eventData)
 
-    // Add log entry
-    const newLogEntry: LogEntry = {
-      id: `${Date.now()}`,
-      type: 'ball',
-      playerName: selectedPlayer.name,
-      description: `${selectedPlayer.name} забил ${selectedBall.name.toLowerCase()} шар (+${selectedBall.points})`,
-      points: selectedBall.points,
-      timestamp: gameTime,
-      addedBy: selectedPlayer.name,
-      tag: selectedTag || undefined,
-      isDeleted: false
+      // 🔄 ИСПРАВЛЯЕМ: НЕ обновляем локальное состояние здесь!
+      // Вместо этого вызываем recalculateGameState для пересчета на основе всех событий
+      console.log('🔄 Обновляем состояние игры через recalculateGameState')
+
+      // Add log entry
+      const newLogEntry: LogEntry = {
+        id: `${Date.now()}`,
+        type: 'ball',
+        playerName: selectedPlayer.name,
+        description: `${selectedPlayer.name} забил ${selectedBall.name.toLowerCase()} шар (+${selectedBall.points})`,
+        points: selectedBall.points,
+        timestamp: gameTime,
+        addedBy: selectedPlayer.name,
+        tag: selectedTag || undefined,
+        isDeleted: false
+      }
+
+      setLogEntries(prev => [newLogEntry, ...prev])
+      
+      // 🔄 ИСПРАВЛЯЕМ: Пересчитываем состояние игры на основе обновленного лога
+      setTimeout(() => {
+        recalculateGameState([newLogEntry, ...logEntries])
+      }, 100)
+      
+      handleCloseScoreModal()
+    } catch (error: any) {
+      console.error('❌ handleAddScore: Ошибка сохранения события:', error)
+      console.error('❌ handleAddScore: Тип ошибки:', typeof error)
+      console.error('❌ handleAddScore: Стек ошибки:', error.stack)
+      if (error.response) {
+        console.error('❌ handleAddScore: HTTP статус:', error.response.status)
+        console.error('❌ handleAddScore: HTTP данные:', error.response.data)
+      }
+      setError('Ошибка сохранения события: ' + (error.message || 'Неизвестная ошибка'))
     }
-
-    setLogEntries(prev => [newLogEntry, ...prev])
-    handleCloseScoreModal()
   }
 
-  const handleAddFoul = () => {
-    if (!selectedPlayer) return
+  const handleAddFoul = async () => {
+    if (!selectedPlayer || !currentGame) return
 
-    const updatedPlayers = players.map(player => {
-      if (player.id === selectedPlayer.id) {
-        const newFoul: Foul = {
-          id: `${Date.now()}`,
-          timestamp: gameTime,
-          tag: selectedTag || undefined
-        }
-        
-        // Пересчитываем очки и деньги
-        const totalPoints = player.points - 1 // -1 за штраф
-        const totalMoney = totalPoints * 10 // 10₽ за каждое очко
-        
-        return {
-          ...player,
-          points: totalPoints,
-          money: totalMoney,
-          fouls: [...player.fouls, newFoul]
+    try {
+      // ИСПРАВЛЯЕМ: Правильная структура данных для API
+      const eventData = {
+        event_type: 'foul',                    // ✅ Правильно
+        participant_id: selectedPlayer.id,     // ✅ НУЖЕН на верхнем уровне!
+        event_data: {                          // ✅ event_data как отдельный объект
+          participant_name: selectedPlayer.name,
+          penalty_points: -1,
+          tag: selectedTag || null,
+          timestamp: gameTime
         }
       }
-      return player
-    })
 
-    setPlayers(updatedPlayers)
+      console.log('🎯 handleAddFoul: Отправляем eventData в API:', eventData)
+      console.log('🎯 handleAddFoul: participant_id тип:', typeof selectedPlayer.id)
+      console.log('🎯 handleAddFoul: participant_id значение:', selectedPlayer.id)
+      
+      await gameService.addGameEvent(currentGame.id, eventData)
+      console.log('✅ Штраф сохранен в базу:', eventData)
 
-    // Add log entry
-    const newLogEntry: LogEntry = {
-      id: `${Date.now()}`,
-      type: 'foul',
-      playerName: selectedPlayer.name,
-      description: `${selectedPlayer.name} совершил штраф (-1 очко)`,
-      points: -1,
-      timestamp: gameTime,
-      addedBy: selectedPlayer.name,
-      tag: selectedTag || undefined,
-      isDeleted: false
+      // 🔄 ИСПРАВЛЯЕМ: НЕ обновляем локальное состояние здесь!
+      // Вместо этого вызываем recalculateGameState для пересчета на основе всех событий
+      console.log('🔄 Обновляем состояние игры через recalculateGameState')
+
+      // Add log entry
+      const newLogEntry: LogEntry = {
+        id: `${Date.now()}`,
+        type: 'foul',
+        playerName: selectedPlayer.name,
+        description: `${selectedPlayer.name} совершил штраф (-1 очко)`,
+        points: -1,
+        timestamp: gameTime,
+        addedBy: selectedPlayer.name,
+        tag: selectedTag || undefined,
+        isDeleted: false
+      }
+
+      setLogEntries(prev => [newLogEntry, ...prev])
+      
+      // 🔄 ИСПРАВЛЯЕМ: Пересчитываем состояние игры на основе обновленного лога
+      setTimeout(() => {
+        recalculateGameState([newLogEntry, ...logEntries])
+      }, 100)
+      
+      handleCloseScoreModal()
+    } catch (error: any) {
+      console.error('❌ Ошибка сохранения штрафа:', error)
+      setError('Ошибка сохранения штрафа: ' + (error.message || 'Неизвестная ошибка'))
     }
-
-    setLogEntries(prev => [newLogEntry, ...prev])
-    handleCloseScoreModal()
   }
 
   const handleEditLogEntry = (entry: LogEntry) => {
@@ -350,13 +415,13 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
     // Используем переданные записи или текущее состояние
     const logToUse = entries || logEntries
     
-    // Создаем копию игроков с начальными значениями
+    // 🔄 ИСПРАВЛЯЕМ: Сохраняем начальные значения игроков (деньги из API)
     const updatedPlayers = players.map(player => ({
       ...player,
-      points: 0,
-      money: 0,
-      balls: [],
-      fouls: []
+      points: 0,                    // Очки начинаем с 0
+      balls: [],                    // Шары начинаем с пустого массива
+      fouls: []                     // Штрафы начинаем с пустого массива
+      // 🔄 НЕ сбрасываем money - оставляем начальное значение из API!
     }))
 
     // Проходим по всем активным записям лога (не удаленным)
@@ -375,7 +440,8 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
           const newBall = { ...ball, id: entry.id }
           player.balls.push(newBall)
           player.points += ball.points
-          player.money += (ball.points * 10)
+          // 🔄 ИСПРАВЛЯЕМ: Деньги = начальные деньги + (очки × 10)
+          player.money = (player.money || 0) + (ball.points * 10)
         }
       } else if (entry.type === 'foul') {
         // Добавляем штраф
@@ -386,7 +452,8 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
         }
         player.fouls.push(newFoul)
         player.points -= 1
-        player.money = player.points * 10
+        // 🔄 ИСПРАВЛЯЕМ: Деньги НЕ изменяются при штрафе!
+        // player.money остается как есть (только от шаров)
       }
     })
 
@@ -500,7 +567,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <>
       {/* Header */}
       <header className="bg-gray-800 border-b border-gray-600 py-4 mb-6 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4">
@@ -541,58 +608,66 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 pb-20">
-        {/* Players Section */}
-        <Card className="bg-gray-800 border border-gray-600 mb-6">
-          <CardHeader className="pb-3">
-            <h2 className="text-lg font-bold text-mint text-center w-full">Игроки</h2>
-          </CardHeader>
-          <CardBody className="pt-0">
-            <div className="space-y-4">
-              {players.map((player) => (
-                <div key={player.id} className="flex items-center gap-4 p-4 bg-gray-700 rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <Avatar 
-                      name={player.avatar} 
-                      className="bg-gradient-to-br from-coral to-peach text-white font-bold"
-                    />
-                    <div className="max-w-32">
-                      <div className="font-bold text-white truncate">{player.name}</div>
-                      <div className="text-sm text-mint">{player.points} очков</div>
-                      <div className="text-xs text-gray-300">
-                        {player.money >= 0 ? '+' : ''}{player.money} ₽
+      <div className="min-h-screen bg-black text-white">
+        <main className="max-w-4xl mx-auto px-4 pb-20">
+          {/* Players Section */}
+          <Card className="bg-gray-800 border border-gray-600 mb-6">
+            <CardHeader className="pb-3">
+              <h2 className="text-lg font-bold text-mint text-center w-full">Игроки</h2>
+            </CardHeader>
+            <CardBody className="pt-0">
+              {players.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <div className="text-lg mb-2">⏳ Загрузка игроков...</div>
+                  <div className="text-sm">Участники сессии загружаются</div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {players.map((player) => (
+                    <div key={player.id} className="flex items-center gap-4 p-4 bg-gray-700 rounded-lg">
+                      <div className="flex items-center gap-4">
+                        <Avatar 
+                          name={player.avatar} 
+                          className="bg-gradient-to-br from-coral to-peach text-white font-bold"
+                        />
+                        <div className="max-w-32">
+                          <div className="font-bold text-white truncate">{player.name}</div>
+                          <div className="text-sm text-mint">{player.points} очков</div>
+                          <div className="text-xs text-gray-300">
+                            {player.money >= 0 ? '+' : ''}{player.money} ₽
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3 flex-wrap ml-4">
+                        {/* Сначала отображаем все шары и штрафы в порядке добавления */}
+                        {[...player.balls, ...player.fouls].sort((a, b) => {
+                          // Сортируем по времени добавления (по id)
+                          const aTime = parseInt(a.id)
+                          const bTime = parseInt(b.id)
+                          return aTime - bTime
+                        }).map((item) => (
+                          <div key={item.id}>
+                            {'type' in item ? getBallIcon(item as Ball) : getFoulIcon()}
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="ml-auto">
+                        <Button
+                          isIconOnly
+                          color="success"
+                          variant="solid"
+                          size="lg"
+                          onClick={() => handleOpenScoreModal(player)}
+                        >
+                          <Plus size={20} />
+                        </Button>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 flex-wrap ml-4">
-                    {/* Сначала отображаем все шары и штрафы в порядке добавления */}
-                    {[...player.balls, ...player.fouls].sort((a, b) => {
-                      // Сортируем по времени добавления (по id)
-                      const aTime = parseInt(a.id)
-                      const bTime = parseInt(b.id)
-                      return aTime - bTime
-                    }).map((item) => (
-                      <div key={item.id}>
-                        {'type' in item ? getBallIcon(item as Ball) : getFoulIcon()}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="ml-auto">
-                    <Button
-                      isIconOnly
-                      color="success"
-                      variant="solid"
-                      size="lg"
-                      onClick={() => handleOpenScoreModal(player)}
-                    >
-                      <Plus size={20} />
-                    </Button>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
           </CardBody>
         </Card>
 
@@ -602,53 +677,60 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
             <h3 className="text-lg font-bold text-mint">События игры</h3>
           </CardHeader>
           <CardBody className="pt-0">
-            <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
-              {logEntries.map((entry) => (
-                <div key={entry.id} className={`flex justify-between items-start p-3 rounded-lg ${
-                  entry.isDeleted 
-                    ? 'bg-gray-600 border border-gray-500 opacity-60' 
-                    : 'bg-gray-700'
-                }`}>
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="text-lg">
-                      {getEventIcon(entry)}
-                    </div>
-                    <div className="flex-1">
-                      <div className={`text-sm ${
-                        entry.isDeleted ? 'text-gray-400 line-through' : 'text-white'
-                      }`}>
-                        {entry.isDeleted ? `${entry.description} (УДАЛЕНО)` : entry.description}
+            {logEntries.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <div className="text-lg mb-2">📝 Лог событий пуст</div>
+                <div className="text-sm">События игры появятся здесь</div>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
+                {logEntries.map((entry) => (
+                  <div key={entry.id} className={`flex justify-between items-start p-3 rounded-lg ${
+                    entry.isDeleted 
+                      ? 'bg-gray-600 border border-gray-500 opacity-60' 
+                      : 'bg-gray-700'
+                  }`}>
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="text-lg">
+                        {getEventIcon(entry)}
                       </div>
-                      {entry.tag && !entry.isDeleted && (
-                        <Chip size="sm" variant="flat" className="mt-1">
-                          {entry.tag}
-                        </Chip>
+                      <div className="flex-1">
+                        <div className={`text-sm ${
+                          entry.isDeleted ? 'text-gray-400 line-through' : 'text-white'
+                        }`}>
+                          {entry.isDeleted ? `${entry.description} (УДАЛЕНО)` : entry.description}
+                        </div>
+                        {entry.tag && !entry.isDeleted && (
+                          <Chip size="sm" variant="flat" className="mt-1">
+                            {entry.tag}
+                          </Chip>
+                        )}
+                        <div className="text-xs text-gray-400 mt-1">
+                          Добавил: {entry.addedBy}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {/* Показываем кнопку редактирования только creator и только для неудаленных записей */}
+                      {!entry.isDeleted && isCreator && (
+                        <Button
+                          isIconOnly
+                          size="sm"
+                          variant="light"
+                          className="text-gray-400 hover:text-white"
+                          onClick={() => handleEditLogEntry(entry)}
+                        >
+                          <Edit2 size={16} />
+                        </Button>
                       )}
-                      <div className="text-xs text-gray-400 mt-1">
-                        Добавил: {entry.addedBy}
+                      <div className="text-xs text-gray-300 font-mono">
+                        {entry.timestamp}
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {/* Показываем кнопку редактирования только creator и только для неудаленных записей */}
-                    {!entry.isDeleted && isCreator && (
-                      <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        className="text-gray-400 hover:text-white"
-                        onClick={() => handleEditLogEntry(entry)}
-                      >
-                        <Edit2 size={16} />
-                      </Button>
-                    )}
-                    <div className="text-xs text-gray-300 font-mono">
-                      {entry.timestamp}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardBody>
         </Card>
 
@@ -666,7 +748,8 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
             </Button>
           </CardBody>
         </Card>
-      </main>
+        </main>
+      </div>
 
       {/* Score Modal */}
       <Modal 
@@ -953,6 +1036,6 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
           </ModalFooter>
         </ModalContent>
       </Modal>
-    </div>
+    </>
   )
 }

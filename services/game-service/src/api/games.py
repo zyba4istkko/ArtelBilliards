@@ -180,14 +180,23 @@ async def get_game_events(
 ):
     """Получение истории событий игры"""
     try:
-        # TODO: Реализовать получение событий из БД
-        events = []
+        print(f"🎮 API get_game_events: Запрос событий для игры {game_id}")
+        print(f"🎮 API get_game_events: limit={limit}, offset={offset}")
         
-        return GameEventsResponse(
+        events = await GameService.get_game_events(db, game_id, limit, offset)
+        
+        print(f"🎮 API get_game_events: Получено событий от сервиса: {len(events)}")
+        
+        response = GameEventsResponse(
             events=events,
             total=len(events)
         )
+        
+        print(f"🎮 API get_game_events: Возвращаем ответ: {response}")
+        return response
+        
     except Exception as e:
+        print(f"❌ API get_game_events: Ошибка: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 

@@ -292,6 +292,85 @@ async def proxy_session_games(request: Request, session_id: str):
         print(f"❌ API Gateway: Internal error: {e}")
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
+# Template Service proxy routes
+@app.api_route("/api/v1/templates", methods=["GET", "POST"])
+async def proxy_templates_root(request: Request):
+    """Proxy requests to Template Service - Templates API root"""
+    url = f"{TEMPLATE_SERVICE_URL}/api/v1/templates"
+    
+    # Forward headers
+    headers = dict(request.headers)
+    headers.pop("host", None)  # Remove host header
+    
+    # Get request body
+    body = await request.body()
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.request(
+                method=request.method,
+                url=url,
+                headers=headers,
+                content=body,
+                params=request.query_params,
+                timeout=30.0
+            )
+            
+            # Remove problematic headers
+            response_headers = dict(response.headers)
+            response_headers.pop("content-length", None)
+            response_headers.pop("content-encoding", None)
+            
+            return JSONResponse(
+                content=response.json() if response.content else None,
+                status_code=response.status_code,
+                headers=response_headers
+            )
+            
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=503, detail=f"Template Service unavailable: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+@app.api_route("/api/v1/templates/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+async def proxy_templates(request: Request, path: str):
+    """Proxy requests to Template Service - Templates API"""
+    url = f"{TEMPLATE_SERVICE_URL}/api/v1/templates/{path}"
+    
+    # Forward headers
+    headers = dict(request.headers)
+    headers.pop("host", None)  # Remove host header
+    
+    # Get request body
+    body = await request.body()
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.request(
+                method=request.method,
+                url=url,
+                headers=headers,
+                content=body,
+                params=request.query_params,
+                timeout=30.0
+            )
+            
+            # Remove problematic headers
+            response_headers = dict(response.headers)
+            response_headers.pop("content-length", None)
+            response_headers.pop("content-encoding", None)
+            
+            return JSONResponse(
+                content=response.json() if response.content else None,
+                status_code=response.status_code,
+                headers=response_headers
+            )
+            
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=503, detail=f"Template Service unavailable: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
 # 🔄 ДОБАВЛЯЕМ: маршрут для отдельных игр по ID
 @app.api_route("/api/v1/{game_id}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def proxy_game_by_id(request: Request, game_id: str):
@@ -425,7 +504,7 @@ async def proxy_games_root(request: Request):
 @app.api_route("/api/v1/games/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def proxy_games(request: Request, path: str):
     """Proxy requests to Game Service - Games API"""
-    # 🔄 ИСПРАВЛЯЕМ: backend endpoint находится по /api/v1/{game_id}, а не /api/v1/games/{game_id}
+    # ✅ Правильно: backend endpoint находится по /api/v1/{game_id}
     url = f"{GAME_SERVICE_URL}/api/v1/{path}"
     
     # Forward headers
@@ -471,84 +550,7 @@ async def proxy_games(request: Request, path: str):
         print(f"❌ API Gateway: Internal error: {e}")
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
-# Template Service proxy routes
-@app.api_route("/api/v1/templates", methods=["GET", "POST"])
-async def proxy_templates_root(request: Request):
-    """Proxy requests to Template Service - Templates API root"""
-    url = f"{TEMPLATE_SERVICE_URL}/api/v1/templates/"
-    
-    # Forward headers
-    headers = dict(request.headers)
-    headers.pop("host", None)  # Remove host header
-    
-    # Get request body
-    body = await request.body()
-    
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.request(
-                method=request.method,
-                url=url,
-                headers=headers,
-                content=body,
-                params=request.query_params,
-                timeout=30.0
-            )
-            
-            # Remove problematic headers
-            response_headers = dict(response.headers)
-            response_headers.pop("content-length", None)
-            response_headers.pop("content-encoding", None)
-            
-            return JSONResponse(
-                content=response.json() if response.content else None,
-                status_code=response.status_code,
-                headers=response_headers
-            )
-            
-    except httpx.RequestError as e:
-        raise HTTPException(status_code=503, detail=f"Template Service unavailable: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
-@app.api_route("/api/v1/templates/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
-async def proxy_templates(request: Request, path: str):
-    """Proxy requests to Template Service - Templates API"""
-    url = f"{TEMPLATE_SERVICE_URL}/api/v1/templates/{path}"
-    
-    # Forward headers
-    headers = dict(request.headers)
-    headers.pop("host", None)  # Remove host header
-    
-    # Get request body
-    body = await request.body()
-    
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.request(
-                method=request.method,
-                url=url,
-                headers=headers,
-                content=body,
-                params=request.query_params,
-                timeout=30.0
-            )
-            
-            # Remove problematic headers
-            response_headers = dict(response.headers)
-            response_headers.pop("content-length", None)
-            response_headers.pop("content-encoding", None)
-            
-            return JSONResponse(
-                content=response.json() if response.content else None,
-                status_code=response.status_code,
-                headers=response_headers
-            )
-            
-    except httpx.RequestError as e:
-        raise HTTPException(status_code=503, detail=f"Template Service unavailable: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
