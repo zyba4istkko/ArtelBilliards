@@ -7,7 +7,6 @@ import {
   ActionPanel, 
   GameControls,
   ScoreModal,
-  GameLog,
   PlayerCard,
   EndGameModal
 } from '../components/ui'
@@ -29,17 +28,6 @@ interface Player {
   fouls: number
 }
 
-interface LogEntry {
-  id: string
-  text: string
-  icon: string
-  color?: string
-  playerName: string
-  timestamp: string
-  addedBy: string
-  canEdit?: boolean
-}
-
 export default function GameSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
@@ -59,9 +47,6 @@ export default function GameSessionPage() {
   
   // Players state (transformed from API data)
   const [players, setPlayers] = useState<Player[]>([])
-
-  // Log entries
-  const [logEntries, setLogEntries] = useState<LogEntry[]>([])
 
   // Modal states
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false)
@@ -93,8 +78,8 @@ export default function GameSessionPage() {
       // Transform API data to Player format for UI
       const transformedPlayers: Player[] = playersData.map((sp) => ({
         id: sp.id, // Используем sp.id вместо sp.user_id для ботов
-        name: sp.display_name || sp.username,
-        avatar: (sp.display_name || sp.username).charAt(0).toUpperCase(),
+        name: sp.display_name,
+        avatar: sp.display_name.charAt(0).toUpperCase(),
         points: sp.current_score || 0,
         money: (sp.session_balance_rubles || 0) * 10, // Convert to game currency
         balls: [], // TODO: Add balls from game events
@@ -123,12 +108,10 @@ export default function GameSessionPage() {
   }
 
   const handleNextGame = () => {
-    // Logic for starting next game
-    setCurrentGameNumber(prev => prev + 1)
-    // Reset players for new game
-    setPlayers(prev => prev.map(p => ({ ...p, points: 0, balls: [], fouls: 0 })))
-    // Add log entry
-    addLogEntry('Началась новая игра!', '🎮', undefined, 'Система')
+    // Navigate to active game page
+    if (sessionId) {
+      navigate(`/active-game/${sessionId}`)
+    }
   }
 
   const handleAddScore = (player: Player) => {
@@ -149,7 +132,7 @@ export default function GameSessionPage() {
           // Add log entry
           let logText = `${p.name} забил ${ball.name.toLowerCase()} шар (+${ball.points})`
           if (tag) logText += ` [${tag}]`
-          addLogEntry(logText, '⚫', getBallColor(ball.name), p.name)
+          // addLogEntry(logText, '⚫', getBallColor(ball.name), p.name)
 
           return {
             ...p,
@@ -165,7 +148,7 @@ export default function GameSessionPage() {
           // Add log entry
           let logText = `${p.name} совершил штраф (-1, -50₽)`
           if (tag) logText += ` [${tag}]`
-          addLogEntry(logText, '❌', '#ef4444', p.name)
+          // addLogEntry(logText, '❌', '#ef4444', p.name)
 
           return {
             ...p,
@@ -199,49 +182,49 @@ export default function GameSessionPage() {
     }))
   }
 
-  const addLogEntry = (text: string, icon: string, color?: string, addedBy: string = 'Система') => {
-    const now = new Date()
-    const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`
+  // const addLogEntry = (text: string, icon: string, color?: string, addedBy: string = 'Система') => {
+  //   const now = new Date()
+  //   const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`
     
-    const newEntry: LogEntry = {
-      id: Date.now().toString(),
-      text,
-      icon,
-      color,
-      playerName: selectedPlayer?.name || '',
-      timestamp: timeString,
-      addedBy,
-      canEdit: addedBy !== 'Система'
-    }
+  //   const newEntry: LogEntry = {
+  //     id: Date.now().toString(),
+  //     text,
+  //     icon,
+  //     color,
+  //     playerName: selectedPlayer?.name || '',
+  //     timestamp: timeString,
+  //     addedBy,
+  //     canEdit: addedBy !== 'Система'
+  //   }
 
-    setLogEntries(prev => [newEntry, ...prev.slice(0, 14)]) // Keep max 15 entries
-  }
+  //   setLogEntries(prev => [newEntry, ...prev.slice(0, 14)]) // Keep max 15 entries
+  // }
 
-  const getBallColor = (ballName: string) => {
-    const colors: Record<string, string> = {
-      'Красный': '#f44336',
-      'Желтый': '#ffeb3b',
-      'Зеленый': '#4caf50',
-      'Коричневый': '#8d6e63',
-      'Синий': '#2196f3',
-      'Розовый': '#e91e63',
-      'Черный': '#212121',
-      'Белый': '#ffffff'
-    }
-    return colors[ballName] || '#ffffff'
-  }
+  // const getBallColor = (ballName: string) => {
+  //   const colors: Record<string, string> = {
+  //     'Красный': '#f44336',
+  //     'Желтый': '#ffeb3b',
+  //     'Зеленый': '#4caf50',
+  //     'Коричневый': '#8d6e63',
+  //     'Синий': '#2196f3',
+  //     'Розовый': '#e91e63',
+  //     'Черный': '#212121',
+  //     'Белый': '#ffffff'
+  //   }
+  //   return colors[ballName] || '#ffffff'
+  // }
 
-  const handleEditLogEntry = (entryId: string) => {
-    // Find the entry and open score modal for the player
-    const entry = logEntries.find(e => e.id === entryId)
-    if (entry) {
-      const player = players.find(p => p.name === entry.playerName)
-      if (player) {
-        setSelectedPlayer(player)
-        setIsScoreModalOpen(true)
-      }
-    }
-  }
+  // const handleEditLogEntry = (entryId: string) => {
+  //   // Find the entry and open score modal for the player
+  //   const entry = logEntries.find(e => e.id === entryId)
+  //   if (entry) {
+  //     const player = players.find(p => p.name === entry.playerName)
+  //     if (player) {
+  //       setSelectedPlayer(player)
+  //       setIsScoreModalOpen(true)
+  //     }
+  //   }
+  // }
 
   const handleBackToSession = () => {
     navigate('/session')
@@ -313,24 +296,13 @@ export default function GameSessionPage() {
       <GameHeader
         gameType={session.name || 'Игра'}
         sessionId={session.id}
-        playerCount={session.current_players}
+        playerCount={session.current_players_count}
         gameCount={games.length}
+        sessionStatus={session.status}
         onBack={handleBackToSession}
       />
 
       <main className="max-w-4xl mx-auto px-4 pb-20">
-        {/* Game Controls */}
-        <div className="bg-gray-800 border border-gray-600 rounded-2xl p-6 mb-6">
-          <div className="flex gap-3">
-            <button
-              onClick={handleEndGame}
-              className="bg-red-500 text-white px-6 py-3 rounded-full hover:bg-red-600 font-semibold text-base transition-all duration-250"
-            >
-              🏁 Завершить игру
-            </button>
-          </div>
-        </div>
-
         {/* Scoreboard - Общий счет сессии */}
         <div className="bg-gray-800 border border-gray-600 rounded-2xl p-6 mb-6">
           <h2 className="text-lg font-bold text-mint mb-4 text-center">
@@ -427,24 +399,18 @@ export default function GameSessionPage() {
           )}
         </div>
 
-        {/* Game Log */}
-        <GameLog
-          entries={logEntries}
-          onEditEntry={handleEditLogEntry}
-        />
-      </main>
-
-      {/* Bottom Actions */}
-      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 border border-gray-600 rounded-2xl p-4 w-full max-w-4xl">
-        <div className="flex gap-3">
-          <button
-            onClick={handleNextGame}
-            className="flex-1 bg-mint text-black px-6 py-4 rounded-full font-bold text-base hover:bg-mint/80 transition-all duration-250"
-          >
-            🎲 Следующая игра
-          </button>
+        {/* Game Controls - Завершить игру (перемещено вниз) */}
+        <div className="bg-gray-800 border border-gray-600 rounded-2xl p-6 mb-6">
+          <div className="flex gap-3">
+            <button
+              onClick={handleEndGame}
+              className="bg-red-500 text-white px-6 py-3 rounded-full hover:bg-red-600 font-semibold text-base transition-all duration-250"
+            >
+              🏁 Завершить игру
+            </button>
+          </div>
         </div>
-      </div>
+      </main>
 
       {/* Score Modal */}
       <ScoreModal

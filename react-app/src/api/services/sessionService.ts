@@ -192,10 +192,19 @@ export class SessionService {
     session_role?: string
   }): Promise<any> {
     try {
+      // 🔄 ДОБАВЛЯЕМ: Логирование для отладки
+      console.log('🔍 SessionService.addPlayerToSession: Отправляю данные:', {
+        sessionId,
+        playerData,
+        url: `${this.baseUrl}/${sessionId}/players`
+      })
+      
       const response = await apiClient.post(`${this.baseUrl}/${sessionId}/players`, playerData)
+      
+      console.log('✅ SessionService.addPlayerToSession: Ответ от API:', response)
       return response
     } catch (error) {
-      console.error('Error adding player to session:', error)
+      console.error('❌ SessionService.addPlayerToSession: Ошибка:', error)
       throw error
     }
   }

@@ -20,10 +20,12 @@ import { TemplateService } from '../api/services/templateService'
 import { SessionService } from '../api/services/sessionService'
 import type { GameTemplate, Player, GameSession } from '../api/types'
 import tokens from '../styles/design-tokens'
+import { useUser } from '../store/authStore'
 
 function SessionCreationPage() {
   const navigate = useNavigate()
   const { sessionId } = useParams<{ sessionId?: string }>()
+  const currentUser = useUser() // 🔄 НОВОЕ: получаем текущего пользователя
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 3
   
@@ -209,18 +211,33 @@ function SessionCreationPage() {
       const now = new Date()
       const sessionDate = formatSessionDate(now)
       
+      // 🔄 ИСПРАВЛЯЕМ: Определяем display_name для создателя сессии
+      let creatorDisplayName = 'Пользователь'
+      if (currentUser?.first_name && currentUser.first_name.trim()) {
+        creatorDisplayName = currentUser.first_name.trim()
+      } else if (currentUser?.username && currentUser.username.trim()) {
+        creatorDisplayName = currentUser.username
+      }
+      
+      console.log('🔍 SessionCreationPage: creator_display_name будет установлен как:', creatorDisplayName)
+      
       // Создаем сессию в статусе 'waiting'
       const sessionData = await SessionService.createSession({
         name: `${template.name} - ${sessionDate}`,
         template_id: template.id,
         max_players: 8, // Максимум игроков по умолчанию
-        description: `Сессия для игры ${template.name}`
+        description: `Сессия для игры ${template.name}`,
+        creator_display_name: creatorDisplayName // 🔄 ИСПРАВЛЯЕМ: Передаем имя создателя
       })
       
       console.log('✅ SessionCreationPage: Сессия создана:', sessionData)
       
       // 🔄 НОВОЕ: Сохраняем созданную сессию
       setCreatedSession(sessionData)
+      
+      // 🔄 ИСПРАВЛЯЕМ: Убираем дублирующий вызов addPlayerToSession
+      // Участник уже создается при создании сессии с правильным creator_display_name
+      console.log('✅ SessionCreationPage: Участник создателя уже добавлен в сессию при создании')
       
       // 🔄 НОВОЕ: Сразу переходим на URL с ID сессии
       navigate(`/session/create/${sessionData.id}`)

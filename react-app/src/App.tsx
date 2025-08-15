@@ -22,6 +22,7 @@ import StatsPage from './pages/StatsPage'
 import ProfilePage from './pages/ProfilePage'
 import NotFoundPage from './pages/NotFoundPage'
 import GameSessionPage from './pages/GameSessionPage'
+import ActiveGamePage from './pages/ActiveGamePage'
 
 // Create Material UI theme
 import buildTheme from './styles/theme'
@@ -100,6 +101,14 @@ function App() {
               </ProtectedRoute>
             }>
               <Route index element={<GameSessionPage />} />
+            </Route>
+            
+            <Route path="/active-game/:sessionId" element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<ActiveGamePage />} />
             </Route>
             
             <Route path="/stats" element={

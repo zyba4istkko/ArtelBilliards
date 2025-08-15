@@ -59,7 +59,7 @@ export function BaseModal({ open, onClose, title, children, size = 'lg' }: BaseM
           wrapper: "p-6 flex items-center justify-center",
           base: "max-h-[85vh] max-w-[85vw] w-full rounded-lg overflow-hidden",
           header: "flex-shrink-0 px-6 py-4 rounded-t-lg",
-          body: "py-6 px-6 overflow-y-auto modal-scrollbar",
+          body: "py-6 px-6 overflow-y-auto custom-scrollbar",
           closeButton: "transition-colors z-50"
         }}
       >

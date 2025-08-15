@@ -46,30 +46,18 @@ export function PlayerManagement({ onPlayersChange, selectedTemplate, sessionId 
   const [sessionParticipants, setSessionParticipants] = useState<any[]>([])
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(false)
 
-  // Автоматически добавляем текущего пользователя при инициализации
+  // 🔄 ИСПРАВЛЯЕМ: НЕ добавляем текущего пользователя автоматически через API
+  // Участники уже загружаются из SessionCreationPage
   useEffect(() => {
-    if (currentUser && players.length === 0) {
-      const currentPlayer: Player = {
-        id: currentUser.id || 'current-user',
-        username: currentUser.username || 'current-user',
-        email: currentUser.email,
-        isBot: false,
-        // 🔄 ИСПРАВЛЯЕМ: Сначала username, потом first_name
-        displayName: currentUser.username || currentUser.first_name || 'Пользователь'
-      }
-      
-      const initialPlayers = [currentPlayer]
-      setPlayers(initialPlayers)
-      onPlayersChange(initialPlayers)
-    }
-  }, [currentUser, players.length, onPlayersChange])
+    // Пустой useEffect - убираем автоматическое добавление
+  }, [])
 
-  // 🔄 НОВОЕ: Загружаем участников сессии если sessionId есть
+  // 🔄 НОВОЕ: Загружаем участников сессии если sessionId есть И если нет переданных игроков
   useEffect(() => {
-    if (sessionId) {
+    if (sessionId && players.length === 0) {
       loadSessionParticipants()
     }
-  }, [sessionId])
+  }, [sessionId, players.length])
 
   // 🔄 НОВОЕ: Функция загрузки участников сессии
   const loadSessionParticipants = async () => {
@@ -82,14 +70,27 @@ export function PlayerManagement({ onPlayersChange, selectedTemplate, sessionId 
       console.log('✅ PlayerManagement: Участники загружены:', participants)
       setSessionParticipants(participants)
       
+      // 🔄 ДОБАВЛЯЕМ: Логирование для отладки
+      console.log('🔍 PlayerManagement: Участники из API:', participants)
+      participants.forEach((p, index) => {
+        console.log(`🔍 PlayerManagement: Участник ${index}:`, {
+          id: p.id,
+          user_id: p.user_id,
+          display_name: p.display_name,
+          is_empty_user: p.is_empty_user
+        })
+      })
+      
       // Синхронизируем с локальным списком игроков
       const existingPlayers = participants.map(p => ({
         id: p.user_id || p.id,
-        username: p.display_name,
+        username: p.display_name, // 🔄 display_name из базы становится username
         email: '',
         isBot: p.is_empty_user,
-        displayName: p.display_name
+        displayName: p.display_name || 'Пользователь' // 🔄 display_name из базы становится displayName, fallback если пусто
       }))
+      
+      console.log('🔍 PlayerManagement: Преобразованные игроки:', existingPlayers)
       
       // Добавляем только новых игроков (не дублируем)
       const newPlayers = existingPlayers.filter(p => 

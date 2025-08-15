@@ -65,6 +65,12 @@ class SessionService:
     async def create_session(db: AsyncSession, request: CreateSessionRequest, creator_user_id: UUID) -> SessionResponse:
         """Создание новой игровой сессии"""
         
+        # 🔄 ДОБАВЛЯЕМ: Логирование для отладки
+        print(f"🔍 DEBUG: create_session - НАЧАЛО ФУНКЦИИ")
+        print(f"🔍 DEBUG: create_session - request.creator_display_name='{request.creator_display_name}'")
+        print(f"🔍 DEBUG: create_session - creator_user_id='{creator_user_id}'")
+        print(f"🔍 DEBUG: create_session - request.name='{request.name}'")
+        
         # Убеждаемся что базовые типы игр существуют
         await SessionService._ensure_game_types_exist(db)
         
@@ -89,11 +95,18 @@ class SessionService:
         )
         db.add(db_session)
         
+        # 🔄 ИСПРАВЛЯЕМ: Правильная логика для display_name
+        display_name = "Пользователь"  # fallback по умолчанию
+        if request.creator_display_name and request.creator_display_name.strip():
+            display_name = request.creator_display_name.strip()
+        
+        print(f"🔍 DEBUG: Создаю участника с display_name='{display_name}' (из request.creator_display_name='{request.creator_display_name}')")
+        
         # Создаем участника
         participant = SessionParticipant(
             session_id=session_id,
             user_id=creator_user_id,
-            display_name=request.creator_display_name or "Пользователь",  # 🔄 ИСПРАВЛЯЕМ: Используем реальное имя или "Пользователь"
+            display_name=display_name,  # 🔄 ИСПРАВЛЯЕМ: Используем обработанное имя
             session_role="creator",
             is_empty_user=False,
             queue_position=1,
@@ -663,6 +676,12 @@ class SessionService:
     async def add_player_to_session(db: AsyncSession, session_id: UUID, request: InvitePlayerRequest, current_user_id: str) -> None:
         """Добавление игрока в сессию"""
         try:
+            # 🔄 ДОБАВЛЯЕМ: Логирование для отладки
+            print(f"🔍 DEBUG: add_player_to_session - НАЧАЛО ФУНКЦИИ")
+            print(f"🔍 DEBUG: add_player_to_session - session_id={session_id}")
+            print(f"🔍 DEBUG: add_player_to_session - request.display_name={request.display_name}")
+            print(f"🔍 DEBUG: add_player_to_session - request.user_id={request.user_id}")
+            print(f"🔍 DEBUG: add_player_to_session - current_user_id={current_user_id}")
             # Получаем сессию из базы
             from sqlalchemy import select
             session_query = await db.execute(
@@ -713,6 +732,9 @@ class SessionService:
             )
             max_position_result = max_position_query.scalar_one_or_none()
             next_position = (max_position_result or 0) + 1
+            
+            # 🔄 ДОБАВЛЯЕМ: Логирование перед созданием участника
+            print(f"🔍 DEBUG: Создаю участника с display_name={request.display_name}")
             
             # Создаем нового участника
             new_participant = SessionParticipant(

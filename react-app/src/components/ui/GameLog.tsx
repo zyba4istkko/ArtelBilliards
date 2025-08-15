@@ -30,7 +30,7 @@ export default function GameLog({
         {title}
       </h3>
       
-      <div className="max-h-80 overflow-y-auto space-y-2">
+      <div className="max-h-80 overflow-y-auto custom-scrollbar space-y-2">
         {entries.length === 0 ? (
           <div className="text-center py-8 text-gray-400 italic">
             Пока нет событий в игре

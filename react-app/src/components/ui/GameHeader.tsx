@@ -7,6 +7,7 @@ interface GameHeaderProps {
   sessionId: string
   playerCount: number
   gameCount: number
+  sessionStatus: string
   onBack: () => void
 }
 
@@ -15,6 +16,7 @@ export default function GameHeader({
   sessionId, 
   playerCount, 
   gameCount, 
+  sessionStatus,
   onBack 
 }: GameHeaderProps) {
   const [sessionTime, setSessionTime] = useState('00:00')
@@ -55,11 +57,29 @@ export default function GameHeader({
             </div>
           </div>
           
-          <div className="flex items-center gap-2 bg-gray-700 px-4 py-2 rounded-full">
-            <Clock className="text-mint" size={16} />
-            <span className="font-mono font-bold text-white text-sm">
-              {sessionTime}
-            </span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-gray-700 px-3 py-2 rounded-full">
+              <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                sessionStatus === 'waiting' ? 'bg-yellow-600 text-white' :
+                sessionStatus === 'in_progress' ? 'bg-green-600 text-white' :
+                sessionStatus === 'completed' ? 'bg-blue-600 text-white' :
+                sessionStatus === 'cancelled' ? 'bg-red-600 text-white' :
+                'bg-gray-600 text-white'
+              }`}>
+                {sessionStatus === 'waiting' ? '⏳ Ожидание' :
+                 sessionStatus === 'in_progress' ? '🎮 В процессе' :
+                 sessionStatus === 'completed' ? '✅ Завершена' :
+                 sessionStatus === 'cancelled' ? '❌ Отменена' :
+                 sessionStatus}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2 bg-gray-700 px-4 py-2 rounded-full">
+              <Clock className="text-mint" size={16} />
+              <span className="font-mono font-bold text-white text-sm">
+                {sessionTime}
+              </span>
+            </div>
           </div>
         </div>
       </div>
