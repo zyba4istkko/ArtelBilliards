@@ -9,9 +9,9 @@ from typing import Optional
 
 from sqlalchemy import (
     Column, String, Integer, Boolean, DateTime, Text, 
-    ForeignKey, Numeric, Index, JSON, Enum, text, TIMESTAMP, JSONB
+    ForeignKey, Numeric, Index, JSON, Enum, text, TIMESTAMP
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -37,7 +37,7 @@ class Game(Base):
     """Модель для отдельных игр в сессии"""
     __tablename__ = "games"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     session_id = Column(UUID(as_uuid=True), ForeignKey("game_sessions.id", ondelete="CASCADE"), nullable=False)
     game_number = Column(Integer, nullable=False)
     status = Column(Enum("active", "completed", "cancelled", name="game_status_enum"), nullable=False, default="active")
@@ -48,8 +48,10 @@ class Game(Base):
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"))
     
     # Relationships
-    session = relationship("GameSession", back_populates="games")
+    session = relationship("GameSession", back_populates="games", foreign_keys=[session_id])
     queue_history = relationship("GameQueue", back_populates="game", cascade="all, delete-orphan")
+    events = relationship("GameEvent", back_populates="game", cascade="all, delete-orphan")
+    results = relationship("GameResult", back_populates="game", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Game(id={self.id}, session_id={self.session_id}, game_number={self.game_number}, status={self.status})>"
@@ -59,7 +61,7 @@ class GameQueue(Base):
     """Модель для истории очередностей (только для random_no_repeat)"""
     __tablename__ = "game_queues"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     session_id = Column(UUID(as_uuid=True), ForeignKey("game_sessions.id", ondelete="CASCADE"), nullable=False)
     game_id = Column(UUID(as_uuid=True), ForeignKey("games.id", ondelete="CASCADE"), nullable=False)
     queue_order = Column(JSONB, nullable=False)
@@ -67,8 +69,8 @@ class GameQueue(Base):
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"))
     
     # Relationships
-    session = relationship("GameSession", back_populates="queue_history")
-    game = relationship("Game", back_populates="queue_history")
+    session = relationship("GameSession", back_populates="queue_history", foreign_keys=[session_id])
+    game = relationship("Game", back_populates="queue_history", foreign_keys=[game_id])
     
     def __repr__(self):
         return f"<GameQueue(id={self.id}, session_id={self.session_id}, game_id={self.game_id}, algorithm={self.algorithm_used})>"
@@ -79,7 +81,7 @@ class GameSession(Base):
     """Модель для игровых сессий"""
     __tablename__ = "game_sessions"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     creator_user_id = Column(UUID(as_uuid=True), nullable=False)
     game_type_id = Column(Integer, ForeignKey("game_types.id"), nullable=False)
     template_id = Column(UUID(as_uuid=True), nullable=True)
@@ -89,14 +91,17 @@ class GameSession(Base):
     current_players_count = Column(Integer, nullable=False, default=1)
     rules = Column(JSONB, nullable=True)
     current_game_id = Column(UUID(as_uuid=True), ForeignKey("games.id"), nullable=True)  # НОВОЕ ПОЛЕ
+    creation_step = Column(Integer, nullable=True, default=1)  # Шаг создания сессии (1-3)
+    started_at = Column(TIMESTAMP(timezone=True), nullable=True)  # Когда сессия началась (первая игра)
+    completed_at = Column(TIMESTAMP(timezone=True), nullable=True)  # Когда сессия завершилась
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"))
     updated_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"))
     
     # Relationships
-    creator = relationship("User", foreign_keys=[creator_user_id])
+    # creator = relationship("User", foreign_keys=[creator_user_id])  # ВРЕМЕННО: User модель не определена
     game_type = relationship("GameType")
     participants = relationship("SessionParticipant", back_populates="session", cascade="all, delete-orphan")
-    games = relationship("Game", back_populates="session", cascade="all, delete-orphan")
+    games = relationship("Game", back_populates="session", foreign_keys="[Game.session_id]", cascade="all, delete-orphan")
     queue_history = relationship("GameQueue", back_populates="session", cascade="all, delete-orphan")
     current_game = relationship("Game", foreign_keys=[current_game_id])
     
@@ -132,7 +137,7 @@ class SessionParticipant(Base):
     total_balls_potted = Column(Integer, default=0)
     
     # Relationships
-    session = relationship("GameSession", back_populates="participants")
+    session = relationship("GameSession", back_populates="participants", foreign_keys=[session_id])
     game_results = relationship("GameResult", back_populates="participant")
     game_events = relationship("GameEvent", back_populates="participant")
 
@@ -150,8 +155,8 @@ class GameEvent(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
-    game = relationship("Game", back_populates="events")
-    participant = relationship("SessionParticipant", back_populates="game_events")
+    game = relationship("Game", back_populates="events", foreign_keys=[game_id])
+    participant = relationship("SessionParticipant", back_populates="game_events", foreign_keys=[participant_id])
 
 
 class GameResult(Base):
@@ -171,8 +176,8 @@ class GameResult(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
-    game = relationship("Game", back_populates="results")
-    participant = relationship("SessionParticipant", back_populates="game_results")
+    game = relationship("Game", back_populates="results", foreign_keys=[game_id])
+    participant = relationship("SessionParticipant", back_populates="game_results", foreign_keys=[participant_id])
 
 
 # Индексы

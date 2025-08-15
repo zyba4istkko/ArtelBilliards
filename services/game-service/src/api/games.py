@@ -17,7 +17,7 @@ from ..models.schemas import (
 from ..services.game_service import GameService
 from ..core.database import get_db
 
-router = APIRouter(prefix="/games", tags=["games"])
+router = APIRouter(tags=["games"])
 
 
 # Dependency для получения текущего пользователя (заглушка)
@@ -36,10 +36,25 @@ async def create_game(
 ):
     """Создание новой игры в сессии"""
     try:
-        return await GameService.create_game(db, session_id, request)
+        print(f"🎮 API create_game: Запрос создания игры для сессии {session_id}")
+        print(f"🎮 API create_game: Request body: {request}")
+        print(f"🎮 API create_game: current_user: {current_user}")
+        
+        result = await GameService.create_game(db, session_id, request)
+        
+        print(f"🎮 API create_game: Игра создана сервисом: {result}")
+        print(f"🎮 API create_game: Возвращаем результат: {result}")
+        
+        return result
+        
     except ValueError as e:
+        print(f"❌ API create_game: ValueError: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        print(f"❌ API create_game: Exception: {str(e)}")
+        print(f"❌ API create_game: Тип ошибки: {type(e).__name__}")
+        import traceback
+        print(f"❌ API create_game: Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
@@ -52,13 +67,22 @@ async def get_session_games(
 ):
     """Получение списка игр в сессии"""
     try:
+        print(f"🎮 API get_session_games: Запрос игр для сессии {session_id}")
+        
         games = await GameService.get_session_games(db, session_id, limit, offset)
         
-        return GameListResponse(
+        print(f"🎮 API get_session_games: Получено игр от сервиса: {len(games)}")
+        
+        response = GameListResponse(
             games=games,
             total=len(games)
         )
+        
+        print(f"🎮 API get_session_games: Возвращаем ответ: {response}")
+        return response
+        
     except Exception as e:
+        print(f"❌ API get_session_games: Ошибка: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 

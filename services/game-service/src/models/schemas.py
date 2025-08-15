@@ -26,7 +26,7 @@ class SessionRole(str, Enum):
 
 
 class GameStatus(str, Enum):
-    IN_PROGRESS = "in_progress"
+    ACTIVE = "in_progress"  # 🔄 ИСПРАВЛЯЕМ: 'active' -> 'in_progress' для совместимости с frontend
     COMPLETED = "completed"
     CANCELLED = "cancelled"
 

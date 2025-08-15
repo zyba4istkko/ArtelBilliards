@@ -61,7 +61,7 @@ interface LogEntry {
 }
 
 export default function ActiveGamePage({}: ActiveGamePageProps) {
-  const { sessionId } = useParams()
+  const { gameId } = useParams()  // 🔄 ИСПРАВЛЯЕМ: sessionId -> gameId
   const navigate = useNavigate()
   
   // State
@@ -129,46 +129,51 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
   // Effect для инициализации игры
   useEffect(() => {
     const initializeGame = async () => {
-      if (!sessionId) return
+      if (!gameId) return
       
       try {
         setIsLoading(true)
         setError(null)
         
-        // 1. Получаем информацию о сессии
-        const sessionData = await SessionService.getSession(sessionId)
+        console.log('🎮 ActiveGamePage: Инициализируем игру:', gameId)
+        
+        // 1. Получаем информацию об игре
+        const gameData = await gameService.getGame(gameId)
+        console.log('✅ Игра получена:', gameData)
+        setCurrentGame(gameData)
+        
+        // 2. Получаем информацию о сессии по session_id из игры
+        const sessionData = await SessionService.getSession(gameData.session_id)
+        console.log('✅ Сессия получена:', sessionData)
         setSession(sessionData)
         
-        // 2. Проверяем есть ли уже активная игра
-        let activeGame = await gameService.getActiveGame(sessionId)
+        // 3. Получаем участников сессии
+        const participants = await SessionService.getSessionParticipants(gameData.session_id)
+        console.log('✅ Участники получены:', participants)
         
-        if (!activeGame) {
-          // 3. Если активной игры нет - создаем новую
-          console.log('🎮 Создаем новую игру в сессии...')
-          
-          const createGameRequest = {
-            queue_algorithm: sessionData.rules?.queue_algorithm || "random_no_repeat"
-          }
-          
-          activeGame = await gameService.createGame(sessionId, createGameRequest)
-          console.log('✅ Игра создана:', activeGame)
-        }
+        // 4. Преобразуем участников в формат Player
+        const transformedPlayers = participants.map((participant: any) => ({
+          id: participant.id,
+          name: participant.display_name || 'Игрок',
+          avatar: (participant.display_name || 'И')[0].toUpperCase(),
+          points: participant.current_score || 0,
+          money: participant.session_balance_rubles || 0,
+          balls: [],
+          fouls: []
+        }))
         
-        setCurrentGame(activeGame)
+        setPlayers(transformedPlayers)
+        setIsLoading(false)
         
-        // 4. Инициализируем состояние игры из БД
-        // TODO: Загрузить существующие события игры если они есть
-        
-      } catch (err: any) {
-        console.error('❌ Ошибка инициализации игры:', err)
-        setError(err.message || 'Ошибка загрузки игры')
-      } finally {
+      } catch (error: any) {
+        console.error('❌ Ошибка инициализации игры:', error)
+        setError(error.message || 'Ошибка загрузки игры')
         setIsLoading(false)
       }
     }
     
     initializeGame()
-  }, [sessionId])
+  }, [gameId])
 
   // Timer effect
   useEffect(() => {
@@ -197,7 +202,11 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
 
   // Handlers
   const handleBackToSession = () => {
-    navigate(`/game-session/${sessionId}`)
+    if (currentGame && currentGame.session_id) {
+      navigate(`/game-session/${currentGame.session_id}`)
+    } else {
+      navigate('/dashboard') // Fallback если нет session_id
+    }
   }
 
   const handleOpenScoreModal = (player: Player) => {
@@ -397,7 +406,11 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
       await gameService.completeGame(currentGame.id)
       
       // Возвращаемся к сессии
-      navigate(`/game-session/${sessionId}`)
+      if (currentGame && currentGame.session_id) {
+        navigate(`/game-session/${currentGame.session_id}`)
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err: any) {
       console.error('❌ Ошибка завершения игры:', err)
       setError(err.message || 'Ошибка завершения игры')
@@ -471,7 +484,13 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
           <div className="text-gray-300 mb-6">{error}</div>
           <Button 
             color="primary" 
-            onClick={() => navigate(`/game-session/${sessionId}`)}
+            onClick={() => {
+              if (currentGame && currentGame.session_id) {
+                navigate(`/game-session/${currentGame.session_id}`)
+              } else {
+                navigate('/dashboard')
+              }
+            }}
           >
             Вернуться к сессии
           </Button>

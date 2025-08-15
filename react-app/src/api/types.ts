@@ -186,6 +186,24 @@ export interface Game {
   game_data?: Record<string, any>
 }
 
+// Game Response Types
+export interface GameResponse {
+  id: string
+  session_id: string
+  game_number: number
+  status: 'in_progress' | 'completed' | 'cancelled'
+  winner_participant_id?: string
+  started_at: string
+  completed_at?: string
+  duration_seconds?: number
+  game_data?: Record<string, any>
+}
+
+export interface CreateGameRequest {
+  queue_algorithm: QueueAlgorithm
+  current_queue?: Record<string, any>
+}
+
 export interface GameEvent {
   id: string
   game_id: string

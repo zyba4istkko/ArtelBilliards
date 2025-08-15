@@ -103,7 +103,7 @@ function App() {
               <Route index element={<GameSessionPage />} />
             </Route>
             
-            <Route path="/active-game/:sessionId" element={
+            <Route path="/active-game/:gameId" element={
               <ProtectedRoute>
                 <AppLayout />
               </ProtectedRoute>

@@ -16,13 +16,25 @@ depends_on = None
 def upgrade():
     """Создание таблиц games и game_queues"""
     
-    # Создаем enum для статуса игры
-    game_status_enum = postgresql.ENUM('active', 'completed', 'cancelled', name='game_status_enum')
-    game_status_enum.create(op.get_bind())
+    # Создаем enum для статуса игры (с проверкой существования)
+    connection = op.get_bind()
     
-    # Создаем enum для алгоритма очередности
-    queue_algorithm_enum = postgresql.ENUM('always_random', 'random_no_repeat', 'manual', name='queue_algorithm_enum')
-    queue_algorithm_enum.create(op.get_bind())
+    # Создаем enum типы с помощью SQL команд
+    connection.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE game_status_enum AS ENUM ('active', 'completed', 'cancelled');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+    """))
+    
+    connection.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE queue_algorithm_enum AS ENUM ('always_random', 'random_no_repeat', 'manual');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+    """))
     
     # Таблица игр
     op.create_table(
@@ -30,8 +42,8 @@ def upgrade():
         sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text('gen_random_uuid()')),
         sa.Column('session_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('game_number', sa.Integer, nullable=False),
-        sa.Column('status', sa.Enum('active', 'completed', 'cancelled', name='game_status_enum'), nullable=False, default='active'),
-        sa.Column('queue_algorithm', sa.Enum('always_random', 'random_no_repeat', 'manual', name='queue_algorithm_enum'), nullable=False),
+        sa.Column('status', sa.String(20), nullable=False, default='active'),  # Используем String вместо Enum
+        sa.Column('queue_algorithm', sa.String(20), nullable=False),  # Используем String вместо Enum
         sa.Column('current_queue', postgresql.JSONB, nullable=True),
         sa.Column('started_at', sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text('NOW()')),
         sa.Column('completed_at', sa.TIMESTAMP(timezone=True), nullable=True),
@@ -53,7 +65,7 @@ def upgrade():
         sa.Column('session_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('game_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('queue_order', postgresql.JSONB, nullable=False),
-        sa.Column('algorithm_used', sa.Enum('always_random', 'random_no_repeat', 'manual', name='queue_algorithm_enum'), nullable=False),
+        sa.Column('algorithm_used', sa.String(20), nullable=False),  # Используем String вместо Enum
         sa.Column('created_at', sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text('NOW()')),
         
         # Индексы
@@ -67,9 +79,14 @@ def upgrade():
     )
     
     # Добавляем поле current_game_id в game_sessions для отслеживания активной игры
-    op.add_column('game_sessions', sa.Column('current_game_id', postgresql.UUID(as_uuid=True), nullable=True))
-    op.create_index('idx_game_sessions_current_game_id', 'game_sessions', ['current_game_id'])
-    op.create_foreign_key('fk_game_sessions_current_game_id', 'game_sessions', 'games', ['current_game_id'], ['id'])
+    # Проверяем существование колонки
+    inspector = sa.inspect(connection)
+    columns = [col['name'] for col in inspector.get_columns('game_sessions')]
+    
+    if 'current_game_id' not in columns:
+        op.add_column('game_sessions', sa.Column('current_game_id', postgresql.UUID(as_uuid=True), nullable=True))
+        op.create_index('idx_game_sessions_current_game_id', 'game_sessions', ['current_game_id'])
+        op.create_foreign_key('fk_game_sessions_current_game_id', 'game_sessions', 'games', ['current_game_id'], ['id'])
 
 
 def downgrade():

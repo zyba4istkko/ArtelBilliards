@@ -11,7 +11,7 @@ import {
   EndGameModal
 } from '../components/ui'
 import { SessionService } from '../api/services/sessionService'
-import { GameService } from '../api/services/gameService'
+import { gameService } from '../api/services/gameService'
 import type { GameSession, Game } from '../api/types'
 
 interface Player {
@@ -35,10 +35,10 @@ export default function GameSessionPage() {
   // Loading states
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
-  // Real data from API
-  const [session, setSession] = useState<GameSession | null>(null)
-  const [games, setGames] = useState<Game[]>([])
+  const [currentGame, setCurrentGame] = useState<any>(null)
+  const [session, setSession] = useState<any>(null)
+  const [games, setGames] = useState<any[]>([])
+  const [isLoadingGames, setIsLoadingGames] = useState(false)  // 🔄 ДОБАВЛЯЕМ: состояние загрузки игр
   
   // Game state
   const [isPaused, setIsPaused] = useState(false)
@@ -88,8 +88,29 @@ export default function GameSessionPage() {
       setPlayers(transformedPlayers)
       
       // Load games data
-      const gamesData = await GameService.getSessionGames(sessionId)
-      setGames(gamesData.games)
+      try {
+        setIsLoadingGames(true)  // 🔄 ДОБАВЛЯЕМ: начало загрузки игр
+        console.log('🎮 GameSessionPage: Загружаем игры для сессии:', sessionId)
+        const gamesData = await gameService.getSessionGames(sessionId)
+        console.log('🎮 GameSessionPage: Получены игры от API:', gamesData)
+        console.log('🎮 GameSessionPage: Тип gamesData:', typeof gamesData)
+        console.log('🎮 GameSessionPage: gamesData.length:', gamesData?.length)
+        
+        if (gamesData && Array.isArray(gamesData)) {
+          console.log('🎮 GameSessionPage: Игры загружены успешно, количество:', gamesData.length)
+          setGames(gamesData)
+        } else {
+          console.log('🎮 GameSessionPage: gamesData не является массивом, устанавливаем пустой массив')
+          console.log('🎮 GameSessionPage: gamesData тип:', typeof gamesData)
+          console.log('🎮 GameSessionPage: gamesData содержимое:', gamesData)
+          setGames([])
+        }
+      } catch (gamesError) {
+        console.error('❌ GameSessionPage: Ошибка загрузки игр:', gamesError)
+        setGames([])
+      } finally {
+        setIsLoadingGames(false)  // 🔄 ДОБАВЛЯЕМ: конец загрузки игр
+      }
       
     } catch (err: any) {
       console.error('Failed to load session data:', err)
@@ -107,11 +128,41 @@ export default function GameSessionPage() {
     setIsEndGameModalOpen(true)
   }
 
-  const handleNextGame = () => {
-    // Navigate to active game page
+  const handleNextGame = async () => {
+    // Create new game in session
     if (sessionId) {
-      navigate(`/active-game/${sessionId}`)
+      try {
+        console.log('🎮 GameSessionPage: Создаем новую игру в сессии...')
+        console.log('🎮 GameSessionPage: sessionId:', sessionId)
+        
+        // Create game with default algorithm
+        const newGame = await gameService.createGame(sessionId, {
+          queue_algorithm: 'random_no_repeat'
+        })
+        
+        console.log('🎮 GameSessionPage: Игра создана:', newGame)
+        console.log('🎮 GameSessionPage: Тип newGame:', typeof newGame)
+        console.log('🎮 GameSessionPage: newGame.id:', newGame?.id)
+        
+        if (newGame && newGame.id) {
+          console.log('🎮 GameSessionPage: Игра создана успешно, обновляем список игр')
+          // Refresh games list
+          await loadSessionData()
+          // Navigate to the new game's page
+          navigate(`/active-game/${newGame.id}`)  // 🔄 ИСПРАВЛЯЕМ: /game/ -> /active-game/
+        } else {
+          console.log('🎮 GameSessionPage: Игра не создана (newGame undefined или без ID)')
+        }
+      } catch (error) {
+        console.error('❌ GameSessionPage: Ошибка создания игры:', error)
+      }
     }
+  }
+
+  // 🔄 ДОБАВЛЯЕМ: функция для перехода к игре
+  const handleGameClick = (gameId: string) => {
+    console.log('🎮 GameSessionPage: Переходим к игре:', gameId)
+    navigate(`/active-game/${gameId}`)  // 🔄 ИСПРАВЛЯЕМ: /game/ -> /active-game/
   }
 
   const handleAddScore = (player: Player) => {
@@ -297,7 +348,7 @@ export default function GameSessionPage() {
         gameType={session.name || 'Игра'}
         sessionId={session.id}
         playerCount={session.current_players_count}
-        gameCount={games.length}
+        gameCount={games?.length || 0}
         sessionStatus={session.status}
         onBack={handleBackToSession}
       />
@@ -315,7 +366,7 @@ export default function GameSessionPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {session.participants.map((participant) => (
+              {session.participants.map((participant: any) => (
                 <div key={participant.id} className="bg-gray-700 p-4 rounded-lg text-center relative">
                   <div className="w-8 h-8 bg-mint text-black rounded-full flex items-center justify-center font-bold text-sm mx-auto mb-2">
                     {participant.display_name.charAt(0).toUpperCase()}
@@ -344,21 +395,40 @@ export default function GameSessionPage() {
             Игры в сессии
           </h3>
           
-          {games.length === 0 ? (
+          {isLoadingGames ? (
+            <div className="text-center py-8 text-gray-400">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-mint mx-auto mb-4"></div>
+              <p>Загружаем игры...</p>
+            </div>
+          ) : !games || games.length === 0 ? (
             <div className="text-center py-8 text-gray-400">
               <p>Игр в сессии еще не было</p>
-              <p className="text-sm text-gray-500 mt-2">Начните первую игру, чтобы увидеть результаты</p>
+              <p className="text-sm text-gray-500 mt-2">Создайте игру, чтобы начать играть</p>
               <button
                 onClick={handleNextGame}
                 className="bg-mint text-black px-6 py-3 rounded-lg hover:bg-mint/80 mt-4 font-medium"
               >
-                🎮 Начать первую игру
+                🎮 Создать игру
               </button>
             </div>
           ) : (
             <div className="space-y-4">
-              {games.map((game) => (
-                <div key={game.id} className="bg-gray-700 p-4 rounded-lg">
+              {/* Add New Game Button */}
+              <div className="text-center mb-4">
+                <button
+                  onClick={handleNextGame}
+                  className="bg-mint text-black px-6 py-3 rounded-lg hover:bg-mint/80 font-medium"
+                >
+                  🎮 Создать новую игру
+                </button>
+              </div>
+              
+              {games && games.map((game) => (
+                <div 
+                  key={game.id} 
+                  className="bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors duration-200 border border-transparent hover:border-mint/30"
+                  onClick={() => handleGameClick(game.id)}
+                >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-3">
                       <span className="text-mint font-bold">Игра #{game.game_number}</span>
@@ -392,6 +462,11 @@ export default function GameSessionPage() {
                     {game.completed_at && game.started_at && (
                       <p>Длительность: {Math.floor((new Date(game.completed_at).getTime() - new Date(game.started_at).getTime()) / 1000 / 60)}:{(Math.floor((new Date(game.completed_at).getTime() - new Date(game.started_at).getTime()) / 1000) % 60).toString().padStart(2, '0')}</p>
                     )}
+                  </div>
+                  
+                  {/* 🔄 ДОБАВЛЯЕМ: подсказка о клике */}
+                  <div className="text-center mt-3 pt-3 border-t border-gray-600">
+                    <span className="text-xs text-gray-400">👆 Нажмите, чтобы открыть игру</span>
                   </div>
                 </div>
               ))}

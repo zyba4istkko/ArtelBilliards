@@ -6,7 +6,14 @@ export const gameService = {
    * Создание новой игры в сессии
    */
   async createGame(sessionId: string, request: CreateGameRequest): Promise<GameResponse> {
-    const response = await apiClient.post(`/sessions/${sessionId}/games`, request)
+    console.log('🎮 gameService.createGame: Создаем игру для сессии:', sessionId)
+    console.log('🎮 gameService.createGame: Request:', request)
+    
+    const response = await apiClient.getGameClient().post(`/api/v1/sessions/${sessionId}/games`, request)
+    
+    console.log('🎮 gameService.createGame: Ответ от API:', response.data)
+    console.log('🎮 gameService.createGame: Возвращаем:', response.data)
+    
     return response.data
   },
 
@@ -14,17 +21,19 @@ export const gameService = {
    * Получение списка игр в сессии
    */
   async getSessionGames(sessionId: string, limit: number = 10, offset: number = 0): Promise<GameResponse[]> {
-    const response = await apiClient.get(`/sessions/${sessionId}/games`, {
+    const response = await apiClient.getGameClient().get(`/api/v1/sessions/${sessionId}/games`, {
       params: { limit, offset }
     })
-    return response.data.games
+    // 🔄 ИСПРАВЛЯЕМ: API возвращает {games: [...], total: N}, а не массив напрямую
+    return response.data.games || []
   },
 
   /**
    * Получение детальной информации об игре
    */
   async getGame(gameId: string): Promise<GameResponse> {
-    const response = await apiClient.get(`/games/${gameId}`)
+    // 🔄 ИСПРАВЛЯЕМ: backend endpoint находится по /api/v1/{game_id}, а не /api/v1/games/{game_id}
+    const response = await apiClient.getGameClient().get(`/api/v1/${gameId}`)
     return response.data
   },
 
@@ -33,7 +42,7 @@ export const gameService = {
    */
   async getActiveGame(sessionId: string): Promise<GameResponse | null> {
     try {
-      const response = await apiClient.get(`/sessions/${sessionId}/active-game`)
+      const response = await apiClient.getGameClient().get(`/api/v1/sessions/${sessionId}/active-game`)
       return response.data
     } catch (error: any) {
       if (error.response?.status === 404) {
@@ -47,7 +56,7 @@ export const gameService = {
    * Завершение игры
    */
   async completeGame(gameId: string): Promise<GameResponse> {
-    const response = await apiClient.post(`/games/${gameId}/end`)
+    const response = await apiClient.getGameClient().post(`/api/v1/games/${gameId}/end`)
     return response.data
   },
 
@@ -55,7 +64,7 @@ export const gameService = {
    * Добавление игрового события
    */
   async addGameEvent(gameId: string, eventData: any): Promise<any> {
-    const response = await apiClient.post(`/games/${gameId}/events`, eventData)
+    const response = await apiClient.getGameClient().post(`/api/v1/games/${gameId}/events`, eventData)
     return response.data
   },
 
@@ -63,7 +72,7 @@ export const gameService = {
    * Получение событий игры
    */
   async getGameEvents(gameId: string, limit: number = 50, offset: number = 0): Promise<any[]> {
-    const response = await apiClient.get(`/games/${gameId}/events`, {
+    const response = await apiClient.getGameClient().get(`/api/v1/games/${gameId}/events`, {
       params: { limit, offset }
     })
     return response.data.events
@@ -73,7 +82,7 @@ export const gameService = {
    * Получение счетов игры
    */
   async getGameScores(gameId: string): Promise<any> {
-    const response = await apiClient.get(`/games/${gameId}/scores`)
+    const response = await apiClient.getGameClient().get(`/api/v1/games/${gameId}/scores`)
     return response.data
   }
 } 

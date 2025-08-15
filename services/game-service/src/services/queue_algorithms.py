@@ -30,7 +30,7 @@ class QueueAlgorithms:
     def generate_random_no_repeat_queue(
         participants: List[Dict[str, Any]], 
         session_id: UUID,
-        previous_queues: List[List[Dict[str, Any]]] = None
+        previous_queues: List[List[str]] = None
     ) -> List[Dict[str, Any]]:
         """
         Random No Repeat - Случайная без повторения последних комбинаций
@@ -58,10 +58,13 @@ class QueueAlgorithms:
         
         # Исключаем недавно использованные очередности
         recent_queues = previous_queues[-max_history:] if previous_queues else []
-        available_queues = [
-            perm for perm in all_permutations 
-            if list(perm) not in recent_queues
-        ]
+        
+        # Создаем список UUID из текущих перестановок для сравнения
+        available_queues = []
+        for perm in all_permutations:
+            perm_ids = [str(p.id) for p in perm]  # Используем .id вместо ['id']
+            if perm_ids not in recent_queues:
+                available_queues.append(perm)
         
         # Если все варианты использованы - сбрасываем историю и начинаем новый цикл
         if not available_queues:
@@ -90,7 +93,7 @@ class QueueAlgorithms:
             return participants
         
         # Создаем словарь для быстрого поиска участников по ID
-        participants_dict = {str(p['id']): p for p in participants}
+        participants_dict = {str(p.id): p for p in participants}  # Используем .id вместо ['id']
         
         # Строим очередь согласно custom_order
         ordered_queue = []
