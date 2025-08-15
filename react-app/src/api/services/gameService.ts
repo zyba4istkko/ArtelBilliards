@@ -1,88 +1,79 @@
 import { apiClient } from '../client'
-import type { 
-  GameResponse, 
-  GameListResponse,
-  GameEventRequest,
-  GameEventResponse,
-  GameScoresResponse,
-  CreateGameRequest
-} from '../types'
+import { GameResponse, CreateGameRequest } from '../types'
 
-/**
- * Game Service API - Управление играми в сессиях
- */
-export class GameService {
-  private static baseUrl = '/api/v1/games'
+export const gameService = {
+  /**
+   * Создание новой игры в сессии
+   */
+  async createGame(sessionId: string, request: CreateGameRequest): Promise<GameResponse> {
+    const response = await apiClient.post(`/sessions/${sessionId}/games`, request)
+    return response.data
+  },
 
   /**
-   * Создать новую игру в сессии
+   * Получение списка игр в сессии
    */
-  static async createGame(sessionId: string, gameData: CreateGameRequest): Promise<GameResponse> {
-    const response = await apiClient.post(`${this.baseUrl}/sessions/${sessionId}/games`, gameData)
-    return response
-  }
+  async getSessionGames(sessionId: string, limit: number = 10, offset: number = 0): Promise<GameResponse[]> {
+    const response = await apiClient.get(`/sessions/${sessionId}/games`, {
+      params: { limit, offset }
+    })
+    return response.data.games
+  },
 
   /**
-   * Получить список игр в сессии
+   * Получение детальной информации об игре
    */
-  static async getSessionGames(sessionId: string, limit: number = 10, offset: number = 0): Promise<GameListResponse> {
-    const params = new URLSearchParams()
-    if (limit) params.append('limit', limit.toString())
-    if (offset) params.append('offset', offset.toString())
-    
-    const response = await apiClient.get(`${this.baseUrl}/sessions/${sessionId}/games?${params.toString()}`)
-    return response
-  }
+  async getGame(gameId: string): Promise<GameResponse> {
+    const response = await apiClient.get(`/games/${gameId}`)
+    return response.data
+  },
 
   /**
-   * Получить детальную информацию об игре
+   * Получение активной игры в сессии
    */
-  static async getGame(gameId: string): Promise<GameResponse> {
-    const response = await apiClient.get(`${this.baseUrl}/${gameId}`)
-    return response
-  }
+  async getActiveGame(sessionId: string): Promise<GameResponse | null> {
+    try {
+      const response = await apiClient.get(`/sessions/${sessionId}/active-game`)
+      return response.data
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return null // Нет активной игры
+      }
+      throw error
+    }
+  },
 
   /**
-   * Начать игру
+   * Завершение игры
    */
-  static async startGame(gameId: string): Promise<GameResponse> {
-    const response = await apiClient.post(`${this.baseUrl}/${gameId}/start`, {})
-    return response
-  }
+  async completeGame(gameId: string): Promise<GameResponse> {
+    const response = await apiClient.post(`/games/${gameId}/end`)
+    return response.data
+  },
 
   /**
-   * Завершить игру
+   * Добавление игрового события
    */
-  static async endGame(gameId: string): Promise<GameResponse> {
-    const response = await apiClient.post(`${this.baseUrl}/${gameId}/end`, {})
-    return response
-  }
+  async addGameEvent(gameId: string, eventData: any): Promise<any> {
+    const response = await apiClient.post(`/games/${gameId}/events`, eventData)
+    return response.data
+  },
 
   /**
-   * Добавить игровое событие
+   * Получение событий игры
    */
-  static async addGameEvent(gameId: string, eventData: GameEventRequest): Promise<GameEventResponse> {
-    const response = await apiClient.post(`${this.baseUrl}/${gameId}/events`, eventData)
-    return response
-  }
+  async getGameEvents(gameId: string, limit: number = 50, offset: number = 0): Promise<any[]> {
+    const response = await apiClient.get(`/games/${gameId}/events`, {
+      params: { limit, offset }
+    })
+    return response.data.events
+  },
 
   /**
-   * Получить счета игры
+   * Получение счетов игры
    */
-  static async getGameScores(gameId: string): Promise<GameScoresResponse> {
-    const response = await apiClient.get(`${this.baseUrl}/${gameId}/scores`)
-    return response
-  }
-
-  /**
-   * Получить события игры
-   */
-  static async getGameEvents(gameId: string, limit: number = 50, offset: number = 0): Promise<GameEventResponse[]> {
-    const params = new URLSearchParams()
-    if (limit) params.append('limit', limit.toString())
-    if (offset) params.append('offset', offset.toString())
-    
-    const response = await apiClient.get(`${this.baseUrl}/${gameId}/events?${params.toString()}`)
-    return response
+  async getGameScores(gameId: string): Promise<any> {
+    const response = await apiClient.get(`/games/${gameId}/scores`)
+    return response.data
   }
 } 

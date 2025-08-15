@@ -9,7 +9,7 @@ from typing import Optional
 
 from sqlalchemy import (
     Column, String, Integer, Boolean, DateTime, Text, 
-    ForeignKey, Numeric, Index, JSON
+    ForeignKey, Numeric, Index, JSON, Enum, text, TIMESTAMP, JSONB
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -33,29 +33,75 @@ class GameType(Base):
     sessions = relationship("GameSession", back_populates="game_type")
 
 
-class GameSession(Base):
-    """Игровые сессии"""
-    __tablename__ = "game_sessions"
+class Game(Base):
+    """Модель для отдельных игр в сессии"""
+    __tablename__ = "games"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    creator_user_id = Column(UUID(as_uuid=True), nullable=False)  # Ссылка на Auth Service
-    game_type_id = Column(Integer, ForeignKey("game_types.id"), nullable=False)
-    template_id = Column(UUID(as_uuid=True))  # Ссылка на Template Service
-    name = Column(String(255), nullable=False)
-    status = Column(String(50), default="waiting")  # waiting, in_progress, completed, cancelled
-    max_players = Column(Integer, default=8)
-    current_players_count = Column(Integer, default=0)
-    rules = Column(JSON)  # Конкретные правила для сессии
-    creation_step = Column(Integer, default=1)  # 🔄 ДОБАВЛЯЕМ: шаг создания (1-3)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    started_at = Column(DateTime(timezone=True))
-    completed_at = Column(DateTime(timezone=True))
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    session_id = Column(UUID(as_uuid=True), ForeignKey("game_sessions.id", ondelete="CASCADE"), nullable=False)
+    game_number = Column(Integer, nullable=False)
+    status = Column(Enum("active", "completed", "cancelled", name="game_status_enum"), nullable=False, default="active")
+    queue_algorithm = Column(Enum("always_random", "random_no_repeat", "manual", name="queue_algorithm_enum"), nullable=False)
+    current_queue = Column(JSONB, nullable=True)
+    started_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"))
+    completed_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"))
     
     # Relationships
-    game_type = relationship("GameType", back_populates="sessions")
+    session = relationship("GameSession", back_populates="games")
+    queue_history = relationship("GameQueue", back_populates="game", cascade="all, delete-orphan")
+    
+    def __repr__(self):
+        return f"<Game(id={self.id}, session_id={self.session_id}, game_number={self.game_number}, status={self.status})>"
+
+
+class GameQueue(Base):
+    """Модель для истории очередностей (только для random_no_repeat)"""
+    __tablename__ = "game_queues"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    session_id = Column(UUID(as_uuid=True), ForeignKey("game_sessions.id", ondelete="CASCADE"), nullable=False)
+    game_id = Column(UUID(as_uuid=True), ForeignKey("games.id", ondelete="CASCADE"), nullable=False)
+    queue_order = Column(JSONB, nullable=False)
+    algorithm_used = Column(Enum("always_random", "random_no_repeat", "manual", name="queue_algorithm_enum"), nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"))
+    
+    # Relationships
+    session = relationship("GameSession", back_populates="queue_history")
+    game = relationship("Game", back_populates="queue_history")
+    
+    def __repr__(self):
+        return f"<GameQueue(id={self.id}, session_id={self.session_id}, game_id={self.game_id}, algorithm={self.algorithm_used})>"
+
+
+# Обновляем GameSession для связи с играми
+class GameSession(Base):
+    """Модель для игровых сессий"""
+    __tablename__ = "game_sessions"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    creator_user_id = Column(UUID(as_uuid=True), nullable=False)
+    game_type_id = Column(Integer, ForeignKey("game_types.id"), nullable=False)
+    template_id = Column(UUID(as_uuid=True), nullable=True)
+    name = Column(String(255), nullable=False)
+    status = Column(Enum("waiting", "in_progress", "completed", "cancelled", name="session_status_enum"), nullable=False, default="waiting")
+    max_players = Column(Integer, nullable=False, default=4)
+    current_players_count = Column(Integer, nullable=False, default=1)
+    rules = Column(JSONB, nullable=True)
+    current_game_id = Column(UUID(as_uuid=True), ForeignKey("games.id"), nullable=True)  # НОВОЕ ПОЛЕ
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"))
+    updated_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("NOW()"))
+    
+    # Relationships
+    creator = relationship("User", foreign_keys=[creator_user_id])
+    game_type = relationship("GameType")
     participants = relationship("SessionParticipant", back_populates="session", cascade="all, delete-orphan")
     games = relationship("Game", back_populates="session", cascade="all, delete-orphan")
+    queue_history = relationship("GameQueue", back_populates="session", cascade="all, delete-orphan")
+    current_game = relationship("Game", foreign_keys=[current_game_id])
+    
+    def __repr__(self):
+        return f"<GameSession(id={self.id}, name={self.name}, status={self.status}, current_players={self.current_players_count}/{self.max_players})>"
 
 
 class SessionParticipant(Base):
@@ -89,27 +135,6 @@ class SessionParticipant(Base):
     session = relationship("GameSession", back_populates="participants")
     game_results = relationship("GameResult", back_populates="participant")
     game_events = relationship("GameEvent", back_populates="participant")
-
-
-class Game(Base):
-    """Отдельные игры в рамках сессии"""
-    __tablename__ = "games"
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    session_id = Column(UUID(as_uuid=True), ForeignKey("game_sessions.id", ondelete="CASCADE"), nullable=False)
-    game_number = Column(Integer, nullable=False)  # Порядковый номер игры в сессии
-    status = Column(String(50), default="in_progress")  # in_progress, completed, cancelled
-    winner_participant_id = Column(UUID(as_uuid=True), ForeignKey("session_participants.id"))
-    started_at = Column(DateTime(timezone=True), server_default=func.now())
-    completed_at = Column(DateTime(timezone=True))
-    duration_seconds = Column(Integer)
-    game_data = Column(JSON)  # Специфичные данные игры
-    
-    # Relationships
-    session = relationship("GameSession", back_populates="games")
-    winner = relationship("SessionParticipant", foreign_keys=[winner_participant_id])
-    events = relationship("GameEvent", back_populates="game", cascade="all, delete-orphan")
-    results = relationship("GameResult", back_populates="game", cascade="all, delete-orphan")
 
 
 class GameEvent(Base):

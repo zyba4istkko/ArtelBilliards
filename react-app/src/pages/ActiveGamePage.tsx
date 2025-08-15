@@ -17,6 +17,8 @@ import {
   Divider
 } from '@nextui-org/react'
 import { ArrowLeft, Clock, Plus, Edit2, X } from 'lucide-react'
+import { gameService } from '../api/services/gameService'
+import { SessionService } from '../api/services/sessionService'
 
 interface ActiveGamePageProps {
   // Props будут добавлены по мере необходимости
@@ -67,6 +69,11 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
   const [gameTime, setGameTime] = useState('00:00')
   const [currentUser] = useState('Ты') // Текущий пользователь
   const [isCreator] = useState(true) // Только creator может удалять записи
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [currentGame, setCurrentGame] = useState<any>(null)
+  const [session, setSession] = useState<any>(null)
+  
   const [players, setPlayers] = useState<Player[]>([
     {
       id: '1',
@@ -118,6 +125,50 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
   const [selectedTag, setSelectedTag] = useState<string>('')
   const [customDescription, setCustomDescription] = useState('')
   const [editingLogEntry, setEditingLogEntry] = useState<LogEntry | null>(null)
+
+  // Effect для инициализации игры
+  useEffect(() => {
+    const initializeGame = async () => {
+      if (!sessionId) return
+      
+      try {
+        setIsLoading(true)
+        setError(null)
+        
+        // 1. Получаем информацию о сессии
+        const sessionData = await SessionService.getSession(sessionId)
+        setSession(sessionData)
+        
+        // 2. Проверяем есть ли уже активная игра
+        let activeGame = await gameService.getActiveGame(sessionId)
+        
+        if (!activeGame) {
+          // 3. Если активной игры нет - создаем новую
+          console.log('🎮 Создаем новую игру в сессии...')
+          
+          const createGameRequest = {
+            queue_algorithm: sessionData.rules?.queue_algorithm || "random_no_repeat"
+          }
+          
+          activeGame = await gameService.createGame(sessionId, createGameRequest)
+          console.log('✅ Игра создана:', activeGame)
+        }
+        
+        setCurrentGame(activeGame)
+        
+        // 4. Инициализируем состояние игры из БД
+        // TODO: Загрузить существующие события игры если они есть
+        
+      } catch (err: any) {
+        console.error('❌ Ошибка инициализации игры:', err)
+        setError(err.message || 'Ошибка загрузки игры')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    initializeGame()
+  }, [sessionId])
 
   // Timer effect
   useEffect(() => {
@@ -333,13 +384,24 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
     setPlayers(updatedPlayers)
   }
 
+  // Обновляем handleEndGame для работы с API
   const handleEndGame = () => {
     setIsEndGameModalOpen(true)
   }
 
-  const handleConfirmEndGame = () => {
-    // Здесь будет логика завершения игры
-    navigate(`/game-session/${sessionId}`)
+  const handleConfirmEndGame = async () => {
+    if (!currentGame) return
+    
+    try {
+      // Завершаем игру через API
+      await gameService.completeGame(currentGame.id)
+      
+      // Возвращаемся к сессии
+      navigate(`/game-session/${sessionId}`)
+    } catch (err: any) {
+      console.error('❌ Ошибка завершения игры:', err)
+      setError(err.message || 'Ошибка завершения игры')
+    }
   }
 
   const getBallIcon = (ball: Ball) => (
@@ -388,6 +450,36 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
     return <div className="text-gray-400 text-xl">⚫</div>
   }
 
+  // Если загрузка - показываем индикатор
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-mint mx-auto mb-4"></div>
+          <div className="text-xl text-mint">Загрузка игры...</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Если ошибка - показываем сообщение
+  if (error) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-xl mb-4">❌ Ошибка</div>
+          <div className="text-gray-300 mb-6">{error}</div>
+          <Button 
+            color="primary" 
+            onClick={() => navigate(`/game-session/${sessionId}`)}
+          >
+            Вернуться к сессии
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Header */}
@@ -406,10 +498,16 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
               
               <div>
                 <div className="text-lg font-bold text-white">
-                  🎱 Колхоз - Игра #2
+                  🎱 {session?.name || 'Колхоз'} - Игра #{currentGame?.game_number || '1'}
                 </div>
                 <div className="text-xs text-gray-300">
                   {players.length} игрока • До последнего шара
+                  {currentGame?.game_data?.queue_algorithm && (
+                    <span className="ml-2">
+                      • {currentGame.game_data.queue_algorithm === 'random_no_repeat' ? 'Рандом без повторов' : 
+                          currentGame.game_data.queue_algorithm === 'always_random' ? 'Всегда рандом' : 'Ручная очередь'}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

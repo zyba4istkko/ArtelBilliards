@@ -7,6 +7,7 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.schemas import (
     CreateGameRequest, GameResponse, GameListResponse,
@@ -14,6 +15,7 @@ from ..models.schemas import (
     GameScoresResponse, BaseResponse
 )
 from ..services.game_service import GameService
+from ..core.database import get_db
 
 router = APIRouter(prefix="/games", tags=["games"])
 
@@ -29,11 +31,12 @@ async def get_current_user() -> UUID:
 async def create_game(
     session_id: UUID,
     request: CreateGameRequest,
-    current_user: UUID = Depends(get_current_user)
+    current_user: UUID = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Создание новой игры в сессии"""
     try:
-        return await GameService.create_game(session_id, request)
+        return await GameService.create_game(db, session_id, request)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -44,11 +47,12 @@ async def create_game(
 async def get_session_games(
     session_id: UUID,
     limit: int = Query(10, ge=1, le=100),
-    offset: int = Query(0, ge=0)
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db)
 ):
     """Получение списка игр в сессии"""
     try:
-        games = await GameService.get_session_games(session_id, limit, offset)
+        games = await GameService.get_session_games(db, session_id, limit, offset)
         
         return GameListResponse(
             games=games,
@@ -59,10 +63,13 @@ async def get_session_games(
 
 
 @router.get("/{game_id}", response_model=GameResponse)
-async def get_game(game_id: UUID):
+async def get_game(
+    game_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
     """Получение детальной информации об игре"""
     try:
-        game = await GameService.get_game(game_id)
+        game = await GameService.get_game(db, game_id)
         if not game:
             raise HTTPException(status_code=404, detail="Game not found")
         return game
@@ -72,15 +79,33 @@ async def get_game(game_id: UUID):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
+@router.get("/sessions/{session_id}/active-game", response_model=GameResponse)
+async def get_active_game(
+    session_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    """Получение активной игры в сессии"""
+    try:
+        active_game = await GameService.get_active_game(db, session_id)
+        if not active_game:
+            raise HTTPException(status_code=404, detail="No active game found in session")
+        return active_game
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
 @router.post("/{game_id}/start", response_model=GameResponse)
 async def start_game(
     game_id: UUID,
-    current_user: UUID = Depends(get_current_user)
+    current_user: UUID = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Начало игры"""
     try:
         # TODO: Реализовать логику начала игры
-        game = await GameService.get_game(game_id)
+        game = await GameService.get_game(db, game_id)
         if not game:
             raise HTTPException(status_code=404, detail="Game not found")
         
@@ -94,11 +119,12 @@ async def start_game(
 @router.post("/{game_id}/end", response_model=GameResponse)
 async def end_game(
     game_id: UUID,
-    current_user: UUID = Depends(get_current_user)
+    current_user: UUID = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Завершение игры"""
     try:
-        return await GameService.end_game(game_id)
+        return await GameService.complete_game(db, game_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -109,11 +135,12 @@ async def end_game(
 async def add_game_event(
     game_id: UUID,
     request: GameEventRequest,
-    current_user: UUID = Depends(get_current_user)
+    current_user: UUID = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Добавление игрового события"""
     try:
-        return await GameService.add_game_event(game_id, request)
+        return await GameService.add_game_event(db, game_id, request)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -123,35 +150,31 @@ async def add_game_event(
 @router.get("/{game_id}/events", response_model=GameEventsResponse)
 async def get_game_events(
     game_id: UUID,
-    limit: int = Query(100, ge=1, le=1000),
-    offset: int = Query(0, ge=0)
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db)
 ):
-    """Получение истории событий игры (stub)"""
+    """Получение истории событий игры"""
     try:
-        # Заглушка - возвращаем примерное событие
-        event = GameEventResponse(
-            id=UUID("event123-4567-8901-2345-678901234567"),
-            game_id=game_id,
-            participant_id=UUID("87654321-4321-8765-cba9-987654321abc"),
-            event_type=GameEventType.BALL_POTTED,
-            event_data={"ball_color": "red", "ball_points": 4},
-            sequence_number=1,
-            created_at=datetime.now()
-        )
+        # TODO: Реализовать получение событий из БД
+        events = []
         
         return GameEventsResponse(
-            events=[event],
-            total=1
+            events=events,
+            total=len(events)
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.get("/{game_id}/scores", response_model=GameScoresResponse)
-async def get_game_scores(game_id: UUID):
+async def get_game_scores(
+    game_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
     """Получение текущих счетов игры"""
     try:
-        return await GameService.get_game_scores(game_id)
+        return await GameService.get_game_scores(db, game_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
