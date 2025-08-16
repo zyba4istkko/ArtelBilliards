@@ -26,7 +26,7 @@ interface ActiveGamesSectionProps {
 
 export default function ActiveGamesSection({ 
   title = "Активные игры",
-  maxSessions = 10  // 🔄 УВЕЛИЧИВАЕМ: с 5 до 10 сессий
+  maxSessions = 5  // Показываем по 5 активных сессий
 }: ActiveGamesSectionProps) {
   const navigate = useNavigate()
   const user = useUser()
@@ -45,18 +45,36 @@ export default function ActiveGamesSection({
       
       console.log('🔍 ActiveGamesSection: Начинаю загрузку активных сессий для пользователя:', user.id)
       
-      // Получаем активные сессии пользователя через новый endpoint /filter
-      const sessions = await SessionService.getSessionsByFilter({
-        // status: 'in_progress', // Убираю фильтр по статусу чтобы показывать все сессии
-        user_id: user.id,
-        limit: maxSessions,
-        offset: 0
-      })
+          // Получаем активные сессии пользователя (waiting и in_progress)
+  const activeSessions = await SessionService.getSessionsByFilter({
+    user_id: user.id,
+    status: 'waiting', // Фильтруем по статусу waiting
+    limit: maxSessions,
+    offset: 0
+  })
+  
+  // Получаем сессии in_progress отдельно
+  const inProgressSessions = await SessionService.getSessionsByFilter({
+    user_id: user.id,
+    status: 'in_progress', // Фильтруем по статусу in_progress
+    limit: maxSessions,
+    offset: 0
+  })
+  
+  // Объединяем и ограничиваем
+  const sessions = [...activeSessions, ...inProgressSessions]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, maxSessions)
       
-      console.log('🔍 ActiveGamesSection: Параметры запроса:', { user_id: user.id, limit: maxSessions, offset: 0 })
+      console.log('🔍 ActiveGamesSection: Сессии после объединения и сортировки:', sessions.map(s => ({ id: s.id, name: s.name, status: s.status })))
+      
+      console.log('🔍 ActiveGamesSection: Параметры запроса:', { 
+        user_id: user.id, 
+        waiting_limit: maxSessions, 
+        in_progress_limit: maxSessions,
+        offset: 0 
+      })
       console.log('🔍 ActiveGamesSection: Получены сессии от API:', sessions)
-      console.log('🔍 ActiveGamesSection: Тип ответа:', typeof sessions)
-      console.log('🔍 ActiveGamesSection: Это массив?', Array.isArray(sessions))
       console.log('🔍 ActiveGamesSection: Количество сессий:', sessions?.length || 0)
       
       if (Array.isArray(sessions)) {

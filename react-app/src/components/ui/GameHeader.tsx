@@ -108,7 +108,7 @@ export default function GameHeader({
               }`}>
                                  {sessionStatus === 'waiting' ? '⏳ Ожидание' :
                   sessionStatus === 'in_progress' ? 'В процессе' :
-                  sessionStatus === 'completed' ? '✅ Завершена' :
+                  sessionStatus === 'completed' ? 'Завершена' :
                   sessionStatus === 'cancelled' ? '❌ Отменена' :
                   sessionStatus}
               </span>

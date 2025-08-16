@@ -169,8 +169,10 @@ export class SessionService {
    * Завершить сессию
    */
   static async endSession(id: string): Promise<GameSession> {
-    // apiClient.post уже возвращает response.data
-    const response = await apiClient.post(`${this.baseUrl}/${id}/end`, {})
+    // Используем PUT endpoint для обновления статуса сессии
+    const response = await apiClient.put(`${this.baseUrl}/${id}`, {
+      status: 'completed'
+    })
     return response
   }
 

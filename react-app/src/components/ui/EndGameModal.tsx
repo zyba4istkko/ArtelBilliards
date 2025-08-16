@@ -50,7 +50,7 @@ export default function EndGameModal({
           </Button>
           <Button
             color="danger"
-            className="font-bold"
+            className="font-bold ml-auto"
             onClick={onConfirm}
           >
             Завершить

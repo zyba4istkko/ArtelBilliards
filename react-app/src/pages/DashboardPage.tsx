@@ -10,41 +10,15 @@ import {
   Divider
 } from '@mui/material'
 import { 
-  CheckCircle,
-  Cancel,
-  EmojiEvents,
   FiberManualRecord
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
-import { ActiveGamesSection } from '../components/ui'
+import { ActiveGamesSection, RecentResultsSection } from '../components/ui'
 
 function DashboardPage() {
   const navigate = useNavigate()
 
-  // Моковые данные для демонстрации
-  const recentResults = [
-    {
-      id: 1,
-      outcome: 'win',
-      game: '🔺 Пирамида: Победа',
-      opponents: 'vs Игорь, Алексей',
-      time: 'вчера'
-    },
-    {
-      id: 2,
-      outcome: 'loss',
-      game: '🎱 Колхоз: Поражение',
-      opponents: 'vs Михаил',
-      time: '2 дня назад'
-    },
-    {
-      id: 3,
-      outcome: 'tournament',
-      game: 'Турнир "Золотой кий": 2 место',
-      opponents: '8 участников',
-      time: 'неделя назад'
-    }
-  ]
+
 
   const quickActions = [
     {
@@ -77,18 +51,7 @@ function DashboardPage() {
     }
   ]
 
-  const getOutcomeIcon = (outcome: string) => {
-    switch (outcome) {
-      case 'win':
-        return <CheckCircle sx={{ color: 'success.main' }} />
-      case 'loss':
-        return <Cancel sx={{ color: 'error.main' }} />
-      case 'tournament':
-        return <EmojiEvents sx={{ color: 'warning.main' }} />
-      default:
-        return null
-    }
-  }
+
 
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 3 }}>
@@ -180,62 +143,8 @@ function DashboardPage() {
         {/* Active Games - теперь с реальными данными */}
         <ActiveGamesSection />
 
-        {/* Recent Results */}
-        <Box sx={{ mb: 6 }}>
-          <Typography variant="h4" component="h2" sx={{ 
-            color: 'primary.main', 
-            fontWeight: 700, 
-            mb: 3,
-            textAlign: { xs: 'center', md: 'left' }
-          }}>
-            Недавние результаты
-          </Typography>
-          
-          <Card sx={{ border: 1, borderColor: 'divider' }}>
-            <CardContent sx={{ p: 3 }}>
-              {recentResults.map((result, index) => (
-                <Box key={result.id}>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    py: 2,
-                    px: 2
-                  }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box sx={{ 
-                        width: 24, 
-                        height: 24, 
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        {getOutcomeIcon(result.outcome)}
-                      </Box>
-                      <Box>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                          {result.game}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {result.opponents}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                      {result.time}
-                    </Typography>
-                  </Box>
-                  
-                  {index < recentResults.length - 1 && (
-                    <Divider sx={{ mx: 2 }} />
-                  )}
-                </Box>
-              ))}
-            </CardContent>
-          </Card>
-        </Box>
+        {/* Recent Results - теперь с реальными данными и пагинацией */}
+        <RecentResultsSection />
       </Container>
     </Box>
   )

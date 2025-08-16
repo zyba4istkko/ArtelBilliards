@@ -254,19 +254,8 @@ function SessionCreationPage() {
     }
   }
 
-  // 🔄 НОВАЯ ФУНКЦИЯ: Очистка при отмене/возврате
-  const handleBack = async () => {
-    // Если есть созданная сессия и мы еще не добавили игроков - удаляем её
-    if (createdSession && players.length <= 1) {
-      try {
-        console.log('🗑️ SessionCreationPage: Удаляю неиспользованную сессию:', createdSession.id)
-        await SessionService.deleteSession(createdSession.id)
-        console.log('✅ SessionCreationPage: Сессия удалена')
-      } catch (err) {
-        console.warn('⚠️ SessionCreationPage: Не удалось удалить сессию:', err)
-      }
-    }
-    
+  // 🔄 ИЗМЕНЕНО: Простой переход на дашборд без удаления сессии
+  const handleBack = () => {
     navigate('/dashboard')
   }
 

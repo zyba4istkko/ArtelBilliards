@@ -269,23 +269,20 @@ async def update_session(
 @router.delete("/{session_id}", response_model=BaseResponse)
 async def delete_session(
     session_id: UUID,
-    current_user: str = Depends(get_current_user)
+    current_user: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Удаление сессии"""
     try:
-        # TODO: Реализовать удаление сессии
-        session = await SessionService.get_session(session_id)
-        if not session:
-            raise HTTPException(status_code=404, detail="Session not found")
-        
-        # Проверяем права на удаление
-        if session.creator_user_id != current_user:
-            raise HTTPException(status_code=403, detail="Only session creator can delete session")
+        # Удаляем сессию через SessionService
+        await SessionService.delete_session(db, session_id, current_user)
         
         return BaseResponse(
             success=True,
             message="Session deleted successfully"
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:

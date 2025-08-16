@@ -130,6 +130,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
   const [logEntries, setLogEntries] = useState<LogEntry[]>([])
   
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false)
+  // 🔄 ДОБАВЛЯЕМ: Модальное окно подтверждения завершения игры
   const [isEndGameModalOpen, setIsEndGameModalOpen] = useState(false)
   const [isEditLogModalOpen, setIsEditLogModalOpen] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
@@ -784,7 +785,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
     setPlayers(updatedPlayers)
   }
 
-  // Обновляем handleEndGame для работы с API
+  // Обновляем handleEndGame для показа модального окна подтверждения
   const handleEndGame = () => {
     console.log('🎯 handleEndGame: Вызывается для игры:', currentGame?.id)
     console.log('🎯 handleEndGame: Статус игры:', currentGame?.status)
@@ -796,7 +797,6 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
     }
     
     // 🔄 ПОКАЗЫВАЕМ: Модальное окно подтверждения завершения
-    // После подтверждения будет показано расширенное окно с результатами
     setIsEndGameModalOpen(true)
   }
 
@@ -821,10 +821,13 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
       setShowGameResults(true)
       console.log('✅ Игра завершена, показываем результаты')
       
+      // 🔄 ЗАКРЫВАЕМ: Модальное окно подтверждения
+      setIsEndGameModalOpen(false)
+      
     } catch (err: any) {
       console.error('❌ Ошибка завершения игры:', err)
       setError(err.message || 'Ошибка завершения игры')
-      // Закрываем модальное окно при ошибке
+      // 🔄 ЗАКРЫВАЕМ: Модальное окно при ошибке
       setIsEndGameModalOpen(false)
       setShowGameResults(false)
     }
@@ -1013,54 +1016,38 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
 
       <div className="min-h-screen bg-black text-white">
         <main className="max-w-4xl mx-auto px-4 pb-20">
-          {/* Game Completed Message - КОМПАКТНЫЙ БАННЕР СВЕРХУ */}
-          {currentGame && currentGame.status === 'completed' && (
-            <div className="bg-gradient-to-r from-mint/20 to-blue-500/20 border border-mint/30 rounded-lg p-4 mb-6 text-center">
-              <div className="flex items-center justify-center gap-3 mb-3">
-                <div className="text-2xl">🏆</div>
-                <div className="text-lg font-bold text-mint">Игра завершена!</div>
-                <div className="text-2xl">🏆</div>
-              </div>
-              
-              <div className="text-sm text-gray-300 mb-4">
-                Игра #{currentGame.game_number} была завершена
-                {currentGame.winner_participant_id && (
-                  <span className="block mt-1">
-                    Победитель: {players.find(p => p.id === currentGame.winner_participant_id)?.name || 'Неизвестно'}
-                  </span>
-                )}
-              </div>
-              
-              {/* Компактные карточки игроков в одну строку */}
-              <div className="flex justify-center gap-6 mb-4">
-                {sortedPlayers.map((player) => {
-                  const playerBalances = calculateFinalDebts
-                  const playerBalance = playerBalances.find(p => p.name === player.name)?.balance || 0
-                  
-                  return (
-                    <div key={player.id} className="bg-gray-800/80 border border-gray-600 rounded-lg px-4 py-2 text-center min-w-[120px]">
-                      <div className="font-bold text-white text-sm mb-1">{player.name}</div>
-                      <div className={`text-lg font-mono font-bold ${
-                        playerBalance >= 0 ? 'text-green-400' : 'text-red-400'
-                      }`}>
-                        {playerBalance >= 0 ? '+' : ''}{playerBalance} ₽
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-              
-              <Button
-                color="primary"
-                variant="bordered"
-                onClick={handleBackToSession}
-                className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600 text-sm"
-                size="sm"
-              >
-                ← Вернуться к сессии
-              </Button>
-            </div>
-          )}
+                     {/* 🔄 УБИРАЕМ: Весь блок "Игра завершена" - оставляем только информацию о завершении */}
+           {currentGame && currentGame.status === 'completed' && (
+             <div className="bg-gradient-to-r from-mint/20 to-blue-500/20 border border-mint/30 rounded-xl p-6 mb-6">
+               
+               
+               
+               
+               {/* Компактные карточки игроков с балансом */}
+               <div className="mb-6">
+                 <h5 className="text-lg font-semibold text-center text-gray-300 mb-4">
+                   💰 Финальные балансы игроков
+                 </h5>
+                 <div className="flex justify-center gap-6">
+                   {sortedPlayers.map((player) => {
+                     const playerBalances = calculateFinalDebts
+                     const playerBalance = playerBalances.find(p => p.name === player.name)?.balance || 0
+                     
+                     return (
+                       <div key={player.id} className="bg-gray-800/80 border border-gray-600 rounded-lg px-4 py-3 text-center min-w-[140px]">
+                         <div className="font-bold text-white text-sm mb-2">{player.name}</div>
+                         <div className={`text-xl font-mono font-bold ${
+                           playerBalance >= 0 ? 'text-green-400' : 'text-red-400'
+                         }`}>
+                           {playerBalance >= 0 ? '+' : ''}{playerBalance} ₽
+                         </div>
+                       </div>
+                     )
+                   })}
+                 </div>
+               </div>
+             </div>
+           )}
 
           {/* Players Section */}
           <Card className="bg-gray-800 border border-gray-600 mb-6">
@@ -1480,190 +1467,33 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
         <ModalContent>
           <ModalHeader className="text-center">
             <h3 className="text-2xl font-bold text-white">
-              {showGameResults ? '🎯 Игра завершена!' : 'Завершить игру?'}
+              Завершить игру?
             </h3>
           </ModalHeader>
           <ModalBody>
-            {!showGameResults ? (
-              // 🔄 ПОКАЗЫВАЕМ: Подтверждение завершения игры
-              <div className="text-center">
-                <div className="text-6xl mb-4">🎯</div>
-                <p className="text-gray-300 text-lg">
-                  Игра будет завершена и результаты сохранены. 
-                  После завершения вы увидите финальную статистику.
-                </p>
-              </div>
-            ) : (
-              // 🔄 ПОКАЗЫВАЕМ: Результаты завершения игры
-              <>
-                {/* Победитель */}
-                <div className="text-center mb-6">
-                  <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-6 py-3 rounded-lg inline-block">
-                    <div className="text-lg font-semibold">🏆 Победитель</div>
-                    <div className="text-2xl font-bold">{getWinnerDisplayName()}</div>
-                    <div className="text-sm opacity-80">{getWinnerPoints()} очков</div>
-                  </div>
-                </div>
-
-                {/* Финальная статистика */}
-                <div className="space-y-4">
-                  <h4 className="text-lg font-semibold text-center text-gray-300 mb-4">
-                    📊 Финальная статистика
-                  </h4>
-                  
-                  {/* Таблица результатов */}
-                  <div className="bg-gray-700 rounded-lg p-4">
-                    <div className="grid grid-cols-5 gap-2 text-sm font-medium text-gray-400 mb-2">
-                      <div>Место</div>
-                      <div>Игрок</div>
-                      <div>Очки</div>
-                      <div>Деньги</div>
-                      <div>Шары</div>
-                    </div>
-                    
-                    {(() => {
-                      try {
-                        const result = calculateFinalStatistics()
-                        return result.finalScores.map((score, index) => (
-                          <div 
-                            key={score.player.id}
-                            className={`grid grid-cols-5 gap-2 py-2 px-2 rounded ${
-                              index === 0 
-                                ? 'bg-yellow-500/20 border border-yellow-500/30' 
-                                : 'bg-gray-600/50'
-                            }`}
-                          >
-                            <div className="text-center">
-                              {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}`}
-                            </div>
-                            <div className="font-medium">{score.player.name}</div>
-                            <div className="text-center">{score.totalPoints}</div>
-                            <div className="text-center">{score.totalMoney}₽</div>
-                            <div className="text-center">{score.balls.length}</div>
-                          </div>
-                        ))
-                      } catch (error) {
-                        return <div className="text-gray-400 text-center py-4">Ошибка расчета статистики</div>
-                      }
-                    })()}
-                  </div>
-
-                  {/* Общая статистика игры */}
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div className="bg-gray-700 rounded-lg p-3">
-                      <div className="text-2xl text-blue-400">🎱</div>
-                      <div className="text-sm text-gray-400">Всего шаров</div>
-                      <div className="text-lg font-semibold">
-                        {(() => {
-                          try {
-                            const result = calculateFinalStatistics()
-                            return result.totalBalls
-                          } catch (error) {
-                            return 0
-                          }
-                        })()}
-                      </div>
-                    </div>
-                    
-                    <div className="bg-gray-700 rounded-lg p-3">
-                      <div className="text-2xl text-red-400">❌</div>
-                      <div className="text-sm text-gray-400">Всего штрафов</div>
-                      <div className="text-lg font-semibold">
-                        {(() => {
-                          try {
-                            const result = calculateFinalStatistics()
-                            return result.totalFouls
-                          } catch (error) {
-                            return 0
-                          }
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Продолжительность игры */}
-                  <div className="text-center">
-                    <div className="text-sm text-gray-400">⏱️ Продолжительность игры</div>
-                    <div className="text-lg font-semibold text-mint">
-                      {(() => {
-                        try {
-                          const result = calculateFinalStatistics()
-                          return result.gameDuration
-                        } catch (error) {
-                          return '00:00'
-                        }
-                      })()}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
+            <div className="text-center">
+              <div className="text-6xl mb-4">🎯</div>
+              <p className="text-gray-300 text-lg">
+                Игра будет завершена и результаты сохранены. 
+                После завершения вы увидите финальную статистику.
+              </p>
+            </div>
           </ModalBody>
           <ModalFooter className="flex justify-between">
-            {!showGameResults ? (
-              // 🔄 ПОКАЗЫВАЕМ: Кнопки подтверждения
-              <>
-                <Button 
-                  variant="bordered" 
-                  onPress={() => setIsEndGameModalOpen(false)}
-                  className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
-                >
-                  Отмена
-                </Button>
-                <Button 
-                  color="danger" 
-                  onPress={handleConfirmEndGame}
-                  className="bg-red-600 text-white hover:bg-red-700"
-                >
-                  Завершить игру
-                </Button>
-              </>
-            ) : (
-              // 🔄 ПОКАЗЫВАЕМ: Кнопки навигации
-              <>
-                <Button 
-                  variant="bordered" 
-                  onPress={() => {
-                    setIsEndGameModalOpen(false)
-                    setShowGameResults(false)
-                  }}
-                  className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
-                >
-                  Закрыть
-                </Button>
-                
-                <div className="flex gap-2">
-                  <Button 
-                    color="primary" 
-                    variant="bordered"
-                    onPress={() => {
-                      setIsEndGameModalOpen(false)
-                      setShowGameResults(false)
-                      if (session?.id) {
-                        navigate(`/game-session/${session.id}`)
-                      }
-                    }}
-                    className="bg-gray-700 border-blue-500 text-blue-400 hover:bg-gray-600"
-                  >
-                    Вернуться к сессии
-                  </Button>
-                  
-                  <Button 
-                    color="success" 
-                    onPress={() => {
-                      setIsEndGameModalOpen(false)
-                      setShowGameResults(false)
-                      if (session?.id) {
-                        navigate(`/session/create/${session.id}`)
-                      }
-                    }}
-                    className="bg-green-600 text-white hover:bg-green-700"
-                  >
-                    Создать новую игру
-                  </Button>
-                </div>
-              </>
-            )}
+            <Button 
+              variant="bordered" 
+              onPress={() => setIsEndGameModalOpen(false)}
+              className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
+            >
+              Отмена
+            </Button>
+            <Button 
+              color="danger" 
+              onPress={handleConfirmEndGame}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              Завершить игру
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

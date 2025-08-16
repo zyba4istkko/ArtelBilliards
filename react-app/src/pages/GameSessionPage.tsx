@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { ChartNoAxesCombined } from 'lucide-react'
 import { 
   GameHeader, 
   Scoreboard, 
@@ -479,6 +480,7 @@ export default function GameSessionPage() {
   const handleResume = () => setIsPaused(false)
   
   const handleEndGame = () => {
+    console.log('🎯 GameSessionPage: Показываем модальное окно завершения сессии')
     setIsEndGameModalOpen(true)
   }
 
@@ -670,14 +672,35 @@ export default function GameSessionPage() {
   // }
 
   const handleBackToSession = () => {
-    navigate('/session')
+    navigate('/dashboard')
   }
 
-  const handleConfirmEndGame = () => {
-    // Logic for ending the game
-    setIsEndGameModalOpen(false)
-    // Navigate back to session
-    navigate('/session')
+  const handleConfirmEndGame = async () => {
+    if (!sessionId) return
+    
+    try {
+      console.log('🎯 GameSessionPage: Завершаем сессию:', sessionId)
+      
+      // Завершаем сессию через API
+      const updatedSession = await SessionService.endSession(sessionId)
+      console.log('✅ GameSessionPage: Сессия завершена:', updatedSession)
+      
+      // Обновляем локальное состояние сессии
+      setSession(updatedSession)
+      
+      // Закрываем модальное окно
+      setIsEndGameModalOpen(false)
+      
+      // Перенаправляем на dashboard
+      navigate('/dashboard')
+      
+    } catch (error: any) {
+      console.error('❌ GameSessionPage: Ошибка завершения сессии:', error)
+      // Показываем ошибку пользователю
+      setError('Ошибка завершения сессии: ' + (error.message || 'Неизвестная ошибка'))
+      // Закрываем модальное окно при ошибке
+      setIsEndGameModalOpen(false)
+    }
   }
 
 
@@ -749,6 +772,19 @@ export default function GameSessionPage() {
       />
 
       <main className="max-w-4xl mx-auto px-4 pb-20">
+        {/* Сообщение о завершенной сессии - перемещено наверх */}
+        {session.status === 'completed' && (
+          <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-6 mb-6 text-center">
+            <div className="text-blue-400 text-lg font-semibold mb-2 flex items-center justify-center gap-2">
+              <ChartNoAxesCombined className="w-5 h-5" />
+              Сессия завершена
+            </div>
+            <div className="text-gray-300 text-sm">
+              Эта сессия была завершена. Вы можете просматривать статистику, но не можете создавать новые игры.
+            </div>
+          </div>
+        )}
+
         {/* Scoreboard - Общий счет сессии */}
         <SessionStatisticsCard 
           statistics={sessionStatistics}
@@ -784,14 +820,16 @@ export default function GameSessionPage() {
           ) : (
             <div className="space-y-4">
               {/* Add New Game Button */}
-              <div className="text-center mb-4">
-                <button
-                  onClick={handleNextGame}
-                  className="bg-mint text-black px-6 py-3 rounded-lg hover:bg-mint/80 font-medium"
-                >
-                  🎮 Создать новую игру
-                </button>
-              </div>
+              {session && session.status !== 'completed' && session.status !== 'cancelled' && (
+                <div className="text-center mb-4">
+                  <button
+                    onClick={handleNextGame}
+                    className="bg-mint text-black px-6 py-3 rounded-lg hover:bg-mint/80 font-medium"
+                  >
+                    🎮 Создать новую игру
+                  </button>
+                </div>
+              )}
               
               {games && games.map((game) => (
                 <div 
@@ -866,17 +904,19 @@ export default function GameSessionPage() {
           )}
         </div>
 
-        {/* Game Controls - Завершить игру (перемещено вниз) */}
-        <div className="bg-gray-800 border border-gray-600 rounded-2xl p-6 mb-6">
-          <div className="flex gap-3">
-            <button
-              onClick={handleEndGame}
-              className="bg-red-500 text-white px-6 py-3 rounded-full hover:bg-red-600 font-semibold text-base transition-all duration-250"
-            >
-              🏁 Завершить игру
-            </button>
+        {/* Game Controls - Завершить сессию (перемещено вниз) */}
+        {session && session.status !== 'completed' && session.status !== 'cancelled' && (
+          <div className="bg-gray-800 border border-gray-600 rounded-2xl p-6 mb-6">
+            <div className="flex gap-3">
+              <button
+                onClick={handleEndGame}
+                className="bg-red-500 text-white px-6 py-3 rounded-full hover:bg-red-600 font-semibold text-base transition-all duration-250"
+              >
+                🏁 Завершить сессию
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </main>
 
       {/* Score Modal */}
@@ -892,6 +932,8 @@ export default function GameSessionPage() {
         isOpen={isEndGameModalOpen}
         onClose={() => setIsEndGameModalOpen(false)}
         onConfirm={handleConfirmEndGame}
+        title="Завершить сессию?"
+        message="Сессия будет завершена и результаты сохранены."
       />
     </div>
   )

@@ -843,6 +843,12 @@ class SessionService:
                     db_session.status = status
                     updated_fields.append("status")
                     print(f"🔍 DEBUG: Updated status to: {status}")
+                    
+                    # Если завершаем сессию, устанавливаем время завершения
+                    if status == "completed":
+                        db_session.ended_at = datetime.now(timezone.utc)
+                        updated_fields.append("ended_at")
+                        print(f"🔍 DEBUG: Set ended_at to: {db_session.ended_at}")
                 else:
                     print(f"❌ DEBUG: Неверный статус: {status}")
                     raise ValueError(f"Invalid status: {status}")
@@ -885,5 +891,41 @@ class SessionService:
             import traceback
             print(f"❌ DEBUG: Full traceback:")
             traceback.print_exc()
+            await db.rollback()
+            raise
+
+    @staticmethod
+    async def delete_session(db: AsyncSession, session_id: UUID, current_user: str) -> bool:
+        """Удаление сессии"""
+        try:
+            print(f"🔍 DEBUG: delete_session - Начинаю удаление сессии {session_id}")
+            
+            # Получаем сессию
+            db_session = await SessionService.get_session(db, session_id)
+            if not db_session:
+                print(f"❌ DEBUG: delete_session - Сессия {session_id} не найдена")
+                raise ValueError("Session not found")
+            
+            # Проверяем права на удаление
+            if str(db_session.creator_user_id) != current_user:
+                print(f"❌ DEBUG: delete_session - Пользователь {current_user} не может удалить сессию {session_id}")
+                raise ValueError("Only session creator can delete session")
+            
+            # Проверяем статус сессии
+            if db_session.status == "in_progress":
+                print(f"❌ DEBUG: delete_session - Нельзя удалить активную сессию {session_id}")
+                raise ValueError("Cannot delete active session")
+            
+            print(f"🔍 DEBUG: delete_session - Удаляю сессию {session_id}")
+            
+            # Удаляем сессию
+            await db.delete(db_session)
+            await db.commit()
+            
+            print(f"✅ DEBUG: delete_session - Сессия {session_id} успешно удалена")
+            return True
+            
+        except Exception as e:
+            print(f"❌ DEBUG: delete_session - Ошибка при удалении сессии {session_id}: {str(e)}")
             await db.rollback()
             raise

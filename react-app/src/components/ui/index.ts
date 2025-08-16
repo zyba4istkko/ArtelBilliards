@@ -32,3 +32,4 @@ export { default as SessionStatisticsCard } from './SessionStatisticsCard'
 
 // Dashboard Components
 export { default as ActiveGamesSection } from './ActiveGamesSection'
+export { default as RecentResultsSection } from './RecentResultsSection'
