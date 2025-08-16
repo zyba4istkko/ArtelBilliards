@@ -46,33 +46,55 @@ class QueueAlgorithms:
         if not previous_queues:
             previous_queues = []
         
+        print(f"🔄 generate_random_no_repeat_queue: Начинаем генерацию для сессии {session_id}")
+        print(f"🔄 generate_random_no_repeat_queue: Участников: {len(participants)}")
+        print(f"🔄 generate_random_no_repeat_queue: История очередей: {len(previous_queues)}")
+        print(f"🔄 generate_random_no_repeat_queue: Участники: {[p.display_name for p in participants]}")
+        print(f"🔄 generate_random_no_repeat_queue: ID участников: {[str(p.id) for p in participants]}")
+        
+        # 🔄 ЕДИНЫЙ МЕХАНИЗМ ДЛЯ ВСЕХ СЛУЧАЕВ (2, 3, 4+ игроков)
         # Получаем все возможные перестановки
         from itertools import permutations
         
         all_permutations = list(permutations(participants))
         total_permutations = math.factorial(len(participants))
         
-        # Автоматически определяем размер истории
-        # Для полного цикла без повторений храним (N! - 1) игр
-        max_history = total_permutations - 1
+        print(f"🔄 generate_random_no_repeat_queue: Всего перестановок: {total_permutations}")
+        print(f"🔄 generate_random_no_repeat_queue: Размер истории: {len(previous_queues)}")
         
-        # Исключаем недавно использованные очередности
-        recent_queues = previous_queues[-max_history:] if previous_queues else []
-        
-        # Создаем список UUID из текущих перестановок для сравнения
-        available_queues = []
-        for perm in all_permutations:
-            perm_ids = [str(p.id) for p in perm]  # Используем .id вместо ['id']
-            if perm_ids not in recent_queues:
-                available_queues.append(perm)
-        
-        # Если все варианты использованы - сбрасываем историю и начинаем новый цикл
-        if not available_queues:
+        # 🔄 ПРИНУДИТЕЛЬНЫЙ СБРОС ИСТОРИИ ПОСЛЕ ПОЛНОГО ЦИКЛА
+        if len(previous_queues) >= total_permutations:
+            print(f"🔄 Session {session_id}: Завершен полный цикл из {total_permutations} игр. Принудительный сброс истории.")
+            # Сбрасываем историю и начинаем новый цикл
             available_queues = all_permutations
-            print(f"🔄 Session {session_id}: Завершен полный цикл из {total_permutations} игр. Начинаем новый цикл.")
+        else:
+            # Исключаем недавно использованные очередности
+            # Берем все предыдущие очереди для точного сравнения
+            recent_queues = previous_queues if previous_queues else []
+            print(f"🔄 generate_random_no_repeat_queue: Недавние очереди: {len(recent_queues)}")
+            
+            # Создаем список UUID из текущих перестановок для сравнения
+            available_queues = []
+            for perm in all_permutations:
+                perm_ids = [str(p.id) for p in perm]
+                if perm_ids not in recent_queues:
+                    available_queues.append(perm)
+            
+            print(f"🔄 generate_random_no_repeat_queue: Доступных очередей: {len(available_queues)}")
+            
+            # Если все варианты использованы - сбрасываем историю и начинаем новый цикл
+            if not available_queues:
+                available_queues = all_permutations
+                print(f"🔄 Session {session_id}: Все варианты использованы. Сбрасываем историю и начинаем новый цикл.")
         
         # Выбираем случайный из доступных
-        return list(random.choice(available_queues))
+        selected_queue = list(random.choice(available_queues))
+        selected_ids = [str(p.id) for p in selected_queue]
+        
+        print(f"🔄 generate_random_no_repeat_queue: Выбрана очередь: {selected_ids}")
+        print(f"🔄 generate_random_no_repeat_queue: Участники: {[p.display_name for p in selected_queue]}")
+        
+        return selected_queue
     
     @staticmethod
     def generate_manual_queue(
