@@ -17,8 +17,10 @@ import {
   Divider
 } from '@nextui-org/react'
 import { ArrowLeft, Clock, Plus, Edit2, X } from 'lucide-react'
+import GameHeader from '../components/ui/GameHeader'
 import { gameService } from '../api/services/gameService'
 import { SessionService } from '../api/services/sessionService'
+import { TemplateService } from '../api/services/templateService'
 
 interface ActiveGamePageProps {
   // Props будут добавлены по мере необходимости
@@ -165,6 +167,22 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
         const sessionData = await SessionService.getSession(gameData.session_id)
         console.log('✅ Сессия получена:', sessionData)
         console.log('🔍 Структура сессии:', JSON.stringify(sessionData, null, 2))
+        
+        // 🔄 НОВОЕ: Загружаем данные шаблона для сессии
+        if (sessionData?.template_id) {
+          try {
+            console.log('🔍 ActiveGamePage: Загружаю шаблон для сессии:', sessionData.template_id)
+            const template = await TemplateService.getTemplate(sessionData.template_id)
+            if (template) {
+              console.log('✅ ActiveGamePage: Шаблон загружен:', template)
+              sessionData.template = template
+            }
+          } catch (templateError) {
+            console.error('❌ ActiveGamePage: Ошибка загрузки шаблона:', templateError)
+            // Не блокируем загрузку сессии, если шаблон не загрузился
+          }
+        }
+        
         setSession(sessionData)
         
         // 3. Получаем участников сессии
@@ -976,44 +994,22 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
   return (
     <>
       {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-600 py-4 mb-6 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <Button
-                isIconOnly
-                variant="light"
-                className="text-mint hover:bg-gray-700"
-                onClick={handleBackToSession}
-              >
-                <ArrowLeft size={18} />
-              </Button>
-              
-              <div>
-                <div className="text-lg font-bold text-white">
-                  🎱 {session?.name || 'Колхоз'} - Игра #{currentGame?.game_number || '1'}
-                </div>
-                <div className="text-xs text-gray-300">
-                  {players.length} игрока • До последнего шара
-                  {currentGame?.game_data?.queue_algorithm && (
-                    <span className="ml-2">
-                      • {currentGame.game_data.queue_algorithm === 'random_no_repeat' ? 'Рандом без повторов' : 
-                          currentGame.game_data.queue_algorithm === 'always_random' ? 'Всегда рандом' : 'Ручная очередь'}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2 bg-gray-700 px-4 py-2 rounded-full">
-              <Clock className="text-mint" size={16} />
-              <span className="font-mono font-bold text-white text-sm">
-                {gameTime}
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
+      <GameHeader
+        gameType={`${session?.name || 'Колхоз'} - Игра #${currentGame?.game_number || '1'}`}
+        sessionId={session?.id || ''}
+        playerCount={players.length}
+        gameCount={1}
+        sessionStatus={session?.status || 'waiting'}
+        sessionCreatedAt={session?.created_at || new Date().toISOString()}
+        sessionEndedAt={session?.ended_at}
+        templateData={session?.template_id ? {
+          paymentDirection: session.template?.rules?.payment_direction || 'По часовой',
+          pointValueRubles: session.template?.rules?.point_value_rubles || 50,
+          queueAlgorithm: session.template?.rules?.queue_algorithm || 'random_no_repeat',
+          ballsToWin: session.template?.rules?.balls_to_win || 15
+        } : undefined}
+        onBack={handleBackToSession}
+      />
 
       <div className="min-h-screen bg-black text-white">
         <main className="max-w-4xl mx-auto px-4 pb-20">

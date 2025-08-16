@@ -8,7 +8,9 @@ import {
   GameControls,
   ScoreModal,
   PlayerCard,
-  EndGameModal
+  EndGameModal,
+  GamePlayersSummary,
+  SessionStatisticsCard
 } from '../components/ui'
 import { SessionService } from '../api/services/sessionService'
 import { gameService } from '../api/services/gameService'
@@ -53,10 +55,14 @@ export default function GameSessionPage() {
     wins: number
   }>>({})
   
+  // 🔄 ДОБАВЛЯЕМ: Состояние для данных игроков каждой игры
+  const [gamePlayersData, setGamePlayersData] = useState<Record<string, any[]>>({})
+  
   // Game state
   const [isPaused, setIsPaused] = useState(false)
   const [gameStartTime] = useState(Date.now())
   const [currentGameNumber, setCurrentGameNumber] = useState(1)
+  const [currentTime, setCurrentTime] = useState(Date.now())
   
   // Players state (transformed from API data)
   const [players, setPlayers] = useState<Player[]>([])
@@ -72,6 +78,134 @@ export default function GameSessionPage() {
       loadSessionData()
     }
   }, [sessionId])
+
+  // 🔄 ДОБАВЛЯЕМ: Обновление времени каждую секунду для активных игр
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now())
+    }, 1000)
+    
+    return () => clearInterval(interval)
+  }, [])
+
+  // 🔄 НОВАЯ ФУНКЦИЯ: Загрузка данных игроков для конкретной игры
+  const loadGamePlayersData = async (gameId: string) => {
+    try {
+      // Загружаем события игры
+      const gameEvents = await gameService.getGameEvents(gameId)
+      console.log(`🎮 GameSessionPage: События игры ${gameId}:`, gameEvents)
+      
+      // Получаем участников сессии
+      const participants = await SessionService.getSessionPlayers(sessionId!)
+      
+      // Создаем объект для хранения данных игроков
+      const gamePlayers: Record<string, {
+        id: string
+        name: string
+        avatar: string
+        points: number
+        money: number
+        netBalance: number
+        balls: Array<{
+          id: string
+          type: string
+          points: number
+          name: string
+          color: string
+          timestamp: string
+        }>
+        fouls: Array<{
+          id: string
+          timestamp: string
+        }>
+      }> = {}
+      
+      // Инициализируем игроков
+      participants.forEach(participant => {
+        gamePlayers[participant.id] = {
+          id: participant.id,
+          name: participant.display_name,
+          avatar: participant.display_name.charAt(0).toUpperCase(),
+          points: 0,
+          money: 0,
+          netBalance: 0,
+          balls: [],
+          fouls: []
+        }
+      })
+      
+      // Обрабатываем события игры
+      gameEvents.forEach((event: any) => {
+        const participantId = event.participant_id
+        if (gamePlayers[participantId]) {
+          if (event.event_type === 'shot') {
+            // Забитый шар
+            const eventData = event.event_data
+            if (eventData && eventData.points) {
+              const ball = {
+                id: event.id,
+                type: eventData.ball_type || 'white',
+                points: eventData.points,
+                name: eventData.ball_name || 'Шар',
+                color: '#ffffff', // Будет заменено в компоненте
+                timestamp: eventData.timestamp || '00:00'
+              }
+              
+              gamePlayers[participantId].balls.push(ball)
+              gamePlayers[participantId].points += eventData.points
+              gamePlayers[participantId].money += eventData.points * 50 // 50₽ за очко
+            }
+          } else if (event.event_type === 'foul') {
+            // Штраф
+            const eventData = event.event_data
+            const foul = {
+              id: event.id,
+              timestamp: eventData?.timestamp || '00:00'
+            }
+            
+            gamePlayers[participantId].fouls.push(foul)
+            gamePlayers[participantId].points -= 1
+            gamePlayers[participantId].money -= 50 // 50₽ за штраф
+          }
+        }
+      })
+      
+      // 🔄 РАССЧИТЫВАЕМ: Чистый баланс для каждого игрока (netBalance)
+      // Логика как в ActiveGamePage: каждый платит следующему за его очки
+      const sortedParticipants = [...participants].sort((a, b) => {
+        // Сортируем по позиции в очереди или по ID
+        return (a.queue_position || 0) - (b.queue_position || 0)
+      })
+      
+      for (let i = 0; i < sortedParticipants.length; i++) {
+        const currentParticipant = sortedParticipants[i]
+        const nextParticipant = sortedParticipants[i === sortedParticipants.length - 1 ? 0 : i + 1]
+        
+        const currentPoints = gamePlayers[currentParticipant.id]?.points || 0
+        const nextPoints = gamePlayers[nextParticipant.id]?.points || 0
+        
+        // Текущий участник получает за свои очки
+        const earnedFromPrev = currentPoints * 50 // 50₽ за очко
+        // Текущий участник платит следующему за его очки  
+        const paidToNext = nextPoints * 50
+        
+        // Чистый баланс для текущего участника
+        const netBalance = earnedFromPrev - paidToNext
+        
+        console.log(`🎮 ${currentParticipant.display_name}: получает ${earnedFromPrev}₽, платит ${paidToNext}₽, итого: ${netBalance}₽`)
+        
+        // Обновляем netBalance
+        if (gamePlayers[currentParticipant.id]) {
+          gamePlayers[currentParticipant.id].netBalance = netBalance
+        }
+      }
+      
+      return Object.values(gamePlayers)
+    } catch (error) {
+      console.error(`❌ GameSessionPage: Ошибка загрузки данных игроков для игры ${gameId}:`, error)
+      return []
+    }
+  }
 
   // 🔄 НОВАЯ ФУНКЦИЯ: Расчет агрегированной статистики сессии по завершенным играм
   const calculateSessionStatistics = async (games: any[], participants: any[]) => {
@@ -118,35 +252,66 @@ export default function GameSessionPage() {
           const gameEvents = await gameService.getGameEvents(game.id)
           console.log(`📊 GameSessionPage: События игры ${game.id}:`, gameEvents)
           
+          // 🔄 ИСПРАВЛЯЕМ: Правильный расчет чистого баланса как в ActiveGamePage
+          // Сначала собираем все события для каждого участника
+          const participantEvents: Record<string, { points: number, fouls: number }> = {}
+          
+          // Инициализируем события для всех участников
+          participants.forEach(participant => {
+            participantEvents[participant.id] = { points: 0, fouls: 0 }
+          })
+          
           // Обрабатываем события игры
           gameEvents.forEach((event: any) => {
             const participantId = event.participant_id
-            if (stats[participantId]) {
+            if (participantEvents[participantId]) {
               if (event.event_type === 'shot') {
                 // Забитый шар
                 const eventData = event.event_data
                 if (eventData && eventData.points) {
+                  participantEvents[participantId].points += eventData.points
                   stats[participantId].totalPoints += eventData.points
                   stats[participantId].totalBalls++
-                  
-                  // Рассчитываем заработок (стоимость очка * количество очков)
-                  const pointValue = eventData.point_value_rubles || 50 // По умолчанию 50₽
-                  const earned = eventData.points * pointValue
-                  stats[participantId].totalEarned += earned
-                  stats[participantId].netBalance += earned
                 }
               } else if (event.event_type === 'foul') {
                 // Штраф
+                participantEvents[participantId].fouls += 1
                 stats[participantId].totalFouls++
                 stats[participantId].totalPoints -= 1
-                
-                // Штраф за фол (обычно 50₽)
-                const foulPenalty = 50
-                stats[participantId].totalPaid += foulPenalty
-                stats[participantId].netBalance -= foulPenalty
               }
             }
           })
+          
+          // 🔄 РАССЧИТЫВАЕМ: Чистый баланс для каждого участника
+          // Логика как в ActiveGamePage: каждый платит следующему за его очки
+          const sortedParticipants = [...participants].sort((a, b) => {
+            // Сортируем по позиции в очереди или по ID
+            return (a.queue_position || 0) - (b.queue_position || 0)
+          })
+          
+          for (let i = 0; i < sortedParticipants.length; i++) {
+            const currentParticipant = sortedParticipants[i]
+            const nextParticipant = sortedParticipants[i === sortedParticipants.length - 1 ? 0 : i + 1]
+            
+            const currentPoints = participantEvents[currentParticipant.id]?.points || 0
+            const nextPoints = participantEvents[nextParticipant.id]?.points || 0
+            
+            // Текущий участник получает за свои очки
+            const earnedFromPrev = currentPoints * 50 // 50₽ за очко
+            // Текущий участник платит следующему за его очки  
+            const paidToNext = nextPoints * 50
+            
+            // Чистый баланс для текущего участника
+            const netBalance = earnedFromPrev - paidToNext
+            
+            console.log(`📊 ${currentParticipant.display_name}: получает ${earnedFromPrev}₽, платит ${paidToNext}₽, итого: ${netBalance}₽`)
+            
+            // Обновляем статистику
+            stats[currentParticipant.id].totalEarned += earnedFromPrev
+            stats[currentParticipant.id].totalPaid += paidToNext
+            stats[currentParticipant.id].netBalance += netBalance
+          }
+          
         } catch (error) {
           console.error(`❌ GameSessionPage: Ошибка загрузки событий игры ${game.id}:`, error)
         }
@@ -166,6 +331,17 @@ export default function GameSessionPage() {
       
       // Load session details
       const sessionData = await SessionService.getSession(sessionId)
+      
+      // Load template data if available
+      if (sessionData?.template_id) {
+        try {
+          const template = await TemplateService.getTemplate(sessionData.template_id)
+          sessionData.template = template
+        } catch (templateError) {
+          console.error('❌ GameSessionPage: Ошибка загрузки шаблона:', templateError)
+        }
+      }
+      
       setSession(sessionData)
       
       // Load session players
@@ -200,6 +376,24 @@ export default function GameSessionPage() {
           const sessionStats = await calculateSessionStatistics(gamesData, playersData)
           console.log('📊 GameSessionPage: Агрегированная статистика сессии:', sessionStats)
           setSessionStatistics(sessionStats)
+          
+          // 🔄 ДОБАВЛЯЕМ: Автоматически загружаем данные игроков для всех завершенных игр
+          const completedGames = gamesData.filter(game => game.status === 'completed')
+          console.log('🎮 GameSessionPage: Завершенных игр для загрузки данных:', completedGames.length)
+          
+          for (const game of completedGames) {
+            try {
+              console.log('🎮 GameSessionPage: Загружаем данные игроков для игры:', game.id)
+              const playersData = await loadGamePlayersData(game.id)
+              setGamePlayersData(prev => ({
+                ...prev,
+                [game.id]: playersData
+              }))
+              console.log('🎮 GameSessionPage: Данные игроков загружены для игры:', game.id, playersData)
+            } catch (error) {
+              console.error(`❌ GameSessionPage: Ошибка загрузки данных игроков для игры ${game.id}:`, error)
+            }
+          }
         } else {
           console.log('🎮 GameSessionPage: gamesData не является массивом, устанавливаем пустой массив')
           console.log('🎮 GameSessionPage: gamesData тип:', typeof gamesData)
@@ -282,8 +476,25 @@ export default function GameSessionPage() {
   }
 
   // 🔄 ДОБАВЛЯЕМ: функция для перехода к игре
-  const handleGameClick = (gameId: string) => {
+  const handleGameClick = async (gameId: string) => {
     console.log('🎮 GameSessionPage: Переходим к игре:', gameId)
+    
+    // 🔄 ДОБАВЛЯЕМ: Загружаем данные игроков для завершенной игры
+    const game = games.find(g => g.id === gameId)
+    if (game && game.status === 'completed' && !gamePlayersData[gameId]) {
+      try {
+        console.log('🎮 GameSessionPage: Загружаем данные игроков для завершенной игры:', gameId)
+        const playersData = await loadGamePlayersData(gameId)
+        setGamePlayersData(prev => ({
+          ...prev,
+          [gameId]: playersData
+        }))
+        console.log('🎮 GameSessionPage: Данные игроков загружены:', playersData)
+      } catch (error) {
+        console.error('❌ GameSessionPage: Ошибка загрузки данных игроков:', error)
+      }
+    }
+    
     navigate(`/active-game/${gameId}`)  // 🔄 ИСПРАВЛЯЕМ: /game/ -> /active-game/
   }
 
@@ -410,12 +621,7 @@ export default function GameSessionPage() {
     navigate('/session')
   }
 
-  // Find leading player
-  const leadingPlayer = players.length > 0 
-    ? players.reduce((prev, current) => 
-        prev.points > current.points ? prev : current
-      )
-    : null
+
 
   // Loading state
   if (isLoading) {
@@ -472,62 +678,27 @@ export default function GameSessionPage() {
         playerCount={session.current_players_count}
         gameCount={games?.length || 0}
         sessionStatus={session.status}
+        sessionCreatedAt={session.created_at}
+        sessionEndedAt={session.ended_at}
+        templateData={session.template_id ? {
+          paymentDirection: session.template?.rules?.payment_direction || 'По часовой',
+          pointValueRubles: session.template?.rules?.point_value_rubles || 50,
+          queueAlgorithm: session.template?.rules?.queue_algorithm || 'random_no_repeat',
+          ballsToWin: session.template?.rules?.balls_to_win || 15
+        } : undefined}
         onBack={handleBackToSession}
       />
 
       <main className="max-w-4xl mx-auto px-4 pb-20">
         {/* Scoreboard - Общий счет сессии */}
-        <div className="bg-gray-800 border border-gray-600 rounded-2xl p-6 mb-6">
-          <h2 className="text-lg font-bold text-mint mb-4 text-center">
-            Общий счет сессии
-          </h2>
-          
-          {!session.participants || session.participants.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
-              <p>Нет данных для отображения</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {session.participants.map((participant: any) => {
-                const stats = sessionStatistics[participant.id] || {
-                  totalPoints: 0,
-                  totalBalls: 0,
-                  totalFouls: 0,
-                  totalEarned: 0,
-                  totalPaid: 0,
-                  netBalance: 0,
-                  gamesPlayed: 0,
-                  wins: 0
-                }
-                
-                return (
-                  <div key={participant.id} className="bg-gray-700 p-4 rounded-lg text-center relative">
-                    <div className="w-8 h-8 bg-mint text-black rounded-full flex items-center justify-center font-bold text-sm mx-auto mb-2">
-                      {participant.display_name.charAt(0).toUpperCase()}
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1">{participant.display_name}</h3>
-                    
-                    {/* 🔄 ОБНОВЛЯЕМ: Агрегированная статистика по завершенным играм */}
-                    <div className="text-xs text-gray-400 space-y-1">
-                      <p>Всего очков: {stats.totalPoints}</p>
-                      <p>Всего шаров: {stats.totalBalls}</p>
-                      <p>Всего штрафов: {stats.totalFouls}</p>
-                      <p>Баланс: {stats.netBalance.toFixed(2)} ₽</p>
-                      <p>Игр сыграно: {stats.gamesPlayed}</p>
-                      <p>Побед: {stats.wins}</p>
-                    </div>
-                    
-                    {leadingPlayer && participant.id === leadingPlayer.id && (
-                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
-                        <span className="text-black text-xs">👑</span>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
+        <SessionStatisticsCard 
+          statistics={sessionStatistics}
+          participants={(session.participants || []).map(p => ({
+            id: p.id,
+            display_name: p.display_name,
+            queue_position: p.queue_position
+          }))}
+        />
 
         {/* Games Section - Игры в сессии */}
         <div className="bg-gray-800 border border-gray-600 rounded-2xl p-6 mb-6">
@@ -578,36 +749,58 @@ export default function GameSessionPage() {
                         game.status === 'cancelled' ? 'bg-red-600 text-white' :
                         'bg-gray-600 text-white'
                       }`}>
-                        {game.status === 'completed' ? '✅ Завершена' :
-                         game.status === 'in_progress' ? '🎮 Идет сейчас' :
-                         game.status === 'cancelled' ? '❌ Отменена' :
+                        {game.status === 'completed' ? 'Завершена' :
+                         game.status === 'in_progress' ? 'Идет сейчас' :
+                         game.status === 'cancelled' ? 'Отменена' :
                          game.status}
                       </span>
                     </div>
                     <div className="text-gray-400 text-sm">
-                      {game.started_at ? new Date(game.started_at).toLocaleTimeString('ru-RU', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      }) : '--:--'}
+                      {game.status === 'completed' && game.completed_at && game.started_at ? (
+                        (() => {
+                          const startTime = new Date(game.started_at).getTime()
+                          const endTime = new Date(game.completed_at).getTime()
+                          const durationMs = endTime - startTime
+                          const durationMinutes = Math.floor(durationMs / (1000 * 60))
+                          const durationSeconds = Math.floor((durationMs % (1000 * 60)) / 1000)
+                          return `⏱️ ${durationMinutes}:${durationSeconds.toString().padStart(2, '0')}`
+                        })()
+                      ) : game.status === 'in_progress' ? (
+                        ''
+                      ) : '--:--'}
                     </div>
                   </div>
                   
-                  {/* Game details */}
-                  <div className="text-gray-300 text-sm">
-                    <p>ID: {game.id}</p>
-                    <p>Сессия: {game.session_id}</p>
-                    {game.winner_participant_id && (
-                      <p className="text-mint">Победитель: {game.winner_participant_id}</p>
-                    )}
-                    {game.completed_at && game.started_at && (
-                      <p>Длительность: {Math.floor((new Date(game.completed_at).getTime() - new Date(game.started_at).getTime()) / 1000 / 60)}:{(Math.floor((new Date(game.completed_at).getTime() - new Date(game.started_at).getTime()) / 1000) % 60).toString().padStart(2, '0')}</p>
-                    )}
-                  </div>
-                  
-                  {/* 🔄 ДОБАВЛЯЕМ: подсказка о клике */}
-                  <div className="text-center mt-3 pt-3 border-t border-gray-600">
-                    <span className="text-xs text-gray-400">👆 Нажмите, чтобы открыть игру</span>
-                  </div>
+                  {/* 🔄 ОБНОВЛЯЕМ: Показываем GamePlayersSummary для завершенных игр */}
+                  {game.status === 'completed' ? (
+                    <div className="mb-3">
+                      {gamePlayersData[game.id] ? (
+                        <GamePlayersSummary 
+                          players={gamePlayersData[game.id]} 
+                          isReadOnly={true}
+                        />
+                      ) : (
+                        <div className="text-center py-2 text-gray-400">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-mint mx-auto mb-2"></div>
+                          <p className="text-xs">Загружаем результаты...</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : game.status === 'in_progress' ? (
+                    <div className="text-center py-4 text-blue-400">
+                      <div className="text-lg mb-2">Игра идет</div>
+                      <div className="text-sm">Результаты будут доступны после завершения</div>
+                    </div>
+                  ) : game.status === 'cancelled' ? (
+                    <div className="text-center py-4 text-red-400">
+                      <div className="text-sm">Игра отменена</div>
+                    </div>
+                  ) : (
+                    <div className="text-gray-300 text-sm">
+                      <p>ID: {game.id}</p>
+                      <p>Сессия: {game.session_id}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

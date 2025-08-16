@@ -27,6 +27,8 @@ export { default as ScoreModal } from './ScoreModal'
 export { default as GameLog } from './GameLog'
 export { default as PlayerCard } from './PlayerCard'
 export { default as EndGameModal } from './EndGameModal'
+export { default as GamePlayersSummary } from './GamePlayersSummary'
+export { default as SessionStatisticsCard } from './SessionStatisticsCard'
 
 // Dashboard Components
 export { default as ActiveGamesSection } from './ActiveGamesSection'

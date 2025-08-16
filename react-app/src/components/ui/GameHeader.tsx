@@ -8,6 +8,14 @@ interface GameHeaderProps {
   playerCount: number
   gameCount: number
   sessionStatus: string
+  sessionCreatedAt: string
+  sessionEndedAt?: string
+  templateData?: {
+    paymentDirection?: string
+    pointValueRubles?: number
+    queueAlgorithm?: string
+    ballsToWin?: number
+  }
   onBack: () => void
 }
 
@@ -17,21 +25,41 @@ export default function GameHeader({
   playerCount, 
   gameCount, 
   sessionStatus,
+  sessionCreatedAt,
+  sessionEndedAt,
+  templateData,
   onBack 
 }: GameHeaderProps) {
   const [sessionTime, setSessionTime] = useState('00:00')
-  const [sessionStartTime] = useState(Date.now())
 
   useEffect(() => {
     const timer = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000)
-      const minutes = Math.floor(elapsed / 60)
-      const seconds = elapsed % 60
-      setSessionTime(`${minutes}:${seconds.toString().padStart(2, '0')}`)
+      const startTime = new Date(sessionCreatedAt).getTime()
+      const endTime = sessionEndedAt ? new Date(sessionEndedAt).getTime() : Date.now()
+      const elapsed = Math.floor((endTime - startTime) / 1000)
+      
+      if (elapsed >= 3600) {
+        // Больше часа - показываем в часах и минутах
+        const hours = Math.floor(elapsed / 3600)
+        const minutes = Math.floor((elapsed % 3600) / 60)
+        if (minutes === 0) {
+          setSessionTime(`${hours}ч`)
+        } else {
+          setSessionTime(`${hours}ч\u00A0${minutes}мин`)
+        }
+      } else {
+        // Меньше часа - показываем только минуты
+        const minutes = Math.floor(elapsed / 60)
+        if (minutes === 0) {
+          setSessionTime(`${elapsed}сек`)
+        } else {
+          setSessionTime(`${minutes}мин`)
+        }
+      }
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [sessionStartTime])
+  }, [sessionCreatedAt, sessionEndedAt])
 
   return (
     <header className="bg-gray-800 border-b border-gray-600 py-4 mb-6 sticky top-0 z-50">
@@ -49,11 +77,23 @@ export default function GameHeader({
             
             <div>
               <div className="text-lg font-bold text-white">
-                🎱 Сессия {gameType}
+                Сессия {gameType}
               </div>
-              <div className="text-xs text-gray-300">
-                {playerCount} игрока • {gameCount} игр
-              </div>
+                             <div className="text-xs text-gray-300">
+                 {templateData && (
+                   <div className="flex flex-wrap gap-2 text-gray-400">
+                                           {templateData.pointValueRubles && (
+                        <span>• {templateData.pointValueRubles}₽</span>
+                      )}
+                      {templateData.queueAlgorithm && (
+                        <span>• {templateData.queueAlgorithm === 'random_no_repeat' ? 'Рандом без повторов' : 
+                                templateData.queueAlgorithm === 'always_random' ? 'Всегда рандом' : 
+                                templateData.queueAlgorithm === 'manual' ? 'Ручное управление' : 
+                                templateData.queueAlgorithm}</span>
+                      )}
+                   </div>
+                 )}
+               </div>
             </div>
           </div>
           
@@ -66,20 +106,30 @@ export default function GameHeader({
                 sessionStatus === 'cancelled' ? 'bg-red-600 text-white' :
                 'bg-gray-600 text-white'
               }`}>
-                {sessionStatus === 'waiting' ? '⏳ Ожидание' :
-                 sessionStatus === 'in_progress' ? '🎮 В процессе' :
-                 sessionStatus === 'completed' ? '✅ Завершена' :
-                 sessionStatus === 'cancelled' ? '❌ Отменена' :
-                 sessionStatus}
+                                 {sessionStatus === 'waiting' ? '⏳ Ожидание' :
+                  sessionStatus === 'in_progress' ? 'В процессе' :
+                  sessionStatus === 'completed' ? '✅ Завершена' :
+                  sessionStatus === 'cancelled' ? '❌ Отменена' :
+                  sessionStatus}
               </span>
             </div>
             
-            <div className="flex items-center gap-2 bg-gray-700 px-4 py-2 rounded-full">
-              <Clock className="text-mint" size={16} />
-              <span className="font-mono font-bold text-white text-sm">
-                {sessionTime}
-              </span>
-            </div>
+                         <div className="flex items-center gap-2 bg-gray-700 px-4 py-2 rounded-full">
+               <Clock className="text-mint" size={16} />
+               <span className="font-mono font-bold text-white text-sm">
+                 {sessionEndedAt ? '⏹️ ' : ''}
+                 {sessionTime.split(' ').map((part, index) => {
+                   if (part.includes('ч') || part.includes('мин') || part.includes('сек')) {
+                     return (
+                       <span key={index} className="text-gray-300">
+                         {part}
+                       </span>
+                     )
+                   }
+                   return part
+                 })}
+               </span>
+             </div>
           </div>
         </div>
       </div>

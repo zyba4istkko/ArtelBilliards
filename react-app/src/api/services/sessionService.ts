@@ -190,6 +190,7 @@ export class SessionService {
     user_id: string
     display_name: string
     session_role?: string
+    queue_position?: number
   }): Promise<any> {
     try {
       // 🔄 ДОБАВЛЯЕМ: Логирование для отладки
@@ -212,9 +213,12 @@ export class SessionService {
   /**
    * Добавить бота в сессию
    */
-  static async addBotToSession(sessionId: string, botName: string): Promise<any> {
+  static async addBotToSession(sessionId: string, botName: string, queuePosition?: number): Promise<any> {
     try {
-      const response = await apiClient.post(`${this.baseUrl}/${sessionId}/bots`, { bot_name: botName })
+      const response = await apiClient.post(`${this.baseUrl}/${sessionId}/bots`, { 
+        bot_name: botName,
+        queue_position: queuePosition
+      })
       return response
     } catch (error) {
       console.error('Error adding bot to session:', error)

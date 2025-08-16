@@ -129,11 +129,12 @@ export function PlayerManagement({ onPlayersChange, selectedTemplate, sessionId 
         // Бот уже добавлен в базу в createBotWithName
         console.log('✅ PlayerManagement: Бот уже добавлен в базу, пропускаем API вызов')
       } else {
-        // Для участников вызываем API
+        // Для участников вызываем API с queue_position
         const playerData = await SessionService.addPlayerToSession(sessionId, {
           user_id: player.id,
           display_name: player.displayName,
-          session_role: 'participant'
+          session_role: 'participant',
+          queue_position: players.length // 🔄 НОВОЕ: Устанавливаем позицию в очереди
         })
         console.log('✅ PlayerManagement: Участник добавлен в базу:', playerData)
       }
@@ -162,8 +163,8 @@ export function PlayerManagement({ onPlayersChange, selectedTemplate, sessionId 
     try {
       console.log('🔍 PlayerManagement: Создаю бота:', name)
       
-      // Добавляем бота в базу данных
-      const botData = await SessionService.addBotToSession(sessionId, name.trim())
+      // Добавляем бота в базу данных с queue_position
+      const botData = await SessionService.addBotToSession(sessionId, name.trim(), players.length)
       console.log('✅ PlayerManagement: Бот добавлен в базу:', botData)
       
       // Создаем локального бота для UI

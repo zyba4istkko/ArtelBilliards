@@ -142,8 +142,10 @@ export interface GameSession {
   created_at: string
   started_at?: string
   completed_at?: string
+  ended_at?: string  // 🔄 ДОБАВЛЯЕМ: время завершения сессии
   updated_at?: string
   creation_step: number  // 🔄 ДОБАВЛЯЕМ: шаг создания (1-3)
+  template?: GameTemplate  // 🔄 ДОБАВЛЯЕМ: данные шаблона
 }
 
 export interface GameTypeResponse {
