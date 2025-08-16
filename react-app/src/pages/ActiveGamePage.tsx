@@ -820,19 +820,18 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
                   {/* 🔄 НОВЫЙ БЛОК: Красивый финальный счет игры в стиле preview */}
                   <div className="mt-6">
                     {/* Карточки игроков в стиле preview */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 justify-items-center">
                       {players.map((player) => {
                         // 🔄 ИСПРАВЛЯЕМ: Используем новый формат балансов
                         const playerBalances = calculateFinalDebts()
                         const playerBalance = playerBalances.find(p => p.name === player.name)?.balance || 0
                         
                         return (
-                          <div key={player.id} className="bg-gray-700 border border-gray-600 rounded-lg p-4 text-center transition-all hover:border-mint/30">
+                          <div key={player.id} className="bg-gray-700 border border-gray-600 rounded-lg p-4 text-center transition-all hover:border-mint/30 w-full max-w-xs">
                             {/* Имя игрока */}
                             <div className="font-bold text-white text-lg mb-3">{player.name}</div>
                             
-                            {/* Очки */}
-                            <div className="text-2xl font-bold text-mint mb-2">{player.points}</div>
+                            {/* 🔄 УБИРАЕМ: Отображение очков */}
                             
                             {/* 🔄 ИСПРАВЛЯЕМ: Итоговый результат (чистый баланс) */}
                             <div className={`text-lg font-mono font-bold ${
