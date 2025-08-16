@@ -32,6 +32,7 @@ interface Player {
   money: number
   balls: Ball[]
   fouls: Foul[]
+  queue_position?: number // Добавляем для сортировки по очереди
 }
 
 interface Ball {
@@ -40,6 +41,7 @@ interface Ball {
   points: number
   name: string
   color: string
+  timestamp: string  // 🔄 ДОБАВЛЯЕМ: Время добавления шара
 }
 
 interface Foul {
@@ -65,7 +67,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
   const navigate = useNavigate()
   
   // State
-  const [gameStartTime] = useState(Date.now())
+  const [gameStartTime, setGameStartTime] = useState<Date | null>(null)  // 🔄 ИСПРАВЛЯЕМ: Время начала игры из БД
   const [gameTime, setGameTime] = useState('00:00')
   const [currentUser] = useState('Ты') // Текущий пользователь
   const [isCreator] = useState(true) // Только creator может удалять записи
@@ -103,9 +105,17 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
         console.log('✅ Игра получена:', gameData)
         setCurrentGame(gameData)
         
+        // 🔄 ИСПРАВЛЯЕМ: Устанавливаем время начала игры из БД
+        if (gameData.started_at) {
+          const startTime = new Date(gameData.started_at)
+          setGameStartTime(startTime)
+          console.log('✅ Время начала игры установлено:', startTime)
+        }
+        
         // 2. Получаем информацию о сессии по session_id из игры
         const sessionData = await SessionService.getSession(gameData.session_id)
         console.log('✅ Сессия получена:', sessionData)
+        console.log('🔍 Структура сессии:', JSON.stringify(sessionData, null, 2))
         setSession(sessionData)
         
         // 3. Получаем участников сессии
@@ -125,19 +135,21 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
             points: participant.current_score || 0,
             // 🔄 ИСПРАВЛЯЕМ: session_balance_rubles приходит в копейках, делим на 100
             money: (participant.session_balance_rubles || 0) / 100,
-            balls: [],
-            fouls: []
+            balls: [] as Ball[],
+            fouls: [] as Foul[],
+            queue_position: participant.queue_position // Добавляем позицию в очереди
           }
         })
         
-                 console.log('🎯 transformedPlayers:', transformedPlayers)
+        console.log('🎯 transformedPlayers:', transformedPlayers)
          
-         // ✅ Проверяем, что участники загрузились
-         if (transformedPlayers.length === 0) {
-           throw new Error('Не удалось загрузить участников сессии')
-         }
+        // ✅ Проверяем, что участники загрузились
+        if (transformedPlayers.length === 0) {
+          throw new Error('Не удалось загрузить участников сессии')
+        }
          
-         setPlayers(transformedPlayers)
+        // 🔄 ИСПРАВЛЯЕМ: Сначала устанавливаем игроков, потом загружаем события
+        setPlayers(transformedPlayers)
 
         // 5. 🔄 ИСПРАВЛЯЕМ: Загружаем события игры из базы данных
         try {
@@ -156,7 +168,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
                 timestamp: event.event_data.timestamp || '00:00',
                 addedBy: event.event_data.participant_name,
                 tag: event.event_data.tag || undefined,
-                isDeleted: false
+                isDeleted: event.event_data.is_deleted || false
               }
             } else if (event.event_type === 'foul') {
               return {
@@ -168,7 +180,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
                 timestamp: event.event_data.timestamp || '00:00',
                 addedBy: event.event_data.participant_name,
                 tag: event.event_data.tag || undefined,
-                isDeleted: false
+                isDeleted: event.event_data.is_deleted || false
               }
             }
             return null
@@ -176,8 +188,9 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
 
           if (loadedLogEntries.length > 0) {
             setLogEntries(prev => [...loadedLogEntries, ...prev])
-            // Пересчитываем состояние игры на основе загруженных событий
-            recalculateGameState(loadedLogEntries)
+            // 🔄 ИСПРАВЛЯЕМ: Пересчитываем состояние игры сразу с загруженными данными
+            // Передаем название сессии для правильного расчета стоимости очка
+            recalculateGameStateWithData(transformedPlayers, loadedLogEntries, sessionData.name)
           }
         } catch (error: any) {
           console.error('❌ Ошибка загрузки событий игры:', error)
@@ -199,27 +212,119 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
   // Timer effect
   useEffect(() => {
     const timer = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - gameStartTime) / 1000)
-      const minutes = Math.floor(elapsed / 60)
-      const seconds = elapsed % 60
-      setGameTime(`${minutes}:${seconds.toString().padStart(2, '0')}`)
+      if (gameStartTime) {
+        const elapsed = Math.floor((Date.now() - gameStartTime.getTime()) / 1000)
+        const minutes = Math.floor(elapsed / 60)
+        const seconds = elapsed % 60
+        setGameTime(`${minutes}:${seconds.toString().padStart(2, '0')}`)
+      }
     }, 1000)
 
     return () => clearInterval(timer)
   }, [gameStartTime])
 
+  // 🔄 НОВЫЙ EFFECT: Автоматически пересчитываем состояние игры при изменении logEntries
+  useEffect(() => {
+    if (players.length > 0 && logEntries.length > 0 && session?.name) {
+      console.log('🔄 useEffect: Автоматически пересчитываем состояние игры')
+      recalculateGameStateWithData(players, logEntries, session.name)
+    }
+  }, [logEntries, players.length, session?.name])
+
   // Ball definitions
   const ballTypes: Ball[] = [
-    { id: 'red', type: 'red', points: 1, name: 'Красный', color: '#f44336' },
-    { id: 'yellow', type: 'yellow', points: 2, name: 'Желтый', color: '#ffeb3b' },
-    { id: 'green', type: 'green', points: 3, name: 'Зеленый', color: '#4caf50' },
-    { id: 'brown', type: 'brown', points: 4, name: 'Коричневый', color: '#8d6e63' },
-    { id: 'blue', type: 'blue', points: 5, name: 'Синий', color: '#2196f3' },
-    { id: 'pink', type: 'pink', points: 6, name: 'Розовый', color: '#e91e63' },
-    { id: 'black', type: 'black', points: 7, name: 'Черный', color: '#212121' }
+    { id: 'red', type: 'red', points: 1, name: 'Красный', color: '#f44336', timestamp: '00:00' },
+    { id: 'yellow', type: 'yellow', points: 2, name: 'Желтый', color: '#ffeb3b', timestamp: '00:00' },
+    { id: 'green', type: 'green', points: 3, name: 'Зеленый', color: '#4caf50', timestamp: '00:00' },
+    { id: 'brown', type: 'brown', points: 4, name: 'Коричневый', color: '#8d6e63', timestamp: '00:00' },
+    { id: 'blue', type: 'blue', points: 5, name: 'Синий', color: '#2196f3', timestamp: '00:00' },
+    { id: 'pink', type: 'pink', points: 6, name: 'Розовый', color: '#e91e63', timestamp: '00:00' },
+    { id: 'black', type: 'black', points: 7, name: 'Черный', color: '#212121', timestamp: '00:00' }
   ]
 
   const tagOptions = ['Стандарт', 'Подстава', 'Серия', 'От борта', 'Сложный', 'Случайный']
+
+  // 🔄 НОВАЯ ФУНКЦИЯ: Извлекает стоимость очка из названия сессии
+  const getPointsValue = (sessionName: string): number => {
+    // Ищем паттерн "X₽ за очко" в названии сессии
+    const match = sessionName.match(/(\d+)₽ за очко/)
+    if (match) {
+      return parseInt(match[1])
+    }
+    // По умолчанию 10₽ за очко (как было раньше)
+    return 10
+  }
+
+  // 🔄 НОВАЯ ФУНКЦИЯ: Рассчитывает финальные долги между игроками
+  const calculateFinalDebts = () => {
+    if (!players.length || !session?.name) return []
+    
+    const pointsValue = getPointsValue(session.name)
+    const debts: Array<{
+      from: string
+      to: string
+      amount: number
+      description: string
+    }> = []
+    
+    // 🔄 ИСПРАВЛЯЕМ: Правильная логика "Колхоз"
+    // Каждый игрок получает от предыдущего и платит следующему
+    
+    // Сортируем игроков по позиции в очереди (если есть) или по порядку добавления
+    const sortedPlayers = [...players].sort((a, b) => {
+      // Если есть queue_position, сортируем по нему
+      if (a.queue_position !== undefined && b.queue_position !== undefined) {
+        return a.queue_position - b.queue_position
+      }
+      // Иначе по порядку в массиве
+      return players.indexOf(a) - players.indexOf(b)
+    })
+    
+    console.log('🔄 calculateFinalDebts: Сортированные игроки по очереди:', sortedPlayers.map(p => ({ name: p.name, points: p.points, money: p.money })))
+    
+    // Проходим по всем игрокам в порядке очереди
+    for (let i = 0; i < sortedPlayers.length; i++) {
+      const currentPlayer = sortedPlayers[i]
+      const prevPlayer = sortedPlayers[i === 0 ? sortedPlayers.length - 1 : i - 1]
+      const nextPlayer = sortedPlayers[i === sortedPlayers.length - 1 ? 0 : i + 1]
+      
+      // Текущий игрок получает от предыдущего за свои очки
+      const earnedFromPrev = currentPlayer.points * pointsValue
+      
+      // Текущий игрок платит следующему за его очки
+      const paidToNext = nextPlayer.points * pointsValue
+      
+      // Чистый результат для текущего игрока
+      const netResult = earnedFromPrev - paidToNext
+      
+      console.log(`🔄 calculateFinalDebts: ${currentPlayer.name}: получает ${earnedFromPrev}₽ от ${prevPlayer.name}, платит ${paidToNext}₽ ${nextPlayer.name}, итого: ${netResult}₽`)
+      
+      // Если текущий игрок должен следующему
+      if (paidToNext > earnedFromPrev) {
+        const debtAmount = paidToNext - earnedFromPrev
+        debts.push({
+          from: currentPlayer.name,
+          to: nextPlayer.name,
+          amount: debtAmount,
+          description: `${currentPlayer.name} должен ${nextPlayer.name} ${debtAmount}₽`
+        })
+      }
+      
+      // Если предыдущий игрок должен текущему
+      if (earnedFromPrev > paidToNext) {
+        const debtAmount = earnedFromPrev - paidToNext
+        debts.push({
+          from: prevPlayer.name,
+          to: currentPlayer.name,
+          amount: debtAmount,
+          description: `${prevPlayer.name} должен ${currentPlayer.name} ${debtAmount}₽`
+        })
+      }
+    }
+    
+    console.log('🔄 calculateFinalDebts: Финальные долги:', debts)
+    return debts
+  }
 
   // Handlers
   const handleBackToSession = () => {
@@ -265,6 +370,17 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
       console.log('🎯 handleAddScore: selectedBall:', selectedBall)
       console.log('🎯 handleAddScore: currentGame:', currentGame)
       
+      // 🔄 ИСПРАВЛЯЕМ: Используем реальное время от начала игры
+      const getRealGameTime = (): string => {
+        if (!gameStartTime) return '00:00'
+        const elapsed = Math.floor((Date.now() - gameStartTime.getTime()) / 1000)
+        const minutes = Math.floor(elapsed / 60)
+        const seconds = elapsed % 60
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`
+      }
+
+      const realGameTime = getRealGameTime()
+      
       // ИСПРАВЛЯЕМ: Правильная структура данных для API
       const eventData = {
         event_type: 'shot',                    // ✅ Правильно
@@ -275,7 +391,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
           ball_name: selectedBall.name,
           points: selectedBall.points,
           tag: selectedTag || null,
-          timestamp: gameTime
+          timestamp: realGameTime  // 🔄 ИСПРАВЛЯЕМ: Реальное время от начала игры
         }
       }
 
@@ -288,31 +404,27 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
       console.log('🎯 handleAddScore: API вернул результат:', result)
       console.log('✅ Событие сохранено в базу:', eventData)
 
-      // 🔄 ИСПРАВЛЯЕМ: НЕ обновляем локальное состояние здесь!
-      // Вместо этого вызываем recalculateGameState для пересчета на основе всех событий
-      console.log('🔄 Обновляем состояние игры через recalculateGameState')
-
-      // Add log entry
+      // 🔄 ИСПРАВЛЯЕМ: Используем реальный ID события из API!
       const newLogEntry: LogEntry = {
-        id: `${Date.now()}`,
+        id: result.id,  // ✅ Используем реальный UUID из API
         type: 'ball',
         playerName: selectedPlayer.name,
         description: `${selectedPlayer.name} забил ${selectedBall.name.toLowerCase()} шар (+${selectedBall.points})`,
         points: selectedBall.points,
-        timestamp: gameTime,
+        timestamp: realGameTime,
         addedBy: selectedPlayer.name,
         tag: selectedTag || undefined,
         isDeleted: false
       }
 
       setLogEntries(prev => [newLogEntry, ...prev])
-      
-      // 🔄 ИСПРАВЛЯЕМ: Пересчитываем состояние игры на основе обновленного лога
-      setTimeout(() => {
-        recalculateGameState([newLogEntry, ...logEntries])
-      }, 100)
-      
-      handleCloseScoreModal()
+       
+       // 🔄 ИСПРАВЛЯЕМ: Пересчитываем состояние игры на основе обновленного лога
+       // НЕ вызываем recalculateGameStateWithData здесь - это приведет к дублированию!
+       // Вместо этого просто обновляем локальное состояние
+       console.log('✅ Событие добавлено в лог:', newLogEntry)
+       
+       handleCloseScoreModal()
     } catch (error: any) {
       console.error('❌ handleAddScore: Ошибка сохранения события:', error)
       console.error('❌ handleAddScore: Тип ошибки:', typeof error)
@@ -329,6 +441,17 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
     if (!selectedPlayer || !currentGame) return
 
     try {
+      // 🔄 ИСПРАВЛЯЕМ: Используем реальное время от начала игры
+      const getRealGameTime = (): string => {
+        if (!gameStartTime) return '00:00'
+        const elapsed = Math.floor((Date.now() - gameStartTime.getTime()) / 1000)
+        const minutes = Math.floor(elapsed / 60)
+        const seconds = elapsed % 60
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`
+      }
+
+      const realGameTime = getRealGameTime()
+      
       // ИСПРАВЛЯЕМ: Правильная структура данных для API
       const eventData = {
         event_type: 'foul',                    // ✅ Правильно
@@ -337,7 +460,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
           participant_name: selectedPlayer.name,
           penalty_points: -1,
           tag: selectedTag || null,
-          timestamp: gameTime
+          timestamp: realGameTime  // 🔄 ИСПРАВЛЯЕМ: Реальное время от начала игры
         }
       }
 
@@ -345,34 +468,30 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
       console.log('🎯 handleAddFoul: participant_id тип:', typeof selectedPlayer.id)
       console.log('🎯 handleAddFoul: participant_id значение:', selectedPlayer.id)
       
-      await gameService.addGameEvent(currentGame.id, eventData)
+      const result = await gameService.addGameEvent(currentGame.id, eventData)
       console.log('✅ Штраф сохранен в базу:', eventData)
 
-      // 🔄 ИСПРАВЛЯЕМ: НЕ обновляем локальное состояние здесь!
-      // Вместо этого вызываем recalculateGameState для пересчета на основе всех событий
-      console.log('🔄 Обновляем состояние игры через recalculateGameState')
-
-      // Add log entry
+      // 🔄 ИСПРАВЛЯЕМ: Используем реальный ID события из API!
       const newLogEntry: LogEntry = {
-        id: `${Date.now()}`,
+        id: result.id,  // ✅ Используем реальный UUID из API
         type: 'foul',
         playerName: selectedPlayer.name,
         description: `${selectedPlayer.name} совершил штраф (-1 очко)`,
         points: -1,
-        timestamp: gameTime,
+        timestamp: realGameTime,
         addedBy: selectedPlayer.name,
         tag: selectedTag || undefined,
         isDeleted: false
       }
 
       setLogEntries(prev => [newLogEntry, ...prev])
-      
-      // 🔄 ИСПРАВЛЯЕМ: Пересчитываем состояние игры на основе обновленного лога
-      setTimeout(() => {
-        recalculateGameState([newLogEntry, ...logEntries])
-      }, 100)
-      
-      handleCloseScoreModal()
+       
+       // 🔄 ИСПРАВЛЯЕМ: Пересчитываем состояние игры на основе обновленного лога
+       // НЕ вызываем recalculateGameStateWithData здесь - это приведет к дублированию!
+       // Вместо этого просто обновляем локальное состояние
+       console.log('✅ Штраф добавлен в лог:', newLogEntry)
+       
+       handleCloseScoreModal()
     } catch (error: any) {
       console.error('❌ Ошибка сохранения штрафа:', error)
       setError('Ошибка сохранения штрафа: ' + (error.message || 'Неизвестная ошибка'))
@@ -392,23 +511,37 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
     setEditingLogEntry(null)
   }
 
-  const handleDeleteLogEntry = (entryId: string) => {
-    // Вместо удаления помечаем запись как удаленную
-    setLogEntries(prev => {
-      const updated = prev.map(entry => 
-        entry.id === entryId 
-          ? { ...entry, isDeleted: true }
-          : entry
-      )
-      
-      // Пересчитываем состояние игры с обновленными записями
-      recalculateGameState(updated)
-      
-      return updated
-    })
+  const handleDeleteLogEntry = async (entryId: string) => {
+    if (!currentGame) return
     
-    setIsEditLogModalOpen(false)
-    setEditingLogEntry(null)
+    try {
+      console.log('🎯 handleDeleteLogEntry: Удаляем событие:', entryId)
+      
+      // 🔄 ИСПРАВЛЯЕМ: Вызываем API для удаления события
+      await gameService.deleteGameEvent(currentGame.id, entryId)
+      console.log('✅ Событие удалено через API')
+      
+      // Обновляем локальное состояние
+      setLogEntries(prev => {
+        const updated = prev.map(entry => 
+          entry.id === entryId 
+            ? { ...entry, isDeleted: true }
+            : entry
+        )
+        
+        // Пересчитываем состояние игры с обновленными записями
+        recalculateGameStateWithData(players, updated, session?.name || '')
+        
+        return updated
+      })
+      
+      setIsEditLogModalOpen(false)
+      setEditingLogEntry(null)
+      
+    } catch (error: any) {
+      console.error('❌ Ошибка удаления события:', error)
+      setError('Ошибка удаления события: ' + (error.message || 'Неизвестная ошибка'))
+    }
   }
 
   const recalculateGameState = (entries?: LogEntry[]) => {
@@ -420,8 +553,8 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
       ...player,
       points: 0,                    // Очки начинаем с 0
       balls: [],                    // Шары начинаем с пустого массива
-      fouls: []                     // Штрафы начинаем с пустого массива
-      // 🔄 НЕ сбрасываем money - оставляем начальное значение из API!
+      fouls: [],                    // Штрафы начинаем с пустого массива
+      money: 0                      // 🔄 ИСПРАВЛЯЕМ: Деньги тоже начинаем с 0!
     }))
 
     // Проходим по всем активным записям лога (не удаленным)
@@ -437,11 +570,12 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
           entry.description.toLowerCase().includes(ball.name.toLowerCase())
         )
         if (ball) {
-          const newBall = { ...ball, id: entry.id }
+          const newBall = { ...ball, id: entry.id, timestamp: entry.timestamp }
           player.balls.push(newBall)
           player.points += ball.points
-          // 🔄 ИСПРАВЛЯЕМ: Деньги = начальные деньги + (очки × 10)
-          player.money = (player.money || 0) + (ball.points * 10)
+          // 🔄 ИСПРАВЛЯЕМ: Деньги = очки × стоимость_очка (пересчитываем с нуля!)
+          const pointsValue = getPointsValue(session?.name || '')
+          player.money = player.points * pointsValue
         }
       } else if (entry.type === 'foul') {
         // Добавляем штраф
@@ -460,8 +594,77 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
     setPlayers(updatedPlayers)
   }
 
+  // 🔄 НОВАЯ ФУНКЦИЯ: Пересчитывает состояние игры с переданными данными
+  const recalculateGameStateWithData = (initialPlayers: Player[], entries: LogEntry[], sessionName: string) => {
+    console.log('🔄 recalculateGameStateWithData: Начинаем пересчет')
+    console.log('🔄 recalculateGameStateWithData: initialPlayers:', initialPlayers)
+    console.log('🔄 recalculateGameStateWithData: entries:', entries)
+    
+    // Создаем копию игроков с начальными значениями
+    const updatedPlayers = initialPlayers.map(player => ({
+      ...player,
+      points: 0,                    // Очки начинаем с 0
+      balls: [] as Ball[],          // Шары начинаем с пустого массива
+      fouls: [] as Foul[],          // Штрафы начинаем с пустого массива
+      money: 0                      // 🔄 ИСПРАВЛЯЕМ: Деньги тоже начинаем с 0!
+    }))
+
+    console.log('🔄 recalculateGameStateWithData: updatedPlayers после сброса:', updatedPlayers)
+
+    // Проходим по всем активным записям лога (не удаленным)
+    const activeEntries = entries.filter(entry => !entry.isDeleted)
+    
+    activeEntries.forEach(entry => {
+      console.log('🔄 recalculateGameStateWithData: Обрабатываем событие:', entry)
+      const player = updatedPlayers.find(p => p.name === entry.playerName)
+      if (!player) {
+        console.log('❌ recalculateGameStateWithData: Игрок не найден для события:', entry.playerName)
+        return
+      }
+
+      if (entry.type === 'ball') {
+        // Находим шар по описанию
+        const ball = ballTypes.find(ball => 
+          entry.description.toLowerCase().includes(ball.name.toLowerCase())
+        )
+        if (ball) {
+          const newBall = { ...ball, id: entry.id, timestamp: entry.timestamp }
+          player.balls.push(newBall)
+          player.points += ball.points
+          // 🔄 ИСПРАВЛЯЕМ: Деньги = очки × стоимость_очка (пересчитываем с нуля!)
+          const pointsValue = getPointsValue(sessionName)
+          player.money = player.points * pointsValue
+          console.log('✅ recalculateGameStateWithData: Добавлен шар для', player.name, 'очки:', player.points, 'деньги:', player.money, 'стоимость очка:', pointsValue)
+        }
+      } else if (entry.type === 'foul') {
+        // Добавляем штраф
+        const newFoul: Foul = {
+          id: entry.id,
+          timestamp: entry.timestamp,
+          tag: entry.tag
+        }
+        player.fouls.push(newFoul)
+        player.points -= 1
+        // Деньги НЕ изменяются при штрафе!
+        console.log('✅ recalculateGameStateWithData: Добавлен штраф для', player.name, 'очки:', player.points)
+      }
+    })
+
+    console.log('🔄 recalculateGameStateWithData: Финальное состояние игроков:', updatedPlayers)
+    setPlayers(updatedPlayers)
+  }
+
   // Обновляем handleEndGame для работы с API
   const handleEndGame = () => {
+    console.log('🎯 handleEndGame: Вызывается для игры:', currentGame?.id)
+    console.log('🎯 handleEndGame: Статус игры:', currentGame?.status)
+    console.log('🎯 handleEndGame: Игра завершена?', currentGame?.status === 'completed')
+    
+    if (currentGame?.status === 'completed') {
+      console.log('❌ handleEndGame: Игра уже завершена, не показываем модальное окно')
+      return
+    }
+    
     setIsEndGameModalOpen(true)
   }
 
@@ -472,12 +675,19 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
       // Завершаем игру через API
       await gameService.completeGame(currentGame.id)
       
-      // Возвращаемся к сессии
-      if (currentGame && currentGame.session_id) {
-        navigate(`/game-session/${currentGame.session_id}`)
-      } else {
-        navigate('/dashboard')
-      }
+      // 🔄 ИСПРАВЛЯЕМ: НЕ переходим на страницу сессии!
+      // Вместо этого обновляем локальное состояние игры
+      setCurrentGame(prev => ({
+        ...prev,
+        status: 'completed',
+        completed_at: new Date().toISOString()
+      }))
+      
+      // Закрываем модальное окно
+      setIsEndGameModalOpen(false)
+      
+      console.log('✅ Игра завершена, остаемся на странице')
+      
     } catch (err: any) {
       console.error('❌ Ошибка завершения игры:', err)
       setError(err.message || 'Ошибка завершения игры')
@@ -610,6 +820,71 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
 
       <div className="min-h-screen bg-black text-white">
         <main className="max-w-4xl mx-auto px-4 pb-20">
+          {/* Game Completed Message - ПОДНИМАЕМ НАВЕРХ */}
+          {currentGame && currentGame.status === 'completed' && (
+            <Card className="bg-gray-800 border border-gray-600 mb-6">
+              <CardBody className="text-center">
+                <div className="text-center py-6">
+                  <div className="text-2xl mb-2">🏆</div>
+                  <div className="text-lg font-bold text-mint mb-2">Игра завершена!</div>
+                  <div className="text-sm text-gray-300 mb-4">
+                    Игра #{currentGame.game_number} была завершена
+                    {currentGame.winner_participant_id && (
+                      <span className="block mt-2">
+                        Победитель: {players.find(p => p.id === currentGame.winner_participant_id)?.name || 'Неизвестно'}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* 🔄 НОВЫЙ БЛОК: Красивый финальный счет игры в стиле preview */}
+                  <div className="mt-6">
+                    {/* Карточки игроков в стиле preview */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                      {players.map((player) => {
+                        // 🔄 ИСПРАВЛЯЕМ: Рассчитываем задолженность игрока
+                        const debts = calculateFinalDebts()
+                        const playerDebt = debts.reduce((total, debt) => {
+                          if (debt.from === player.name) {
+                            return total - debt.amount // Игрок должен
+                          } else if (debt.to === player.name) {
+                            return total + debt.amount // Игроку должны
+                          }
+                          return total
+                        }, 0)
+                        
+                        return (
+                          <div key={player.id} className="bg-gray-700 border border-gray-600 rounded-lg p-4 text-center transition-all hover:border-mint/30">
+                            {/* Имя игрока */}
+                            <div className="font-bold text-white text-lg mb-3">{player.name}</div>
+                            
+                            {/* Очки */}
+                            <div className="text-2xl font-bold text-mint mb-2">{player.points}</div>
+                            
+                            {/* 🔄 ИСПРАВЛЯЕМ: Итоговый результат (задолженность) */}
+                            <div className={`text-lg font-mono font-bold ${
+                              playerDebt >= 0 ? 'text-green-400' : 'text-red-400'
+                            }`}>
+                              {playerDebt >= 0 ? '+' : ''}{playerDebt} ₽
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  
+                  <Button
+                    color="primary"
+                    variant="bordered"
+                    onClick={handleBackToSession}
+                    className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600 mt-4"
+                  >
+                    ← Вернуться к сессии
+                  </Button>
+                </div>
+              </CardBody>
+            </Card>
+          )}
+
           {/* Players Section */}
           <Card className="bg-gray-800 border border-gray-600 mb-6">
             <CardHeader className="pb-3">
@@ -642,10 +917,22 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
                       <div className="flex items-center gap-3 flex-wrap ml-4">
                         {/* Сначала отображаем все шары и штрафы в порядке добавления */}
                         {[...player.balls, ...player.fouls].sort((a, b) => {
-                          // Сортируем по времени добавления (по id)
-                          const aTime = parseInt(a.id)
-                          const bTime = parseInt(b.id)
-                          return aTime - bTime
+                          // 🔄 ИСПРАВЛЯЕМ: Сортируем по времени добавления (timestamp)
+                          // Для шаров и штрафов используем timestamp для правильной последовательности
+                          const aTime = a.timestamp || '00:00'
+                          const bTime = b.timestamp || '00:00'
+                          
+                          // Конвертируем время в минуты для сравнения
+                          const aMinutes = parseInt(aTime.split(':')[0]) || 0
+                          const aSeconds = parseInt(aTime.split(':')[1]) || 0
+                          const bMinutes = parseInt(bTime.split(':')[0]) || 0
+                          const bSeconds = parseInt(bTime.split(':')[1]) || 0
+                          
+                          const aTotalSeconds = aMinutes * 60 + aSeconds
+                          const bTotalSeconds = bMinutes * 60 + bSeconds
+                          
+                          // 🔄 ИСПРАВЛЯЕМ: Сортируем только по времени (раньше добавленные сначала)
+                          return aTotalSeconds - bTotalSeconds
                         }).map((item) => (
                           <div key={item.id}>
                             {'type' in item ? getBallIcon(item as Ball) : getFoulIcon()}
@@ -654,15 +941,17 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
                       </div>
                       
                       <div className="ml-auto">
-                        <Button
-                          isIconOnly
-                          color="success"
-                          variant="solid"
-                          size="lg"
-                          onClick={() => handleOpenScoreModal(player)}
-                        >
-                          <Plus size={20} />
-                        </Button>
+                        {currentGame && currentGame.status !== 'completed' && (
+                          <Button
+                            isIconOnly
+                            color="success"
+                            variant="solid"
+                            size="lg"
+                            onClick={() => handleOpenScoreModal(player)}
+                          >
+                            <Plus size={20} />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -711,22 +1000,22 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {/* Показываем кнопку редактирования только creator и только для неудаленных записей */}
-                      {!entry.isDeleted && isCreator && (
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          variant="light"
-                          className="text-gray-400 hover:text-white"
-                          onClick={() => handleEditLogEntry(entry)}
-                        >
-                          <Edit2 size={16} />
-                        </Button>
-                      )}
-                      <div className="text-xs text-gray-300 font-mono">
-                        {entry.timestamp}
+                        {/* Показываем кнопку редактирования только creator, только для неудаленных записей и только если игра не завершена */}
+                        {!entry.isDeleted && isCreator && currentGame && currentGame.status !== 'completed' && (
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            className="text-gray-400 hover:text-white"
+                            onClick={() => handleEditLogEntry(entry)}
+                          >
+                            <Edit2 size={16} />
+                          </Button>
+                        )}
+                        <div className="text-xs text-gray-300 font-mono">
+                          {entry.timestamp}
+                        </div>
                       </div>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -735,19 +1024,21 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
         </Card>
 
         {/* End Game Section */}
-        <Card className="bg-gray-800 border border-gray-600">
-          <CardBody className="text-center">
-            <Button
-              color="danger"
-              variant="bordered"
-              size="lg"
-              onClick={handleEndGame}
-              className="w-full max-w-xs"
-            >
-              🏁 Завершить игру
-            </Button>
-          </CardBody>
-        </Card>
+        {currentGame && currentGame.status !== 'completed' && (
+          <Card className="bg-gray-800 border border-gray-600">
+            <CardBody className="text-center">
+              <Button
+                color="danger"
+                variant="bordered"
+                size="lg"
+                onClick={handleEndGame}
+                className="w-full max-w-xs"
+              >
+                🏁 Завершить игру
+              </Button>
+            </CardBody>
+          </Card>
+        )}
         </main>
       </div>
 
