@@ -260,16 +260,8 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
     if (!players.length || !session?.name) return []
     
     const pointsValue = getPointsValue(session.name)
-    const debts: Array<{
-      from: string
-      to: string
-      amount: number
-      description: string
-    }> = []
     
-    // 🔄 ИСПРАВЛЯЕМ: Правильная логика "Колхоз"
-    // Каждый игрок получает от предыдущего и платит следующему
-    
+    // 🔄 ИСПРАВЛЯЕМ: Правильная логика "Колхоз" - чистый баланс
     // Сортируем игроков по позиции в очереди (если есть) или по порядку добавления
     const sortedPlayers = [...players].sort((a, b) => {
       // Если есть queue_position, сортируем по нему
@@ -282,10 +274,15 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
     
     console.log('🔄 calculateFinalDebts: Сортированные игроки по очереди:', sortedPlayers.map(p => ({ name: p.name, points: p.points, money: p.money })))
     
-    // Проходим по всем игрокам в порядке очереди
+    // 🔄 ИСПРАВЛЯЕМ: Рассчитываем чистый баланс для каждого игрока
+    const playerBalances: Array<{
+      name: string
+      balance: number
+      description: string
+    }> = []
+    
     for (let i = 0; i < sortedPlayers.length; i++) {
       const currentPlayer = sortedPlayers[i]
-      const prevPlayer = sortedPlayers[i === 0 ? sortedPlayers.length - 1 : i - 1]
       const nextPlayer = sortedPlayers[i === sortedPlayers.length - 1 ? 0 : i + 1]
       
       // Текущий игрок получает от предыдущего за свои очки
@@ -294,36 +291,20 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
       // Текущий игрок платит следующему за его очки
       const paidToNext = nextPlayer.points * pointsValue
       
-      // Чистый результат для текущего игрока
-      const netResult = earnedFromPrev - paidToNext
+      // Чистый баланс для текущего игрока
+      const netBalance = earnedFromPrev - paidToNext
       
-      console.log(`🔄 calculateFinalDebts: ${currentPlayer.name}: получает ${earnedFromPrev}₽ от ${prevPlayer.name}, платит ${paidToNext}₽ ${nextPlayer.name}, итого: ${netResult}₽`)
+      console.log(`🔄 calculateFinalDebts: ${currentPlayer.name}: получает ${earnedFromPrev}₽ от ${sortedPlayers[i === 0 ? sortedPlayers.length - 1 : i - 1].name}, платит ${paidToNext}₽ ${nextPlayer.name}, итого: ${netBalance}₽`)
       
-      // Если текущий игрок должен следующему
-      if (paidToNext > earnedFromPrev) {
-        const debtAmount = paidToNext - earnedFromPrev
-        debts.push({
-          from: currentPlayer.name,
-          to: nextPlayer.name,
-          amount: debtAmount,
-          description: `${currentPlayer.name} должен ${nextPlayer.name} ${debtAmount}₽`
-        })
-      }
-      
-      // Если предыдущий игрок должен текущему
-      if (earnedFromPrev > paidToNext) {
-        const debtAmount = earnedFromPrev - paidToNext
-        debts.push({
-          from: prevPlayer.name,
-          to: currentPlayer.name,
-          amount: debtAmount,
-          description: `${prevPlayer.name} должен ${currentPlayer.name} ${debtAmount}₽`
-        })
-      }
+      playerBalances.push({
+        name: currentPlayer.name,
+        balance: netBalance,
+        description: `${currentPlayer.name}: ${netBalance >= 0 ? '+' : ''}${netBalance}₽`
+      })
     }
     
-    console.log('🔄 calculateFinalDebts: Финальные долги:', debts)
-    return debts
+    console.log('🔄 calculateFinalDebts: Финальные балансы игроков:', playerBalances)
+    return playerBalances
   }
 
   // Handlers
@@ -841,16 +822,9 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
                     {/* Карточки игроков в стиле preview */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                       {players.map((player) => {
-                        // 🔄 ИСПРАВЛЯЕМ: Рассчитываем задолженность игрока
-                        const debts = calculateFinalDebts()
-                        const playerDebt = debts.reduce((total, debt) => {
-                          if (debt.from === player.name) {
-                            return total - debt.amount // Игрок должен
-                          } else if (debt.to === player.name) {
-                            return total + debt.amount // Игроку должны
-                          }
-                          return total
-                        }, 0)
+                        // 🔄 ИСПРАВЛЯЕМ: Используем новый формат балансов
+                        const playerBalances = calculateFinalDebts()
+                        const playerBalance = playerBalances.find(p => p.name === player.name)?.balance || 0
                         
                         return (
                           <div key={player.id} className="bg-gray-700 border border-gray-600 rounded-lg p-4 text-center transition-all hover:border-mint/30">
@@ -860,11 +834,11 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
                             {/* Очки */}
                             <div className="text-2xl font-bold text-mint mb-2">{player.points}</div>
                             
-                            {/* 🔄 ИСПРАВЛЯЕМ: Итоговый результат (задолженность) */}
+                            {/* 🔄 ИСПРАВЛЯЕМ: Итоговый результат (чистый баланс) */}
                             <div className={`text-lg font-mono font-bold ${
-                              playerDebt >= 0 ? 'text-green-400' : 'text-red-400'
+                              playerBalance >= 0 ? 'text-green-400' : 'text-red-400'
                             }`}>
-                              {playerDebt >= 0 ? '+' : ''}{playerDebt} ₽
+                              {playerBalance >= 0 ? '+' : ''}{playerBalance} ₽
                             </div>
                           </div>
                         )
