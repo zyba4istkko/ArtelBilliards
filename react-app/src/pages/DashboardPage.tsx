@@ -16,28 +16,12 @@ import {
   FiberManualRecord
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
+import { ActiveGamesSection } from '../components/ui'
 
 function DashboardPage() {
   const navigate = useNavigate()
 
   // Моковые данные для демонстрации
-  const activeGames = [
-    {
-      id: 1,
-      name: '🎱 Колхоз с Игорем',
-      type: 'active',
-      status: 'В процессе',
-      startedAt: '15 минут назад'
-    },
-    {
-      id: 2,
-      name: '⚫ Американка',
-      type: 'waiting',
-      status: 'Ожидание',
-      startedAt: 'Ожидает игроков'
-    }
-  ]
-
   const recentResults = [
     {
       id: 1,
@@ -193,65 +177,8 @@ function DashboardPage() {
           </Grid>
         </Box>
 
-        {/* Active Games */}
-        <Box sx={{ mb: 6 }}>
-          <Typography variant="h4" component="h2" sx={{ 
-            color: 'primary.main', 
-            fontWeight: 700, 
-            mb: 3,
-            textAlign: { xs: 'center', md: 'left' }
-          }}>
-            Активные игры
-          </Typography>
-          
-          <Card sx={{ border: 1, borderColor: 'divider' }}>
-            <CardContent sx={{ p: 3 }}>
-              {activeGames.map((game, index) => (
-                <Box key={game.id}>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    py: 2,
-                    px: 2,
-                    borderRadius: 2,
-                    bgcolor: 'background.paper',
-                    mb: index < activeGames.length - 1 ? 2 : 0,
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      bgcolor: 'action.hover'
-                    }
-                  }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <FiberManualRecord sx={{ 
-                        fontSize: 12,
-                        color: game.type === 'active' ? 'success.main' : 'warning.main'
-                      }} />
-                      <Box>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                          {game.name}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {game.startedAt}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    
-                    <Chip 
-                      label={game.status}
-                      size="small"
-                      sx={{
-                        bgcolor: game.type === 'active' ? 'success.main' : 'warning.main',
-                        color: 'white',
-                        fontWeight: 600
-                      }}
-                    />
-                  </Box>
-                </Box>
-              ))}
-            </CardContent>
-          </Card>
-        </Box>
+        {/* Active Games - теперь с реальными данными */}
+        <ActiveGamesSection />
 
         {/* Recent Results */}
         <Box sx={{ mb: 6 }}>

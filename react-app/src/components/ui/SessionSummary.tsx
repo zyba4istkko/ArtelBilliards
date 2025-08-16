@@ -10,6 +10,7 @@ interface SessionSummaryProps {
   players: Player[]
   onStartGame: () => void
   isStarting?: boolean
+  sessionId?: string
 }
 
 export function SessionSummary({ selectedTemplate, players, onStartGame, isStarting = false }: SessionSummaryProps) {
@@ -232,7 +233,7 @@ export function SessionSummary({ selectedTemplate, players, onStartGame, isStart
           🎯 Готово к игре!
         </Typography>
         <Typography variant="body2" sx={{ fontSize: '14px', color: tokens.colors.gray300 }}>
-          После создания вы сможете начать вести счет во время реальной игры
+          Нажмите кнопку ниже, чтобы запустить сессию и перейти в игру
         </Typography>
       </Box>
 
@@ -255,7 +256,7 @@ export function SessionSummary({ selectedTemplate, players, onStartGame, isStart
             '&:disabled': { bgcolor: tokens.colors.gray600, color: tokens.colors.gray400 } 
           }}
         >
-          {isStarting ? 'Создание сессии...' : '🚀 Начать игру'}
+          {isStarting ? 'Запуск сессии...' : '🚀 Запустить сессию'}
         </Button>
       </Box>
 

@@ -30,6 +30,9 @@ class Settings:
     auth_service_url: str = os.getenv("AUTH_SERVICE_URL", "http://auth-service:8001")
     template_service_url: str = os.getenv("TEMPLATE_SERVICE_URL", "http://template-service:8003")
     
+    # Auth Service Integration
+    AUTH_SERVICE_URL: str = os.getenv("AUTH_SERVICE_URL", "http://auth-service:8001")
+    
     # Game settings
     max_participants_per_session: int = 8
     max_events_per_game: int = 1000

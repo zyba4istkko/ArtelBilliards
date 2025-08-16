@@ -23,13 +23,15 @@ import tokens from '../../styles/design-tokens'
 import { useUser } from '../../store/authStore'
 import { PlayerService } from '../../api/services/playerService'
 import type { Player } from '../../api/types'
+import { SessionService } from '../../api/services/sessionService'
 
 interface PlayerManagementProps {
   onPlayersChange: (players: Player[]) => void
   selectedTemplate?: any
+  sessionId?: string
 }
 
-export function PlayerManagement({ onPlayersChange, selectedTemplate }: PlayerManagementProps) {
+export function PlayerManagement({ onPlayersChange, selectedTemplate, sessionId }: PlayerManagementProps) {
   const currentUser = useUser()
   const [players, setPlayers] = useState<Player[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -40,41 +42,191 @@ export function PlayerManagement({ onPlayersChange, selectedTemplate }: PlayerMa
   const [editingBotId, setEditingBotId] = useState<string | null>(null)
   const [editingBotName, setEditingBotName] = useState('')
 
-  // Автоматически добавляем текущего пользователя при инициализации
+  // 🔄 НОВОЕ: Состояние для участников сессии
+  const [sessionParticipants, setSessionParticipants] = useState<any[]>([])
+  const [isLoadingParticipants, setIsLoadingParticipants] = useState(false)
+
+  // 🔄 ИСПРАВЛЯЕМ: НЕ добавляем текущего пользователя автоматически через API
+  // Участники уже загружаются из SessionCreationPage
   useEffect(() => {
-    if (currentUser && players.length === 0) {
-      const currentPlayer: Player = {
-        id: currentUser.id || 'current-user',
-        username: currentUser.username || 'current-user',
-        email: currentUser.email,
-        isBot: false,
-        displayName: currentUser.first_name || currentUser.username || 'Вы'
+    // Пустой useEffect - убираем автоматическое добавление
+  }, [])
+
+  // 🔄 НОВОЕ: Загружаем участников сессии если sessionId есть И если нет переданных игроков
+  useEffect(() => {
+    if (sessionId && players.length === 0) {
+      loadSessionParticipants()
+    }
+  }, [sessionId, players.length])
+
+  // 🔄 НОВОЕ: Функция загрузки участников сессии
+  const loadSessionParticipants = async () => {
+    if (!sessionId) return
+    
+    setIsLoadingParticipants(true)
+    try {
+      console.log('🔍 PlayerManagement: Загружаю участников сессии:', sessionId)
+      const participants = await SessionService.getSessionParticipants(sessionId)
+      console.log('✅ PlayerManagement: Участники загружены:', participants)
+      setSessionParticipants(participants)
+      
+      // 🔄 ДОБАВЛЯЕМ: Логирование для отладки
+      console.log('🔍 PlayerManagement: Участники из API:', participants)
+      participants.forEach((p, index) => {
+        console.log(`🔍 PlayerManagement: Участник ${index}:`, {
+          id: p.id,
+          user_id: p.user_id,
+          display_name: p.display_name,
+          is_empty_user: p.is_empty_user
+        })
+      })
+      
+      // Синхронизируем с локальным списком игроков
+      const existingPlayers = participants.map(p => ({
+        id: p.user_id || p.id,
+        username: p.display_name, // 🔄 display_name из базы становится username
+        email: '',
+        isBot: p.is_empty_user,
+        displayName: p.display_name || 'Пользователь' // 🔄 display_name из базы становится displayName, fallback если пусто
+      }))
+      
+      console.log('🔍 PlayerManagement: Преобразованные игроки:', existingPlayers)
+      
+      // Добавляем только новых игроков (не дублируем)
+      const newPlayers = existingPlayers.filter(p => 
+        !players.find(localP => localP.id === p.id)
+      )
+      
+      if (newPlayers.length > 0) {
+        const updatedPlayers = [...players, ...newPlayers]
+        setPlayers(updatedPlayers)
+        onPlayersChange(updatedPlayers)
+        console.log('✅ PlayerManagement: Добавлены новые игроки из сессии:', newPlayers)
       }
       
-      const initialPlayers = [currentPlayer]
-      setPlayers(initialPlayers)
-      onPlayersChange(initialPlayers)
+    } catch (error) {
+      console.error('❌ PlayerManagement: Ошибка загрузки участников:', error)
+      setError('Ошибка загрузки участников сессии')
+    } finally {
+      setIsLoadingParticipants(false)
     }
-  }, [currentUser, players.length, onPlayersChange])
+  }
 
   // Добавить игрока в список
-  const addPlayer = (player: Player) => {
+  const addPlayer = async (player: Player) => {
+    if (!sessionId) return
+    
     if (players.find(p => p.id === player.id)) {
       setError('Игрок уже добавлен в список')
       return
     }
     
-    const newPlayers = [...players, player]
-    setPlayers(newPlayers)
-    onPlayersChange(newPlayers)
-    setError(null)
+    try {
+      console.log('🔍 PlayerManagement: Добавляю участника:', player)
+      
+      if (player.isBot) {
+        // 🔄 ИСПРАВЛЯЕМ: Для ботов НЕ вызываем API повторно
+        // Бот уже добавлен в базу в createBotWithName
+        console.log('✅ PlayerManagement: Бот уже добавлен в базу, пропускаем API вызов')
+      } else {
+        // Для участников вызываем API
+        const playerData = await SessionService.addPlayerToSession(sessionId, {
+          user_id: player.id,
+          display_name: player.displayName,
+          session_role: 'participant'
+        })
+        console.log('✅ PlayerManagement: Участник добавлен в базу:', playerData)
+      }
+      
+      // Добавляем в локальный список
+      const newPlayers = [...players, player]
+      setPlayers(newPlayers)
+      onPlayersChange(newPlayers)
+      setError(null)
+      
+      // Перезагружаем участников сессии из базы
+      await loadSessionParticipants()
+      
+      console.log('✅ PlayerManagement: Участник успешно добавлен и сохранен в базе')
+      
+    } catch (error) {
+      console.error('❌ PlayerManagement: Ошибка добавления участника:', error)
+      setError('Ошибка добавления участника в сессию')
+    }
+  }
+
+  // Создать бота с именем
+  const createBotWithName = async (name: string) => {
+    if (!name.trim() || !sessionId) return
+    
+    try {
+      console.log('🔍 PlayerManagement: Создаю бота:', name)
+      
+      // Добавляем бота в базу данных
+      const botData = await SessionService.addBotToSession(sessionId, name.trim())
+      console.log('✅ PlayerManagement: Бот добавлен в базу:', botData)
+      
+      // Создаем локального бота для UI
+      const botPlayer: Player = {
+        id: botData.id,
+        username: name.toLowerCase().replace(/\s+/g, '_'),
+        isBot: true,
+        displayName: name.trim()
+      }
+      
+      // Добавляем в локальный список
+      addPlayer(botPlayer)
+      
+      // Перезагружаем участников сессии из базы
+      await loadSessionParticipants()
+      
+      setBotName('') // Очищаем поле после создания
+      console.log('✅ PlayerManagement: Бот успешно создан и сохранен в базе')
+      
+    } catch (error) {
+      console.error('❌ PlayerManagement: Ошибка создания бота:', error)
+      setError('Ошибка создания бота. Попробуйте еще раз.')
+    }
+  }
+
+  // Изменить имя бота
+  const changeBotName = (playerId: string, newName: string) => {
+    if (!newName.trim()) return
+    
+    const updatedPlayers = players.map(player => 
+      player.id === playerId 
+        ? { ...player, displayName: newName.trim() }
+        : player
+    )
+    
+    setPlayers(updatedPlayers)
+    onPlayersChange(updatedPlayers)
   }
 
   // Удалить игрока из списка
-  const removePlayer = (playerId: string) => {
-    const newPlayers = players.filter(p => p.id !== playerId)
-    setPlayers(newPlayers)
-    onPlayersChange(newPlayers)
+  const removePlayer = async (playerId: string) => {
+    if (!sessionId) return
+    
+    try {
+      // 🔄 ИСПРАВЛЯЕМ: Удаляем ВСЕХ участников из базы (и ботов, и игроков)
+      console.log('🔍 PlayerManagement: Удаляю участника из базы:', playerId)
+      await SessionService.removeParticipantFromSession(sessionId, playerId)
+      console.log('✅ PlayerManagement: Участник удален из базы')
+      
+      // Удаляем из локального списка
+      const newPlayers = players.filter(p => p.id !== playerId)
+      setPlayers(newPlayers)
+      onPlayersChange(newPlayers)
+      
+      // Перезагружаем участников сессии из базы
+      await loadSessionParticipants()
+      
+      console.log('✅ PlayerManagement: Игрок удален из списка и базы')
+      
+    } catch (error) {
+      console.error('❌ PlayerManagement: Ошибка удаления игрока:', error)
+      setError('Ошибка удаления игрока. Попробуйте еще раз.')
+    }
   }
 
   // Поиск игроков
@@ -95,51 +247,21 @@ export function PlayerManagement({ onPlayersChange, selectedTemplate }: PlayerMa
     }
   }
 
-  // Создать бота с именем
-  const createBotWithName = (name: string) => {
-    if (!name.trim()) return
-    
-    const botPlayer: Player = {
-      id: `bot-${Date.now()}`,
-      username: name.toLowerCase().replace(/\s+/g, '_'),
-      isBot: true,
-      displayName: name.trim()
-    }
-    
-    addPlayer(botPlayer)
-    setBotName('') // Очищаем поле после создания
-  }
-
-  // Изменить имя бота
-  const changeBotName = (playerId: string, newName: string) => {
-    if (!newName.trim()) return
-    
-    const updatedPlayers = players.map(player => 
-      player.id === playerId 
-        ? { ...player, displayName: newName.trim() }
-        : player
-    )
-    
-    setPlayers(updatedPlayers)
-    onPlayersChange(updatedPlayers)
-  }
-
   return (
     <Box>
       {/* Заголовок */}
-      <Typography variant="h4" component="h2" sx={{ 
-        color: tokens.colors.mint, 
-        fontWeight: 700, 
+      <Typography variant="h5" sx={{ 
+        color: tokens.colors.white, 
         mb: 2 
       }}>
-        Добавь игроков
+        Управление игроками
       </Typography>
-      
+
       <Typography variant="body1" sx={{ 
         color: tokens.colors.gray300, 
         mb: 4 
       }}>
-        Кто будет играть в этой партии?
+        Добавь игроков или ботов для участия в игре
       </Typography>
 
       {/* Поиск игроков */}

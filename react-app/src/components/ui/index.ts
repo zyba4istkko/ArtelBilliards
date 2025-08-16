@@ -16,3 +16,17 @@ export { SettingRow } from './SettingRow'
 export { SettingsPanel } from './SettingsPanel'
 export { PlayerManagement } from './PlayerManagement'
 export { SessionSummary } from './SessionSummary'
+
+// Game Session Components
+export { default as GameHeader } from './GameHeader'
+export { default as Scoreboard } from './Scoreboard'
+export { default as GameHistory } from './GameHistory'
+export { default as ActionPanel } from './ActionPanel'
+export { default as GameControls } from './GameControls'
+export { default as ScoreModal } from './ScoreModal'
+export { default as GameLog } from './GameLog'
+export { default as PlayerCard } from './PlayerCard'
+export { default as EndGameModal } from './EndGameModal'
+
+// Dashboard Components
+export { default as ActiveGamesSection } from './ActiveGamesSection'

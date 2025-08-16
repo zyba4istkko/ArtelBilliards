@@ -81,8 +81,8 @@ export interface MoscowPyramidRules extends BaseGameRules {
 }
 
 export interface GameTemplate {
-  id: string
-  creator_user_id: string
+  id: string  // UUID в виде string
+  creator_user_id: string  // UUID в виде string
   name: string
   description: string
   game_type: GameType
@@ -129,27 +129,48 @@ export interface GameTemplateListResponse {
 // Game Session Types
 export interface GameSession {
   id: string
-  template_id: string
   creator_user_id: string
+  game_type: GameTypeResponse
+  template_id?: string
   name: string
   description?: string
-  status: 'waiting' | 'active' | 'paused' | 'completed' | 'cancelled'
+  status: 'waiting' | 'in_progress' | 'completed' | 'cancelled'
   max_players: number
-  current_players: number
+  current_players_count: number  // 🔄 ИСПРАВЛЯЕМ: было current_players
+  rules?: Record<string, any>
+  participants: SessionPlayer[]  // 🔄 ИСПРАВЛЯЕМ: теперь соответствует backend
   created_at: string
   started_at?: string
-  finished_at?: string
+  completed_at?: string
+  updated_at?: string
+  creation_step: number  // 🔄 ДОБАВЛЯЕМ: шаг создания (1-3)
+}
+
+export interface GameTypeResponse {
+  id: number
+  name: string
+  display_name: string
+  description?: string
+  default_rules: Record<string, any>
+  is_active: boolean
 }
 
 export interface SessionPlayer {
   id: string
-  session_id: string
-  user_id: string
-  username: string
-  position: number
-  score: number
-  is_ready: boolean
+  user_id?: string  // 🔄 ИСПРАВЛЯЕМ: может быть undefined для ботов
+  display_name: string
+  session_role: 'creator' | 'participant' | 'spectator'  // 🔄 ИСПРАВЛЯЕМ: добавляем spectator
+  is_empty_user: boolean
   joined_at: string
+  queue_position?: number  // 🔄 ИСПРАВЛЯЕМ: может быть undefined
+  current_score: number
+  is_active: boolean
+  can_modify_settings: boolean
+  can_kick_players: boolean
+  can_change_rules: boolean
+  session_balance_rubles: number
+  total_games_played: number
+  total_balls_potted: number
 }
 
 // Game Types
@@ -157,13 +178,30 @@ export interface Game {
   id: string
   session_id: string
   game_number: number
-  status: 'waiting' | 'active' | 'paused' | 'completed'
-  current_player_id?: string
-  scores: Record<string, number>
-  events: GameEvent[]
-  started_at?: string
-  finished_at?: string
-  winner_id?: string
+  status: 'in_progress' | 'completed' | 'cancelled'
+  winner_participant_id?: string
+  started_at: string
+  completed_at?: string
+  duration_seconds?: number
+  game_data?: Record<string, any>
+}
+
+// Game Response Types
+export interface GameResponse {
+  id: string
+  session_id: string
+  game_number: number
+  status: 'in_progress' | 'completed' | 'cancelled'
+  winner_participant_id?: string
+  started_at: string
+  completed_at?: string
+  duration_seconds?: number
+  game_data?: Record<string, any>
+}
+
+export interface CreateGameRequest {
+  queue_algorithm: QueueAlgorithm
+  current_queue?: Record<string, any>
 }
 
 export interface GameEvent {

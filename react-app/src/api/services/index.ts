@@ -1,4 +1,5 @@
-export { GameService } from './gameService'
+export { AuthService } from './authService'
 export { SessionService } from './sessionService'
 export { TemplateService } from './templateService'
+export { GameService } from './gameService'
 export { PlayerService } from './playerService'

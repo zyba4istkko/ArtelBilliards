@@ -26,7 +26,7 @@ class SessionRole(str, Enum):
 
 
 class GameStatus(str, Enum):
-    IN_PROGRESS = "in_progress"
+    ACTIVE = "in_progress"  # 🔄 ИСПРАВЛЯЕМ: 'active' -> 'in_progress' для совместимости с frontend
     COMPLETED = "completed"
     CANCELLED = "cancelled"
 
@@ -60,11 +60,24 @@ class GameTypeResponse(BaseModel):
 # Session Models
 class CreateSessionRequest(BaseModel):
     name: str = Field(min_length=1, max_length=100)
-    game_type_id: int
-    template_id: Optional[UUID] = None
+    creator_display_name: Optional[str] = Field(max_length=100, default=None)  # Имя создателя сессии
+    bot_display_name: Optional[str] = Field(max_length=100, default=None)  # Имя бота
+    game_type_id: Optional[int] = None  # Опциональный
+    template_id: UUID  # Обязательный UUID
     max_players: int = Field(ge=2, le=8)
-    description: Optional[str] = Field(max_length=500)
+    description: Optional[str] = Field(max_length=500, default=None)  # Опциональный с дефолтом
     rules: Optional[Dict[str, Any]] = None
+
+
+class UpdateSessionRequest(BaseModel):
+    """Схема для обновления сессии - все поля опциональные"""
+    name: Optional[str] = Field(min_length=1, max_length=100, default=None)
+    template_id: Optional[UUID] = None
+    max_players: Optional[int] = Field(ge=2, le=8, default=None)
+    description: Optional[str] = Field(max_length=500, default=None)
+    rules: Optional[Dict[str, Any]] = None
+    status: Optional[SessionStatus] = None  # 🔄 ДОБАВЛЯЕМ: обновление статуса
+    creation_step: Optional[int] = None  # 🔄 ДОБАВЛЯЕМ: обновление шага
 
 
 class SessionParticipantResponse(BaseModel):
@@ -89,17 +102,19 @@ class SessionResponse(BaseModel):
     id: UUID
     creator_user_id: UUID
     game_type: GameTypeResponse
-    template_id: Optional[UUID]
+    template_id: Optional[UUID] = None
     name: str
+    description: Optional[str] = None
     status: SessionStatus
     max_players: int
     current_players_count: int
-    rules: Optional[Dict[str, Any]]
+    rules: Optional[Dict[str, Any]] = None
     participants: List[SessionParticipantResponse]
     created_at: datetime
-    started_at: Optional[datetime]
-    completed_at: Optional[datetime]
-    updated_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    creation_step: int = 1  # 🔄 ДОБАВЛЯЕМ: шаг создания (1-3)
 
 
 class SessionListResponse(BaseModel):
@@ -117,6 +132,7 @@ class JoinSessionRequest(BaseModel):
 class InvitePlayerRequest(BaseModel):
     user_id: Optional[UUID] = None
     display_name: str
+    session_role: str = "participant"  # 🔄 ДОБАВЛЯЕМ: Роль участника по умолчанию
     as_empty_user: bool = False
 
 

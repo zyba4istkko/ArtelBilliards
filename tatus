@@ -1,0 +1,1361 @@
+[1mdiff --git a/MemoryBank/archive/archive-bug-001-cost-display.md b/MemoryBank/archive/archive-bug-001-cost-display.md[m
+[1mdeleted file mode 100644[m
+[1mindex 1669176..0000000[m
+[1m--- a/MemoryBank/archive/archive-bug-001-cost-display.md[m
+[1m+++ /dev/null[m
+[36m@@ -1,162 +0,0 @@[m
+[31m-# ARCHIVE: BUG-001 - Отображение стоимости партии в TemplateCard[m
+[31m-[m
+[31m-## 📋 **ОПИСАНИЕ ЗАДАЧИ**[m
+[31m-**Тип:** Bug Fix  [m
+[31m-**Приоритет:** MEDIUM  [m
+[31m-**Сложность:** Level 2 (Simple Enhancement)  [m
+[31m-**Статус:** OPEN  [m
+[31m-**Создано:** 2025-08-14 09:50  [m
+[31m-**Создатель:** AI Assistant  [m
+[31m-[m
+[31m-## 🎯 **ЦЕЛЬ**[m
+[31m-Исправить отображение стоимости в карточках шаблонов на главной странице `/templates`.[m
+[31m-[m
+[31m-## 🐛 **ПРОБЛЕМА**[m
+[31m-В карточках шаблонов на главной странице неправильно отображается стоимость:[m
+[31m-[m
+[31m-**Ожидаемое поведение:**[m
+[31m-- **Колхоз:** "Стоимость очка: [сумма]₽"[m
+[31m-- **Американка:** "Стоимость партии: 500₽"  [m
+[31m-- **Москва:** "Стоимость партии: 500₽"[m
+[31m-[m
+[31m-**Текущее поведение:**[m
+[31m-- **Все типы:** "Стоимость очка: Не указано"[m
+[31m-[m
+[31m-## 🔍 **АНАЛИЗ ПРОБЛЕМЫ**[m
+[31m-[m
+[31m-### **Backend данные корректны:**[m
+[31m-```json[m
+[31m-// Москва тест[m
+[31m-{[m
+[31m-  "game_type": "moscow_pyramid",[m
+[31m-  "game_price_rubles": 500,[m
+[31m-  "balls_total": 16[m
+[31m-}[m
+[31m-[m
+[31m-// Американка тест  [m
+[31m-{[m
+[31m-  "game_type": "americana",[m
+[31m-  "game_price_rubles": 500,[m
+[31m-  "balls_total": 16[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **Функция getTemplateDetails работает:**[m
+[31m-```typescript[m
+[31m-// template-utils.ts[m
+[31m-if (gameType === 'americana' || gameType === 'moscow_pyramid') {[m
+[31m-  scoring = {[m
+[31m-    'Стоимость партии': rules.game_price_rubles ? `${rules.game_price_rubles}₽` : '500₽'[m
+[31m-  }[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **TemplateCard обновлен:**[m
+[31m-- ✅ Использует `getTemplateDetails` вместо жестко закодированных полей[m
+[31m-- ✅ Динамически отображает `templateDetails.scoring`[m
+[31m-- ✅ Добавлены отладочные логи[m
+[31m-[m
+[31m-## ❌ **ЧТО НЕ РАБОТАЕТ**[m
+[31m-**Основная проблема:** `TemplateCard` не рендерится или не вызывается.[m
+[31m-[m
+[31m-**Симптомы:**[m
+[31m-- В консоли нет логов от `TemplateCard`[m
+[31m-- Нет логов `🚀 TemplateCard вызван для: [имя]`[m
+[31m-- Нет логов `🔍 TemplateCard debug: {...}`[m
+[31m-- Данные не отображаются на странице[m
+[31m-[m
+[31m-## 🔧 **ПОПЫТКИ РЕШЕНИЯ**[m
+[31m-[m
+[31m-### **1. Переписал TemplateCard** ✅[m
+[31m-- Заменил жестко закодированные поля на `getTemplateDetails`[m
+[31m-- Добавил динамическое отображение `settings` и `scoring`[m
+[31m-- Добавил отладочные логи[m
+[31m-[m
+[31m-### **2. Исправил TypeScript типы** ✅[m
+[31m-- Добавил недостающие поля в `BaseGameRules`[m
+[31m-- Убрал дублирующие поля из специфичных интерфейсов[m
+[31m-- Обновил типы для `GameTemplate` и `GameTemplateCreate`[m
+[31m-[m
+[31m-### **3. Обновил данные в БД** ✅[m
+[31m-- Добавил `balls_total: 16` для Москва тест[m
+[31m-- Добавил `balls_total: 16` для Американка тест[m
+[31m-- Убрал дублирующие поля `total_balls`[m
+[31m-[m
+[31m-### **4. Пересобрал фронтенд** ✅[m
+[31m-- Очистил Docker кэш (7.4GB)[m
+[31m-- Удалил старый образ `artel-billiards-frontend`[m
+[31m-- Пересобрал с нуля без кэша[m
+[31m-- Запустил новый контейнер[m
+[31m-[m
+[31m-### **5. Добавил диагностические логи** ✅[m
+[31m-- В `TemplatesPage`: логи рендеринга шаблонов[m
+[31m-- В `TemplateCard`: логи вызова компонента[m
+[31m-- В `getTemplateDetails`: логи возвращаемых данных[m
+[31m-[m
+[31m-## 🔍 **ТЕКУЩАЯ ДИАГНОСТИКА**[m
+[31m-[m
+[31m-### **Логи TemplatesPage работают:**[m
+[31m-```[m
+[31m-🔍 TemplatesPage render: {[m
+[31m-  templatesCount: 7,[m
+[31m-  templates: Array(7),[m
+[31m-  firstTemplate: {...}[m
+[31m-}[m
+[31m-```[m
+[31m-[m
+[31m-### **Логи TemplateCard НЕ работают:**[m
+[31m-```[m
+[31m-🚀 TemplateCard вызван для: [имя]  ← НЕТ[m
+[31m-🔍 TemplateCard debug: {...}        ← НЕТ[m
+[31m-```[m
+[31m-[m
+[31m-### **Вывод:**[m
+[31m-Проблема в том, что **блок рендеринга TemplateCard не выполняется** или компонент падает с ошибкой.[m
+[31m-[m
+[31m-## 📋 **ПЛАН РЕШЕНИЯ**[m
+[31m-[m
+[31m-### **Этап 1: Диагностика рендеринга** 🔍[m
+[31m-- [ ] Проверить почему не выполняется блок `templatesData.templates.map()`[m
+[31m-- [ ] Добавить логи в условие рендеринга[m
+[31m-- [ ] Проверить структуру `templatesData`[m
+[31m-[m
+[31m-### **Этап 2: Исправление рендеринга** 🔧[m
+[31m-- [ ] Обеспечить корректный вызов `TemplateCard`[m
+[31m-- [ ] Исправить ошибки в компоненте (если есть)[m
+[31m-- [ ] Проверить импорты и зависимости[m
+[31m-[m
+[31m-### **Этап 3: Тестирование** ✅[m
+[31m-- [ ] Проверить отображение для всех типов шаблонов[m
+[31m-- [ ] Убедиться что логи появляются в консоли[m
+[31m-- [ ] Проверить корректность данных[m
+[31m-[m
+[31m-### **Этап 4: Документирование** 📝[m
+[31m-- [ ] Описать решение в комментариях[m
+[31m-- [ ] Обновить документацию[m
+[31m-- [ ] Создать тест-кейсы[m
+[31m-[m
+[31m-## 🎯 **КРИТЕРИИ ГОТОВНОСТИ**[m
+[31m-- [ ] TemplateCard корректно рендерится для всех шаблонов[m
+[31m-- [ ] Колхоз показывает "Стоимость очка: [сумма]₽"[m
+[31m-- [ ] Американка показывает "Стоимость партии: 500₽"[m
+[31m-- [ ] Москва показывает "Стоимость партии: 500₽"[m
+[31m-- [ ] В консоли появляются логи от TemplateCard[m
+[31m-- [ ] Нет ошибок JavaScript в консоли[m
+[31m-[m
+[31m-## 📁 **ФАЙЛЫ ДЛЯ ИЗМЕНЕНИЯ**[m
+[31m-- `react-app/src/components/ui/TemplateCard.tsx` - основной компонент[m
+[31m-- `react-app/src/pages/TemplatesPage.tsx` - рендеринг шаблонов[m
+[31m-- `react-app/src/utils/template-utils.ts` - логика данных (уже исправлено)[m
+[31m-[m
+[31m-## 🔗 **СВЯЗАННЫЕ ЗАДАЧИ**[m
+[31m-- **UI Component Integration** - основная задача[m
+[31m-- **Template Service Testing** - тестирование через UI[m
+[31m-[m
+[31m-## 📝 **ЗАМЕТКИ**[m
+[31m-- Проблема может быть связана с Docker кэшированием[m
+[31m-- Возможно, есть скрытая ошибка JavaScript которая блокирует рендеринг[m
+[31m-- Нужно проверить консоль браузера на наличие ошибок[m
+[31m-[m
+[31m----[m
+[31m-*Статус: Открыто для решения в будущем*  [m
+[31m-*Последнее обновление: 2025-08-14 09:50*[m
+[1mdiff --git a/MemoryBank/creative/creative-docker-devops.md b/MemoryBank/creative/creative-docker-devops.md[m
+[1mdeleted file mode 100644[m
+[1mindex 0c1ef2e..0000000[m
+[1m--- a/MemoryBank/creative/creative-docker-devops.md[m
+[1m+++ /dev/null[m
+[36m@@ -1,2566 +0,0 @@[m
+[31m-# Проектирование инфраструктуры Docker и DevOps[m
+[31m-[m
+[31m-🎨🎨🎨 **ENTERING CREATIVE PHASE: DOCKER & DEVOPS INFRASTRUCTURE** 🎨🎨🎨[m
+[31m-[m
+[31m-## Описание компонента[m
+[31m-[m
+[31m-Комплексная DevOps инфраструктура для микросервисной архитектуры бильярдного приложения, включающая containerization strategy, CI/CD pipelines, orchestration с Kubernetes, Infrastructure as Code, environment management, deployment strategies, monitoring integration, security scanning и disaster recovery. Инфраструктура должна обеспечить scalable, secure и cost-effective deployment со 100% automation и zero-downtime deployments.[m
+[31m-[m
+[31m-## Требования и ограничения[m
+[31m-[m
+[31m-### Функциональные требования:[m
+[31m-- **Containerization**: Docker containers для всех микросервисов и dependencies[m
+[31m-- **Orchestration**: Kubernetes-based orchestration с auto-scaling[m
+[31m-- **CI/CD Automation**: Automated testing, building, и deployment pipelines[m
+[31m-- **Environment Management**: Isolated dev/staging/production environments[m
+[31m-- **Infrastructure as Code**: Declarative infrastructure management[m
+[31m-- **Security Scanning**: Automated vulnerability detection и compliance[m
+[31m-- **Monitoring Integration**: Seamless integration с observability stack[m
+[31m-- **Backup & Recovery**: Automated backup strategies и disaster recovery[m
+[31m-[m
+[31m-### Технические ограничения:[m
+[31m-- **Resource Efficiency**: Optimized container images (< 200MB per service)[m
+[31m-- **Build Performance**: CI/CD pipeline execution < 15 minutes[m
+[31m-- **Deployment Speed**: Zero-downtime deployments < 5 minutes[m
+[31m-- **Scalability**: Support для 10x traffic growth[m
+[31m-- **Security**: Container security scanning, secrets management[m
+[31m-- **Cost Optimization**: Resource utilization > 70%[m
+[31m-- **High Availability**: 99.9% uptime target[m
+[31m-- **Compliance**: GDPR, security audit requirements[m
+[31m-[m
+[31m-### Архитектурные ограничения:[m
+[31m-- **Multi-cloud Support**: Vendor-agnostic infrastructure design[m
+[31m-- **Network Security**: Service mesh integration для secure communication[m
+[31m-- **Storage**: Persistent volumes для stateful services (databases)[m
+[31m-- **Load Balancing**: Intelligent traffic routing и failover[m
+[31m-- **Service Discovery**: Automatic service registration и discovery[m
+[31m-- **Configuration Management**: Environment-specific configurations[m
+[31m-- **Logging & Monitoring**: Centralized observability integration[m
+[31m-- **Resource Limits**: CPU и memory constraints для cost control[m
+[31m-[m
+[31m-### Operational требования:[m
+[31m-- **GitOps Workflow**: Git-based deployment и configuration management[m
+[31m-- **Rollback Capability**: Quick rollback для failed deployments[m
+[31m-- **Blue-Green Deployment**: Zero-downtime deployment strategy[m
+[31m-- **Canary Releases**: Gradual feature rollout capabilities[m
+[31m-- **Database Migrations**: Safe database schema updates[m
+[31m-- **Secret Rotation**: Automated credential management[m
+[31m-- **Performance Testing**: Load testing integration[m
+[31m-- **Documentation**: Comprehensive operational runbooks[m
+[31m-[m
+[31m-## Варианты DevOps архитектуры[m
+[31m-[m
+[31m-### Вариант 1: Traditional Container Orchestration[m
+[31m-[m
+[31m-**Описание**: Классический подход с Docker Swarm или простым Kubernetes setup без дополнительных abstractions.[m
+[31m-[m
+[31m-**Архитектура компонентов**:[m
+[31m-```[m
+[31m-Git Repository[m
+[31m-     ↓[m
+[31m-Jenkins/GitLab CI[m
+[31m-     ↓[m
+[31m-Docker Build[m
+[31m-     ↓[m
+[31m-Container Registry[m
+[31m-     ↓[m
+[31m-Kubernetes/Docker Swarm[m
+[31m-     ↓[m
+[31m-Load Balancer[m
+[31m-     ↓[m
+[31m-Monitoring (Grafana/Prometheus)[m
+[31m-```[m
+[31m-[m
+[31m-**Technology Stack**:[m
+[31m-- **Containerization**: Docker + Docker Compose[m
+[31m-- **CI/CD**: Jenkins или GitLab CI/CD[m
+[31m-- **Orchestration**: Kubernetes или Docker Swarm[m
+[31m-- **Registry**: Docker Hub или private registry[m
+[31m-- **Infrastructure**: Manual provisioning или Ansible[m
+[31m-- **Monitoring**: Prometheus + Grafana integration[m
+[31m-- **Storage**: Local volumes или basic persistent volumes[m
+[31m-[m
+[31m-**Преимущества**:[m
+[31m-- Simple setup и learning curve[m
+[31m-- Good control over configuration[m
+[31m-- Mature toolchain с extensive documentation[m
+[31m-- Cost-effective для small teams[m
+[31m-- Direct container management[m
+[31m-- Easy debugging и troubleshooting[m
+[31m-[m
+[31m-**Недостатки**:[m
+[31m-- Manual infrastructure management[m
+[31m-- Limited auto-scaling capabilities[m
+[31m-- No advanced deployment strategies out-of-the-box[m
+[31m-- Security scanning requires additional setup[m
+[31m-- Infrastructure drift risks[m
+[31m-- Limited disaster recovery automation[m
+[31m-[m
+[31m-### Вариант 2: Cloud-Native Kubernetes Platform[m
+[31m-[m
+[31m-**Описание**: Modern cloud-native подход с managed Kubernetes services, GitOps workflows и comprehensive automation.[m
+[31m-[m
+[31m-**Архитектура компонентов**:[m
+[31m-```[m
+[31m-Git Repository (GitOps)[m
+[31m-     ↓[m
+[31m-GitHub Actions/GitLab CI[m
+[31m-     ↓[m
+[31m-Container Build & Security Scan[m
+[31m-     ↓[m
+[31m-Artifact Registry[m
+[31m-     ↓[m
+[31m-ArgoCD/Flux (GitOps)[m
+[31m-     ↓[m
+[31m-Managed Kubernetes (EKS/GKE/AKS)[m
+[31m-     ↓[m
+[31m-Istio Service Mesh[m
+[31m-     ↓[m
+[31m-Ingress Controller[m
+[31m-     ↓[m
+[31m-Applications + Monitoring[m
+[31m-```[m
+[31m-[m
+[31m-**Technology Stack**:[m
+[31m-- **Containerization**: Docker + multi-stage builds[m
+[31m-- **CI/CD**: GitHub Actions или GitLab CI с ArgoCD[m
+[31m-- **Orchestration**: Managed Kubernetes (EKS/GKE/AKS)[m
+[31m-- **GitOps**: ArgoCD или Flux для declarative deployments[m
+[31m-- **Service Mesh**: Istio или Linkerd[m
+[31m-- **Infrastructure**: Terraform + Cloud Provider APIs[m
+[31m-- **Security**: Falco, Twistlock, container scanning[m
+[31m-- **Storage**: Cloud-native storage solutions[m
+[31m-[m
+[31m-**Преимущества**:[m
+[31m-- Full automation с GitOps workflows[m
+[31m-- Advanced deployment strategies (canary, blue-green)[m
+[31m-- Built-in security scanning и compliance[m
+[31m-- Auto-scaling и self-healing capabilities[m
+[31m-- Service mesh для advanced networking[m
+[31m-- Cloud provider integrations[m
+[31m-[m
+[31m-**Недостатки**:[m
+[31m-- Higher complexity и learning curve[m
+[31m-- Vendor lock-in risks с managed services[m
+[31m-- Higher costs для small deployments[m
+[31m-- Requires cloud infrastructure expertise[m
+[31m-- More moving parts to maintain[m
+[31m-[m
+[31m-### Вариант 3: Hybrid Infrastructure with Edge Computing[m
+[31m-[m
+[31m-**Описание**: Гибридный подход с on-premise infrastructure, cloud bursting и edge computing capabilities.[m
+[31m-[m
+[31m-**Архитектура компонентов**:[m
+[31m-```[m
+[31m-Multi-Cloud Setup[m
+[31m-├── On-Premise Kubernetes[m
+[31m-├── Cloud Kubernetes (AWS/GCP/Azure)[m
+[31m-└── Edge Locations[m
+[31m-     ↓[m
+[31m-Hybrid CI/CD Pipeline[m
+[31m-     ↓[m
+[31m-Multi-Registry Strategy[m
+[31m-     ↓[m
+[31m-Federation Control Plane[m
+[31m-     ↓[m
+[31m-Service Mesh (Cross-cluster)[m
+[31m-     ↓[m
+[31m-Global Load Balancing[m
+[31m-     ↓[m
+[31m-Distributed Monitoring[m
+[31m-```[m
+[31m-[m
+[31m-**Technology Stack**:[m
+[31m-- **Multi-cluster**: Kubernetes Federation или Admiralty[m
+[31m-- **CI/CD**: Tekton или comprehensive pipeline orchestration[m
+[31m-- **Registry**: Multi-region container registries[m
+[31m-- **Infrastructure**: Terraform + Crossplane для multi-cloud[m
+[31m-- **Networking**: Submariner или similar для cross-cluster communication[m
+[31m-- **Storage**: Distributed storage solutions (Rook/Ceph)[m
+[31m-- **Monitoring**: Federated Prometheus with global view[m
+[31m-[m
+[31m-**Преимущества**:[m
+[31m-- Vendor independence и flexibility[m
+[31m-- Global distribution capabilities[m
+[31m-- Disaster recovery через geographic distribution[m
+[31m-- Cost optimization через resource arbitrage[m
+[31m-- Edge computing для improved latency[m
+[31m-- Advanced compliance options[m
+[31m-[m
+[31m-**Недостатки**:[m
+[31m-- Highest complexity для setup и maintenance[m
+[31m-- Networking challenges между environments[m
+[31m-- Sophisticated monitoring и debugging requirements[m
+[31m-- Higher operational overhead[m
+[31m-- Requires expertise в multiple platforms[m
+[31m-- Potential consistency challenges[m
+[31m-[m
+[31m-## Анализ вариантов[m
+[31m-[m
+[31m-### Критерии оценки:[m
+[31m-1. **Setup Complexity** - initial deployment difficulty[m
+[31m-2. **Operational Overhead** - daily maintenance requirements[m
+[31m-3. **Scalability** - ability to handle growth[m
+[31m-4. **Cost Efficiency** - total cost of ownership[m
+[31m-5. **Security & Compliance** - built-in security features[m
+[31m-6. **Developer Experience** - ease of development workflow[m
+[31m-[m
+[31m-### Оценка вариантов:[m
+[31m-[m
+[31m-| Критерий | Traditional | Cloud-Native K8s | Hybrid Multi-Cloud |[m
+[31m-|----------|-------------|------------------|-------------------|[m
+[31m-| **Setup Complexity** | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |[m
+[31m-| **Operational Overhead** | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ |[m
+[31m-| **Scalability** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |[m
+[31m-| **Cost Efficiency** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |[m
+[31m-| **Security & Compliance** | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |[m
+[31m-| **Developer Experience** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |[m
+[31m-[m
+[31m-## Рекомендуемое решение[m
+[31m-[m
+[31m-### **Выбор: Cloud-Native Kubernetes Platform с элементами Hybrid**[m
+[31m-[m
+[31m-**Обоснование**:[m
+[31m-1. **Modern DevOps Practices**: GitOps, declarative infrastructure, automation[m
+[31m-2. **Scalability Requirements**: Need для rapid scaling based on user growth[m
+[31m-3. **Security & Compliance**: Built-in security scanning и compliance tools[m
+[31m-4. **Developer Productivity**: Streamlined workflows и reduced complexity[m
+[31m-5. **Future-Proof**: Extensible architecture для future requirements[m
+[31m-6. **Selective Hybrid**: Edge computing capabilities where needed[m
+[31m-[m
+[31m-### DevOps Architecture Design:[m
+[31m-[m
+[31m-```mermaid[m
+[31m-graph TB[m
+[31m-    subgraph "Development Workflow"[m
+[31m-        Dev[Developer<br/>Local Development][m
+[31m-        Git[Git Repository<br/>Source Code + IaC][m
+[31m-        PR[Pull Request<br/>Code Review][m
+[31m-    end[m
+[31m-    [m
+[31m-    subgraph "CI Pipeline"[m
+[31m-        Trigger[Webhook Trigger][m
+[31m-        Test[Automated Tests<br/>Unit + Integration][m
+[31m-        Build[Container Build<br/>Multi-stage Docker][m
+[31m-        Scan[Security Scan<br/>Vulnerability Assessment][m
+[31m-        Push[Push to Registry<br/>Artifact Repository][m
+[31m-    end[m
+[31m-    [m
+[31m-    subgraph "GitOps CD Pipeline"[m
+[31m-        ArgoCD[ArgoCD<br/>GitOps Controller][m
+[31m-        Helm[Helm Charts<br/>Templating][m
+[31m-        Kustomize[Kustomize<br/>Environment Configs][m
+[31m-        Rollout[Progressive Rollout<br/>Canary/Blue-Green][m
+[31m-    end[m
+[31m-    [m
+[31m-    subgraph "Kubernetes Cluster"[m
+[31m-        Ingress[Ingress Controller<br/>Load Balancing][m
+[31m-        ServiceMesh[Istio<br/>Service Mesh][m
+[31m-        Workloads[Application Pods<br/>Microservices][m
+[31m-        Storage[Persistent Volumes<br/>Database Storage][m
+[31m-    end[m
+[31m-    [m
+[31m-    subgraph "Infrastructure"[m
+[31m-        IaC[Terraform<br/>Infrastructure as Code][m
+[31m-        Cloud[Cloud Provider<br/>AWS/GCP/Azure][m
+[31m-        Registry[Container Registry<br/>Harbor/ECR][m
+[31m-        Secrets[Secret Management<br/>Vault/K8s Secrets][m
+[31m-    end[m
+[31m-    [m
+[31m-    subgraph "Monitoring & Observability"[m
+[31m-        Prometheus[Prometheus<br/>Metrics Collection][m
+[31m-        Grafana[Grafana<br/>Dashboards][m
+[31m-        Loki[Loki<br/>Log Aggregation][m
+[31m-        Jaeger[Jaeger<br/>Distributed Tracing][m
+[31m-        Alerts[AlertManager<br/>Incident Response][m
+[31m-    end[m
+[31m-    [m
+[31m-    Dev --> Git[m
+[31m-    Git --> PR[m
+[31m-    PR --> Trigger[m
+[31m-    [m
+[31m-    Trigger --> Test[m
+[31m-    Test --> Build[m
+[31m-    Build --> Scan[m
+[31m-    Scan --> Push[m
+[31m-    [m
+[31m-    Push --> ArgoCD[m
+[31m-    ArgoCD --> Helm[m
+[31m-    Helm --> Kustomize[m
+[31m-    Kustomize --> Rollout[m
+[31m-    [m
+[31m-    Rollout --> Ingress[m
+[31m-    Ingress --> ServiceMesh[m
+[31m-    ServiceMesh --> Workloads[m
+[31m-    Workloads --> Storage[m
+[31m-    [m
+[31m-    IaC --> Cloud[m
+[31m-    Cloud --> Registry[m
+[31m-    Cloud --> Secrets[m
+[31m-    [m
+[31m-    Workloads --> Prometheus[m
+[31m-    Prometheus --> Grafana[m
+[31m-    Workloads --> Loki[m
+[31m-    Workloads --> Jaeger[m
+[31m-    Prometheus --> Alerts[m
+[31m-    [m
+[31m-    style Dev fill:#3b82f6,color:white[m
+[31m-    style ArgoCD fill:#06b6d4,color:white[m
+[31m-    style Workloads fill:#10b981,color:white[m
+[31m-    style Prometheus fill:#f59e0b,color:white[m
+[31m-    style IaC fill:#8b5cf6,color:white[m
+[31m-```[m
+[31m-[m
+[31m-## Implementation Guidelines[m
+[31m-[m
+[31m-### 1. Container Strategy[m
+[31m-[m
+[31m-**Multi-Stage Dockerfile для FastAPI Services**:[m
+[31m-```dockerfile[m
+[31m-# Base image with Python runtime[m
+[31m-FROM python:3.11-slim as base[m
+[31m-[m
+[31m-# Set environment variables[m
+[31m-ENV PYTHONUNBUFFERED=1 \[m
+[31m-    PYTHONDONTWRITEBYTECODE=1 \[m
+[31m-    PIP_NO_CACHE_DIR=1 \[m
+[31m-    PIP_DISABLE_PIP_VERSION_CHECK=1[m
+[31m-[m
+[31m-# Install system dependencies[m
+[31m-RUN apt-get update && apt-get install -y \[m
+[31m-    gcc \[m
+[31m-    && rm -rf /var/lib/apt/lists/*[m
+[31m-[m
+[31m-# Create app user[m
+[31m-RUN groupadd -r appuser && useradd -r -g appuser appuser[m
+[31m-[m
+[31m-# Dependencies stage[m
+[31m-FROM base as dependencies[m
+[31m-[m
+[31m-# Copy requirements[m
+[31m-COPY requirements.txt /tmp/requirements.txt[m
+[31m-[m
+[31m-# Install Python dependencies[m
+[31m-RUN pip install --no-cache-dir -r /tmp/requirements.txt[m
+[31m-[m
+[31m-# Development stage[m
+[31m-FROM dependencies as development[m
+[31m-[m
+[31m-WORKDIR /app[m
+[31m-[m
+[31m-# Copy source code[m
+[31m-COPY . /app/[m
+[31m-[m
+[31m-# Set ownership[m
+[31m-RUN chown -R appuser:appuser /app[m
+[31m-[m
+[31m-USER appuser[m
+[31m-[m
+[31m-# Development command[m
+[31m-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"][m
+[31m-[m
+[31m-# Production stage[m
+[31m-FROM dependencies as production[m
+[31m-[m
+[31m-# Create app directory[m
+[31m-WORKDIR /app[m
+[31m-[m
+[31m-# Copy only necessary files[m
+[31m-COPY --from=dependencies /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages[m
+[31m-COPY ./src /app/src[m
+[31m-COPY ./alembic /app/alembic[m
+[31m-COPY ./alembic.ini /app/alembic.ini[m
+[31m-COPY ./requirements.txt /app/requirements.txt[m
+[31m-[m
+[31m-# Set ownership[m
+[31m-RUN chown -R appuser:appuser /app[m
+[31m-[m
+[31m-# Switch to non-root user[m
+[31m-USER appuser[m
+[31m-[m
+[31m-# Health check[m
+[31m-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \[m
+[31m-    CMD curl -f http://localhost:8000/health || exit 1[m
+[31m-[m
+[31m-# Expose port[m
+[31m-EXPOSE 8000[m
+[31m-[m
+[31m-# Production command[m
+[31m-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"][m
+[31m-```[m
+[31m-[m
+[31m-**React App Dockerfile**:[m
+[31m-```dockerfile[m
+[31m-# Build stage[m
+[31m-FROM node:18-alpine as build[m
+[31m-[m
+[31m-WORKDIR /app[m
+[31m-[m
+[31m-# Copy package files[m
+[31m-COPY package*.json ./[m
+[31m-[m
+[31m-# Install dependencies[m
+[31m-RUN npm ci --only=production[m
+[31m-[m
+[31m-# Copy source code[m
+[31m-COPY . .[m
+[31m-[m
+[31m-# Build application[m
+[31m-RUN npm run build[m
+[31m-[m
+[31m-# Production stage[m
+[31m-FROM nginx:alpine as production[m
+[31m-[m
+[31m-# Copy custom nginx config[m
+[31m-COPY nginx.conf /etc/nginx/nginx.conf[m
+[31m-[m
+[31m-# Copy built app[m
+[31m-COPY --from=build /app/dist /usr/share/nginx/html[m
+[31m-[m
+[31m-# Add health check[m
+[31m-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \[m
+[31m-    CMD curl -f http://localhost:80/health || exit 1[m
+[31m-[m
+[31m-# Expose port[m
+[31m-EXPOSE 80[m
+[31m-[m
+[31m-# Start nginx[m
+[31m-CMD ["nginx", "-g", "daemon off;"][m
+[31m-```[m
+[31m-[m
+[31m-**Docker Compose для Local Development**:[m
+[31m-```yaml[m
+[31m-# docker-compose.dev.yml[m
+[31m-version: '3.8'[m
+[31m-[m
+[31m-services:[m
+[31m-  # PostgreSQL Database[m
+[31m-  postgres:[m
+[31m-    image: postgres:15-alpine[m
+[31m-    environment:[m
+[31m-      POSTGRES_DB: artel_billiards[m
+[31m-      POSTGRES_USER: postgres[m
+[31m-      POSTGRES_PASSWORD: postgres[m
+[31m-    ports:[m
+[31m-      - "5432:5432"[m
+[31m-    volumes:[m
+[31m-      - postgres_data:/var/lib/postgresql/data[m
+[31m-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql[m
+[31m-    healthcheck:[m
+[31m-      test: ["CMD-SHELL", "pg_isready -U postgres"][m
+[31m-      interval: 10s[m
+[31m-      timeout: 5s[m
+[31m-      retries: 5[m
+[31m-[m
+[31m-  # Redis Cache[m
+[31m-  redis:[m
+[31m-    image: redis:7-alpine[m
+[31m-    ports:[m
+[31m-      - "6379:6379"[m
+[31m-    command: redis-server --appendonly yes[m
+[31m-    volumes:[m
+[31m-      - redis_data:/data[m
+[31m-    healthcheck:[m
+[31m-      test: ["CMD", "redis-cli", "ping"][m
+[31m-      interval: 10s[m
+[31m-      timeout: 3s[m
+[31m-      retries: 5[m
+[31m-[m
+[31m-  # RabbitMQ Message Broker[m
+[31m-  rabbitmq:[m
+[31m-    image: rabbitmq:3-management-alpine[m
+[31m-    environment:[m
+[31m-      RABBITMQ_DEFAULT_USER: admin[m
+[31m-      RABBITMQ_DEFAULT_PASS: admin[m
+[31m-    ports:[m
+[31m-      - "5672:5672"[m
+[31m-      - "15672:15672"[m
+[31m-    volumes:[m
+[31m-      - rabbitmq_data:/var/lib/rabbitmq[m
+[31m-    healthcheck:[m
+[31m-      test: ["CMD", "rabbitmq-diagnostics", "ping"][m
+[31m-      interval: 30s[m
+[31m-      timeout: 10s[m
+[31m-      retries: 5[m
+[31m-[m
+[31m-  # Auth Service[m
+[31m-  auth-service:[m
+[31m-    build:[m
+[31m-      context: ./fast-api-app[m
+[31m-      dockerfile: Dockerfile[m
+[31m-      target: development[m
+[31m-    environment:[m
+[31m-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/auth_db[m
+[31m-      - REDIS_URL=redis://redis:6379/0[m
+[31m-      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672/[m
+[31m-    ports:[m
+[31m-      - "8001:8000"[m
+[31m-    volumes:[m
+[31m-      - ./fast-api-app:/app[m
+[31m-    depends_on:[m
+[31m-      postgres:[m
+[31m-        condition: service_healthy[m
+[31m-      redis:[m
+[31m-        condition: service_healthy[m
+[31m-      rabbitmq:[m
+[31m-        condition: service_healthy[m
+[31m-    develop:[m
+[31m-      watch:[m
+[31m-        - action: sync[m
+[31m-          path: ./fast-api-app/src[m
+[31m-          target: /app/src[m
+[31m-[m
+[31m-  # Game Service[m
+[31m-  game-service:[m
+[31m-    build:[m
+[31m-      context: ./fast-api-app[m
+[31m-      dockerfile: Dockerfile[m
+[31m-      target: development[m
+[31m-    environment:[m
+[31m-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/game_db[m
+[31m-      - REDIS_URL=redis://redis:6379/1[m
+[31m-      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672/[m
+[31m-    ports:[m
+[31m-      - "8002:8000"[m
+[31m-    volumes:[m
+[31m-      - ./fast-api-app:/app[m
+[31m-    depends_on:[m
+[31m-      postgres:[m
+[31m-        condition: service_healthy[m
+[31m-      redis:[m
+[31m-        condition: service_healthy[m
+[31m-      rabbitmq:[m
+[31m-        condition: service_healthy[m
+[31m-[m
+[31m-  # React Frontend[m
+[31m-  react-app:[m
+[31m-    build:[m
+[31m-      context: ./react-app[m
+[31m-      dockerfile: Dockerfile.dev[m
+[31m-    ports:[m
+[31m-      - "3000:3000"[m
+[31m-    volumes:[m
+[31m-      - ./react-app:/app[m
+[31m-      - /app/node_modules[m
+[31m-    environment:[m
+[31m-      - REACT_APP_API_URL=http://localhost:8001[m
+[31m-      - REACT_APP_WS_URL=ws://localhost:8002[m
+[31m-    stdin_open: true[m
+[31m-    tty: true[m
+[31m-[m
+[31m-  # Monitoring Stack[m
+[31m-  prometheus:[m
+[31m-    image: prom/prometheus:latest[m
+[31m-    ports:[m
+[31m-      - "9090:9090"[m
+[31m-    volumes:[m
+[31m-      - ./monitoring/prometheus:/etc/prometheus[m
+[31m-      - prometheus_data:/prometheus[m
+[31m-    command:[m
+[31m-      - '--config.file=/etc/prometheus/prometheus.yml'[m
+[31m-      - '--storage.tsdb.path=/prometheus'[m
+[31m-      - '--web.console.libraries=/etc/prometheus/console_libraries'[m
+[31m-      - '--web.console.templates=/etc/prometheus/consoles'[m
+[31m-[m
+[31m-  grafana:[m
+[31m-    image: grafana/grafana:latest[m
+[31m-    ports:[m
+[31m-      - "3001:3000"[m
+[31m-    environment:[m
+[31m-      - GF_SECURITY_ADMIN_PASSWORD=admin[m
+[31m-    volumes:[m
+[31m-      - grafana_data:/var/lib/grafana[m
+[31m-      - ./monitoring/grafana:/etc/grafana/provisioning[m
+[31m-[m
+[31m-  loki:[m
+[31m-    image: grafana/loki:latest[m
+[31m-    ports:[m
+[31m-      - "3100:3100"[m
+[31m-    volumes:[m
+[31m-      - ./monitoring/loki:/etc/loki[m
+[31m-    command: -config.file=/etc/loki/local-config.yaml[m
+[31m-[m
+[31m-volumes:[m
+[31m-  postgres_data:[m
+[31m-  redis_data:[m
+[31m-  rabbitmq_data:[m
+[31m-  prometheus_data:[m
+[31m-  grafana_data:[m
+[31m-[m
+[31m-networks:[m
+[31m-  default:[m
+[31m-    name: artel_network[m
+[31m-```[m
+[31m-[m
+[31m-### 2. CI/CD Pipeline Configuration[m
+[31m-[m
+[31m-**GitHub Actions Workflow**:[m
+[31m-```yaml[m
+[31m-# .github/workflows/ci-cd.yml[m
+[31m-name: CI/CD Pipeline[m
+[31m-[m
+[31m-on:[m
+[31m-  push:[m
+[31m-    branches: [main, develop][m
+[31m-  pull_request:[m
+[31m-    branches: [main][m
+[31m-[m
+[31m-env:[m
+[31m-  REGISTRY: ghcr.io[m
+[31m-  IMAGE_NAME: artel-billiards[m
+[31m-[m
+[31m-jobs:[m
+[31m-  # Code Quality & Testing[m
+[31m-  test:[m
+[31m-    runs-on: ubuntu-latest[m
+[31m-    strategy:[m
+[31m-      matrix:[m
+[31m-        service: [auth-service, game-service, template-service, stats-service, friends-service][m
+[31m-    [m
+[31m-    steps:[m
+[31m-      - name: Checkout code[m
+[31m-        uses: actions/checkout@v4[m
+[31m-      [m
+[31m-      - name: Set up Python[m
+[31m-        uses: actions/setup-python@v4[m
+[31m-        with:[m
+[31m-          python-version: '3.11'[m
+[31m-      [m
+[31m-      - name: Cache Python dependencies[m
+[31m-        uses: actions/cache@v3[m
+[31m-        with:[m
+[31m-          path: ~/.cache/pip[m
+[31m-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}[m
+[31m-      [m
+[31m-      - name: Install dependencies[m
+[31m-        run: |[m
+[31m-          cd fast-api-app[m
+[31m-          pip install -r requirements.txt[m
+[31m-          pip install -r requirements-dev.txt[m
+[31m-      [m
+[31m-      - name: Run linting[m
+[31m-        run: |[m
+[31m-          cd fast-api-app[m
+[31m-          black --check .[m
+[31m-          flake8 .[m
+[31m-          mypy .[m
+[31m-      [m
+[31m-      - name: Run security scan[m
+[31m-        run: |[m
+[31m-          cd fast-api-app[m
+[31m-          bandit -r src/[m
+[31m-          safety check[m
+[31m-      [m
+[31m-      - name: Run tests[m
+[31m-        run: |[m
+[31m-          cd fast-api-app[m
+[31m-          pytest tests/ -v --cov=src --cov-report=xml[m
+[31m-      [m
+[31m-      - name: Upload coverage[m
+[31m-        uses: codecov/codecov-action@v3[m
+[31m-        with:[m
+[31m-          file: ./fast-api-app/coverage.xml[m
+[31m-[m
+[31m-  # Frontend Testing[m
+[31m-  frontend-test:[m
+[31m-    runs-on: ubuntu-latest[m
+[31m-    [m
+[31m-    steps:[m
+[31m-      - name: Checkout code[m
+[31m-        uses: actions/checkout@v4[m
+[31m-      [m
+[31m-      - name: Set up Node.js[m
+[31m-        uses: actions/setup-node@v4[m
+[31m-        with:[m
+[31m-          node-version: '18'[m
+[31m-          cache: 'npm'[m
+[31m-          cache-dependency-path: react-app/package-lock.json[m
+[31m-      [m
+[31m-      - name: Install dependencies[m
+[31m-        run: |[m
+[31m-          cd react-app[m
+[31m-          npm ci[m
+[31m-      [m
+[31m-      - name: Run linting[m
+[31m-        run: |[m
+[31m-          cd react-app[m
+[31m-          npm run lint[m
+[31m-      [m
+[31m-      - name: Run type checking[m
+[31m-        run: |[m
+[31m-          cd react-app[m
+[31m-          npm run type-check[m
+[31m-      [m
+[31m-      - name: Run tests[m
+[31m-        run: |[m
+[31m-          cd react-app[m
+[31m-          npm run test -- --coverage --watchAll=false[m
+[31m-      [m
+[31m-      - name: Run E2E tests[m
+[31m-        run: |[m
+[31m-          cd react-app[m
+[31m-          npm run e2e:ci[m
+[31m-[m
+[31m-  # Security Scanning[m
+[31m-  security:[m
+[31m-    runs-on: ubuntu-latest[m
+[31m-    needs: [test, frontend-test][m
+[31m-    [m
+[31m-    steps:[m
+[31m-      - name: Checkout code[m
+[31m-        uses: actions/checkout@v4[m
+[31m-      [m
+[31m-      - name: Run Trivy vulnerability scanner[m
+[31m-        uses: aquasecurity/trivy-action@master[m
+[31m-        with:[m
+[31m-          scan-type: 'fs'[m
+[31m-          scan-ref: '.'[m
+[31m-          format: 'sarif'[m
+[31m-          output: 'trivy-results.sarif'[m
+[31m-      [m
+[31m-      - name: Upload Trivy scan results[m
+[31m-        uses: github/codeql-action/upload-sarif@v2[m
+[31m-        with:[m
+[31m-          sarif_file: 'trivy-results.sarif'[m
+[31m-[m
+[31m-  # Build & Push Container Images[m
+[31m-  build:[m
+[31m-    runs-on: ubuntu-latest[m
+[31m-    needs: [test, frontend-test, security][m
+[31m-    if: github.event_name == 'push'[m
+[31m-    [m
+[31m-    strategy:[m
+[31m-      matrix:[m
+[31m-        component:[m
+[31m-          - name: auth-service[m
+[31m-            context: ./fast-api-app[m
+[31m-            dockerfile: ./fast-api-app/Dockerfile[m
+[31m-          - name: game-service[m
+[31m-            context: ./fast-api-app[m
+[31m-            dockerfile: ./fast-api-app/Dockerfile[m
+[31m-          - name: react-app[m
+[31m-            context: ./react-app[m
+[31m-            dockerfile: ./react-app/Dockerfile[m
+[31m-    [m
+[31m-    steps:[m
+[31m-      - name: Checkout code[m
+[31m-        uses: actions/checkout@v4[m
+[31m-      [m
+[31m-      - name: Set up Docker Buildx[m
+[31m-        uses: docker/setup-buildx-action@v3[m
+[31m-      [m
+[31m-      - name: Log in to Container Registry[m
+[31m-        uses: docker/login-action@v3[m
+[31m-        with:[m
+[31m-          registry: ${{ env.REGISTRY }}[m
+[31m-          username: ${{ github.actor }}[m
+[31m-          password: ${{ secrets.GITHUB_TOKEN }}[m
+[31m-      [m
+[31m-      - name: Extract metadata[m
+[31m-        id: meta[m
+[31m-        uses: docker/metadata-action@v5[m
+[31m-        with:[m
+[31m-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.component.name }}[m
+[31m-          tags: |[m
+[31m-            type=ref,event=branch[m
+[31m-            type=ref,event=pr[m
+[31m-            type=sha,prefix=sha-[m
+[31m-            type=raw,value=latest,enable={{is_default_branch}}[m
+[31m-      [m
+[31m-      - name: Build and push Docker image[m
+[31m-        uses: docker/build-push-action@v5[m
+[31m-        with:[m
+[31m-          context: ${{ matrix.component.context }}[m
+[31m-          file: ${{ matrix.component.dockerfile }}[m
+[31m-          target: production[m
+[31m-          push: true[m
+[31m-          tags: ${{ steps.meta.outputs.tags }}[m
+[31m-          labels: ${{ steps.meta.outputs.labels }}[m
+[31m-          cache-from: type=gha[m
+[31m-          cache-to: type=gha,mode=max[m
+[31m-      [m
+[31m-      - name: Run container security scan[m
+[31m-        uses: aquasecurity/trivy-action@master[m
+[31m-        with:[m
+[31m-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.component.name }}:latest[m
+[31m-          format: 'table'[m
+[31m-          exit-code: '1'[m
+[31m-          severity: 'CRITICAL,HIGH'[m
+[31m-[m
+[31m-  # Deploy to Staging[m
+[31m-  deploy-staging:[m
+[31m-    runs-on: ubuntu-latest[m
+[31m-    needs: build[m
+[31m-    if: github.ref == 'refs/heads/develop'[m
+[31m-    environment: staging[m
+[31m-    [m
+[31m-    steps:[m
+[31m-      - name: Checkout GitOps repository[m
+[31m-        uses: actions/checkout@v4[m
+[31m-        with:[m
+[31m-          repository: artel-billiards/gitops-config[m
+[31m-          token: ${{ secrets.GITOPS_TOKEN }}[m
+[31m-          path: gitops[m
+[31m-      [m
+[31m-      - name: Update staging manifests[m
+[31m-        run: |[m
+[31m-          cd gitops/environments/staging[m
+[31m-          [m
+[31m-          # Update image tags in Kustomization[m
+[31m-          sed -i "s|newTag:.*|newTag: sha-${{ github.sha }}|g" kustomization.yaml[m
+[31m-          [m
+[31m-          # Commit changes[m
+[31m-          git config user.name "GitHub Actions"[m
+[31m-          git config user.email "actions@github.com"[m
+[31m-          git add .[m
+[31m-          git commit -m "Update staging to ${{ github.sha }}"[m
+[31m-          git push[m
+[31m-[m
+[31m-  # Deploy to Production[m
+[31m-  deploy-production:[m
+[31m-    runs-on: ubuntu-latest[m
+[31m-    needs: build[m
+[31m-    if: github.ref == 'refs/heads/main'[m
+[31m-    environment: production[m
+[31m-    [m
+[31m-    steps:[m
+[31m-      - name: Checkout GitOps repository[m
+[31m-        uses: actions/checkout@v4[m
+[31m-        with:[m
+[31m-          repository: artel-billiards/gitops-config[m
+[31m-          token: ${{ secrets.GITOPS_TOKEN }}[m
+[31m-          path: gitops[m
+[31m-      [m
+[31m-      - name: Update production manifests[m
+[31m-        run: |[m
+[31m-          cd gitops/environments/production[m
+[31m-          [m
+[31m-          # Update image tags in Kustomization[m
+[31m-          sed -i "s|newTag:.*|newTag: sha-${{ github.sha }}|g" kustomization.yaml[m
+[31m-          [m
+[31m-          # Commit changes[m
+[31m-          git config user.name "GitHub Actions"[m
+[31m-          git config user.email "actions@github.com"[m
+[31m-          git add .[m
+[31m-          git commit -m "Deploy to production: ${{ github.sha }}"[m
+[31m-          git push[m
+[31m-[m
+[31m-  # Database Migrations[m
+[31m-  migrate:[m
+[31m-    runs-on: ubuntu-latest[m
+[31m-    needs: deploy-staging[m
+[31m-    if: github.ref == 'refs/heads/develop'[m
+[31m-    [m
+[31m-    steps:[m
+[31m-      - name: Checkout code[m
+[31m-        uses: actions/checkout@v4[m
+[31m-      [m
+[31m-      - name: Run database migrations[m
+[31m-        run: |[m
+[31m-          # This would typically connect to staging database[m
+[31m-          # and run Alembic migrations[m
+[31m-          echo "Running database migrations..."[m
+[31m-          # kubectl exec -n staging deployment/auth-service -- alembic upgrade head[m
+[31m-```[m
+[31m-[m
+[31m-### 3. Kubernetes Manifests[m
+[31m-[m
+[31m-**Helm Chart для Auth Service**:[m
+[31m-```yaml[m
+[31m-# helm/auth-service/Chart.yaml[m
+[31m-apiVersion: v2[m
+[31m-name: auth-service[m
+[31m-description: ArtelBilliards Authentication Service[m
+[31m-type: application[m
+[31m-version: 0.1.0[m
+[31m-appVersion: "1.0.0"[m
+[31m-[m
+[31m-dependencies:[m
+[31m-  - name: postgresql[m
+[31m-    version: 12.x.x[m
+[31m-    repository: https://charts.bitnami.com/bitnami[m
+[31m-    condition: postgresql.enabled[m
+[31m-  - name: redis[m
+[31m-    version: 17.x.x[m
+[31m-    repository: https://charts.bitnami.com/bitnami[m
+[31m-    condition: redis.enabled[m
+[31m-```[m
+[31m-[m
+[31m-**Values файл**:[m
+[31m-```yaml[m
+[31m-# helm/auth-service/values.yaml[m
+[31m-replicaCount: 3[m
+[31m-[m
+[31m-image:[m
+[31m-  repository: ghcr.io/artel-billiards/auth-service[m
+[31m-  pullPolicy: IfNotPresent[m
+[31m-  tag: "latest"[m
+[31m-[m
+[31m-service:[m
+[31m-  type: ClusterIP[m
+[31m-  port: 80[m
+[31m-  targetPort: 8000[m
+[31m-[m
+[31m-ingress:[m
+[31m-  enabled: true[m
+[31m-  className: "nginx"[m
+[31m-  annotations:[m
+[31m-    nginx.ingress.kubernetes.io/rewrite-target: /[m
+[31m-    cert-manager.io/cluster-issuer: "letsencrypt-prod"[m
+[31m-  hosts:[m
+[31m-    - host: api.artelbilliards.com[m
+[31m-      paths:[m
+[31m-        - path: /auth[m
+[31m-          pathType: Prefix[m
+[31m-  tls:[m
+[31m-    - secretName: artel-tls[m
+[31m-      hosts:[m
+[31m-        - api.artelbilliards.com[m
+[31m-[m
+[31m-resources:[m
+[31m-  limits:[m
+[31m-    cpu: 500m[m
+[31m-    memory: 512Mi[m
+[31m-  requests:[m
+[31m-    cpu: 250m[m
+[31m-    memory: 256Mi[m
+[31m-[m
+[31m-autoscaling:[m
+[31m-  enabled: true[m
+[31m-  minReplicas: 3[m
+[31m-  maxReplicas: 10[m
+[31m-  targetCPUUtilizationPercentage: 70[m
+[31m-  targetMemoryUtilizationPercentage: 80[m
+[31m-[m
+[31m-postgresql:[m
+[31m-  enabled: true[m
+[31m-  auth:[m
+[31m-    existingSecret: "postgres-secret"[m
+[31m-  primary:[m
+[31m-    persistence:[m
+[31m-      enabled: true[m
+[31m-      size: 20Gi[m
+[31m-      storageClass: "gp2"[m
+[31m-[m
+[31m-redis:[m
+[31m-  enabled: true[m
+[31m-  auth:[m
+[31m-    existingSecret: "redis-secret"[m
+[31m-  master:[m
+[31m-    persistence:[m
+[31m-      enabled: true[m
+[31m-      size: 8Gi[m
+[31m-[m
+[31m-env:[m
+[31m-  - name: DATABASE_URL[m
+[31m-    valueFrom:[m
+[31m-      secretKeyRef:[m
+[31m-        name: auth-service-secret[m
+[31m-        key: database-url[m
+[31m-  - name: REDIS_URL[m
+[31m-    valueFrom:[m
+[31m-      secretKeyRef:[m
+[31m-        name: auth-service-secret[m
+[31m-        key: redis-url[m
+[31m-  - name: JWT_SECRET[m
+[31m-    valueFrom:[m
+[31m-      secretKeyRef:[m
+[31m-        name: auth-service-secret[m
+[31m-        key: jwt-secret[m
+[31m-[m
+[31m-livenessProbe:[m
+[31m-  httpGet:[m
+[31m-    path: /health/live[m
+[31m-    port: 8000[m
+[31m-  initialDelaySeconds: 30[m
+[31m-  periodSeconds: 10[m
+[31m-[m
+[31m-readinessProbe:[m
+[31m-  httpGet:[m
+[31m-    path: /health/ready[m
+[31m-    port: 8000[m
+[31m-  initialDelaySeconds: 5[m
+[31m-  periodSeconds: 5[m
+[31m-[m
+[31m-podSecurityContext:[m
+[31m-  fsGroup: 1000[m
+[31m-  runAsNonRoot: true[m
+[31m-  runAsUser: 1000[m
+[31m-[m
+[31m-securityContext:[m
+[31m-  allowPrivilegeEscalation: false[m
+[31m-  capabilities:[m
+[31m-    drop:[m
+[31m-    - ALL[m
+[31m-  readOnlyRootFilesystem: true[m
+[31m-  runAsNonRoot: true[m
+[31m-  runAsUser: 1000[m
+[31m-[m
+[31m-nodeSelector: {}[m
+[31m-[m
+[31m-tolerations: [][m
+[31m-[m
+[31m-affinity:[m
+[31m-  podAntiAffinity:[m
+[31m-    preferredDuringSchedulingIgnoredDuringExecution:[m
+[31m-    - weight: 100[m
+[31m-      podAffinityTerm:[m
+[31m-        labelSelector:[m
+[31m-          matchExpressions:[m
+[31m-          - key: app.kubernetes.io/name[m
+[31m-            operator: In[m
+[31m-            values:[m
+[31m-            - auth-service[m
+[31m-        topologyKey: kubernetes.io/hostname[m
+[31m-```[m
+[31m-[m
+[31m-**Deployment Template**:[m
+[31m-```yaml[m
+[31m-# helm/auth-service/templates/deployment.yaml[m
+[31m-apiVersion: apps/v1[m
+[31m-kind: Deployment[m
+[31m-metadata:[m
+[31m-  name: {{ include "auth-service.fullname" . }}[m
+[31m-  labels:[m
+[31m-    {{- include "auth-service.labels" . | nindent 4 }}[m
+[31m-spec:[m
+[31m-  {{- if not .Values.autoscaling.enabled }}[m
+[31m-  replicas: {{ .Values.replicaCount }}[m
+[31m-  {{- end }}[m
+[31m-  selector:[m
+[31m-    matchLabels:[m
+[31m-      {{- include "auth-service.selectorLabels" . | nindent 6 }}[m
+[31m-  template:[m
+[31m-    metadata:[m
+[31m-      annotations:[m
+[31m-        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}[m
+[31m-        prometheus.io/scrape: "true"[m
+[31m-        prometheus.io/port: "8000"[m
+[31m-        prometheus.io/path: "/metrics"[m
+[31m-      labels:[m
+[31m-        {{- include "auth-service.selectorLabels" . | nindent 8 }}[m
+[31m-    spec:[m
+[31m-      {{- with .Values.imagePullSecrets }}[m
+[31m-      imagePullSecrets:[m
+[31m-        {{- toYaml . | nindent 8 }}[m
+[31m-      {{- end }}[m
+[31m-      serviceAccountName: {{ include "auth-service.serviceAccountName" . }}[m
+[31m-      securityContext:[m
+[31m-        {{- toYaml .Values.podSecurityContext | nindent 8 }}[m
+[31m-      containers:[m
+[31m-        - name: {{ .Chart.Name }}[m
+[31m-          securityContext:[m
+[31m-            {{- toYaml .Values.securityContext | nindent 12 }}[m
+[31m-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"[m
+[31m-          imagePullPolicy: {{ .Values.image.pullPolicy }}[m
+[31m-          ports:[m
+[31m-            - name: http[m
+[31m-              containerPort: 8000[m
+[31m-              protocol: TCP[m
+[31m-          livenessProbe:[m
+[31m-            {{- toYaml .Values.livenessProbe | nindent 12 }}[m
+[31m-          readinessProbe:[m
+[31m-            {{- toYaml .Values.readinessProbe | nindent 12 }}[m
+[31m-          resources:[m
+[31m-            {{- toYaml .Values.resources | nindent 12 }}[m
+[31m-          env:[m
+[31m-            {{- toYaml .Values.env | nindent 12 }}[m
+[31m-          volumeMounts:[m
+[31m-            - name: tmp[m
+[31m-              mountPath: /tmp[m
+[31m-            - name: var-cache[m
+[31m-              mountPath: /var/cache[m
+[31m-      volumes:[m
+[31m-        - name: tmp[m
+[31m-          emptyDir: {}[m
+[31m-        - name: var-cache[m
+[31m-          emptyDir: {}[m
+[31m-      {{- with .Values.nodeSelector }}[m
+[31m-      nodeSelector:[m
+[31m-        {{- toYaml . | nindent 8 }}[m
+[31m-      {{- end }}[m
+[31m-      {{- with .Values.affinity }}[m
+[31m-      affinity:[m
+[31m-        {{- toYaml . | nindent 8 }}[m
+[31m-      {{- end }}[m
+[31m-      {{- with .Values.tolerations }}[m
+[31m-      tolerations:[m
+[31m-        {{- toYaml . | nindent 8 }}[m
+[31m-      {{- end }}[m
+[31m-```[m
+[31m-[m
+[31m-### 4. Infrastructure as Code[m
+[31m-[m
+[31m-**Terraform Configuration для AWS EKS**:[m
+[31m-```hcl[m
+[31m-# terraform/main.tf[m
+[31m-terraform {[m
+[31m-  required_version = ">= 1.0"[m
+[31m-  required_providers {[m
+[31m-    aws = {[m
+[31m-      source  = "hashicorp/aws"[m
+[31m-      version = "~> 5.0"[m
+[31m-    }[m
+[31m-    kubernetes = {[m
+[31m-      source  = "hashicorp/kubernetes"[m
+[31m-      version = "~> 2.20"[m
+[31m-    }[m
+[31m-    helm = {[m
+[31m-      source  = "hashicorp/helm"[m
+[31m-      version = "~> 2.10"[m
+[31m-    }[m
+[31m-  }[m
+[31m-  [m
+[31m-  backend "s3" {[m
+[31m-    bucket  = "artel-billiards-terraform-state"[m
+[31m-    key     = "infrastructure/terraform.tfstate"[m
+[31m-    region  = "us-west-2"[m
+[31m-    encrypt = true[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+[31m-provider "aws" {[m
+[31m-  region = var.aws_region[m
+[31m-  [m
+[31m-  default_tags {[m
+[31m-    tags = {[m
+[31m-      Project     = "ArtelBilliards"[m
+[31m-      Environment = var.environment[m
+[31m-      ManagedBy   = "Terraform"[m
+[31m-    }[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+[31m-# VPC Configuration[m
+[31m-module "vpc" {[m
+[31m-  source = "terraform-aws-modules/vpc/aws"[m
+[31m-  [m
+[31m-  name = "${var.project_name}-${var.environment}-vpc"[m
+[31m-  cidr = var.vpc_cidr[m
+[31m-  [m
+[31m-  azs             = var.availability_zones[m
+[31m-  private_subnets = var.private_subnet_cidrs[m
+[31m-  public_subnets  = var.public_subnet_cidrs[m
+[31m-  [m
+[31m-  enable_nat_gateway = true[m
+[31m-  enable_vpn_gateway = false[m
+[31m-  [m
+[31m-  enable_dns_hostnames = true[m
+[31m-  enable_dns_support   = true[m
+[31m-  [m
+[31m-  tags = {[m
+[31m-    "kubernetes.io/cluster/${var.cluster_name}" = "shared"[m
+[31m-  }[m
+[31m-  [m
+[31m-  public_subnet_tags = {[m
+[31m-    "kubernetes.io/cluster/${var.cluster_name}" = "shared"[m
+[31m-    "kubernetes.io/role/elb"                    = "1"[m
+[31m-  }[m
+[31m-  [m
+[31m-  private_subnet_tags = {[m
+[31m-    "kubernetes.io/cluster/${var.cluster_name}" = "shared"[m
+[31m-    "kubernetes.io/role/internal-elb"           = "1"[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+[31m-# EKS Cluster[m
+[31m-module "eks" {[m
+[31m-  source = "terraform-aws-modules/eks/aws"[m
+[31m-  [m
+[31m-  cluster_name    = var.cluster_name[m
+[31m-  cluster_version = var.kubernetes_version[m
+[31m-  [m
+[31m-  vpc_id                         = module.vpc.vpc_id[m
+[31m-  subnet_ids                     = module.vpc.private_subnets[m
+[31m-  cluster_endpoint_public_access = true[m
+[31m-  [m
+[31m-  cluster_addons = {[m
+[31m-    coredns = {[m
+[31m-      most_recent = true[m
+[31m-    }[m
+[31m-    kube-proxy = {[m
+[31m-      most_recent = true[m
+[31m-    }[m
+[31m-    vpc-cni = {[m
+[31m-      most_recent = true[m
+[31m-    }[m
+[31m-    aws

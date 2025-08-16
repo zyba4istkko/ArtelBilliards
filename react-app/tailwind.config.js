@@ -12,6 +12,7 @@ export default {
       colors: {
         mint: '#4ade80',
         coral: '#f97316',
+        peach: '#fb923c',
         gray: {
           300: '#d1d5db',
           400: '#9ca3af',
