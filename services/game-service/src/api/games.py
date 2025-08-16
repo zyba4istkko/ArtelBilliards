@@ -212,6 +212,35 @@ async def get_game_scores(
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
+@router.delete("/{game_id}/events/{event_id}", response_model=BaseResponse)
+async def delete_game_event(
+    game_id: UUID,
+    event_id: UUID,
+    current_user: UUID = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Удаление события игры (помечаем как удаленное)"""
+    try:
+        print(f"🎮 API delete_game_event: Запрос удаления события {event_id} для игры {game_id}")
+        print(f"🎮 API delete_game_event: current_user: {current_user}")
+        
+        result = await GameService.delete_game_event(db, game_id, event_id, current_user)
+        
+        print(f"🎮 API delete_game_event: Событие удалено сервисом: {result}")
+        
+        return result
+        
+    except ValueError as e:
+        print(f"❌ API delete_game_event: ValueError: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"❌ API delete_game_event: Exception: {str(e)}")
+        print(f"❌ API delete_game_event: Тип ошибки: {type(e).__name__}")
+        import traceback
+        print(f"❌ API delete_game_event: Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
 # Queue Management Endpoints
 @router.post("/sessions/{session_id}/games/{game_number}/queue", response_model=BaseResponse)
 async def generate_queue(

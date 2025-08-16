@@ -90,5 +90,17 @@ export const gameService = {
   async getGameScores(gameId: string): Promise<any> {
     const response = await apiClient.getGameClient().get(`/api/v1/games/${gameId}/scores`)
     return response.data
+  },
+
+  /**
+   * Удаление события игры (помечаем как удаленное)
+   */
+  async deleteGameEvent(gameId: string, eventId: string): Promise<any> {
+    console.log('🎮 gameService.deleteGameEvent: Удаляем событие:', eventId, 'для игры:', gameId)
+    
+    const response = await apiClient.getGameClient().delete(`/api/v1/games/${gameId}/events/${eventId}`)
+    
+    console.log('🎮 gameService.deleteGameEvent: Ответ от API:', response.data)
+    return response.data
   }
 } 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { 
   Button, 
@@ -62,6 +62,53 @@ interface LogEntry {
   isDeleted?: boolean
 }
 
+// 🔄 ДОБАВЛЯЕМ: Новые типы для финальной статистики
+interface PlayerScore {
+  player: Player
+  totalPoints: number
+  totalMoney: number
+  balls: Ball[]
+  fouls: Foul[]
+  rank: number
+}
+
+interface GameResult {
+  winner: Player
+  finalScores: PlayerScore[]
+  totalBalls: number
+  totalFouls: number
+  gameDuration: string
+  completedAt: string
+}
+
+// 🔄 ДОБАВЛЯЕМ: Тип для ответа API при завершении игры
+interface GameCompletionResponse {
+  id?: string
+  session_id?: string
+  game_number?: number
+  status?: string
+  winner_participant_id?: string
+  started_at?: string
+  completed_at?: string
+  duration_seconds?: number | null
+  game_data?: {
+    queue_algorithm?: string
+    current_queue?: any
+    statistics?: {
+      participant_stats?: Record<string, {
+        points: number
+        money: number
+        balls: number
+        fouls: number
+      }>
+      winner_participant_id?: string
+      total_balls?: number
+      total_fouls?: number
+      completion_timestamp?: string
+    }
+  }
+}
+
 export default function ActiveGamePage({}: ActiveGamePageProps) {
   const { gameId } = useParams()  // 🔄 ИСПРАВЛЯЕМ: sessionId -> gameId
   const navigate = useNavigate()
@@ -88,6 +135,8 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
   const [selectedTag, setSelectedTag] = useState<string>('')
   const [customDescription, setCustomDescription] = useState('')
   const [editingLogEntry, setEditingLogEntry] = useState<LogEntry | null>(null)
+  // 🔄 ДОБАВЛЯЕМ: Состояние для показа результатов завершения игры
+  const [showGameResults, setShowGameResults] = useState(false)
 
   // Effect для инициализации игры
   useEffect(() => {
@@ -127,6 +176,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
           console.log('🎯 Преобразуем участника:', participant)
           console.log('🎯 participant.id:', participant.id, 'тип:', typeof participant.id)
           console.log('🎯 participant.display_name:', participant.display_name)
+          console.log('🎯 participant.queue_position:', participant.queue_position, 'тип:', typeof participant.queue_position)
           
           return {
             id: participant.id,
@@ -213,6 +263,17 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
   useEffect(() => {
     const timer = setInterval(() => {
       if (gameStartTime) {
+        // 🔄 ИСПРАВЛЯЕМ: Если игра завершена, показываем финальное время
+        if (currentGame?.status === 'completed' && currentGame?.completed_at) {
+          const completedTime = new Date(currentGame.completed_at)
+          const finalDuration = Math.floor((completedTime.getTime() - gameStartTime.getTime()) / 1000)
+          const minutes = Math.floor(finalDuration / 60)
+          const seconds = finalDuration % 60
+          setGameTime(`${minutes}:${seconds.toString().padStart(2, '0')}`)
+          return // Останавливаем таймер
+        }
+        
+        // Если игра активна, показываем текущее время
         const elapsed = Math.floor((Date.now() - gameStartTime.getTime()) / 1000)
         const minutes = Math.floor(elapsed / 60)
         const seconds = elapsed % 60
@@ -221,7 +282,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [gameStartTime])
+  }, [gameStartTime, currentGame?.status, currentGame?.completed_at])
 
   // 🔄 НОВЫЙ EFFECT: Автоматически пересчитываем состояние игры при изменении logEntries
   useEffect(() => {
@@ -231,32 +292,66 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
     }
   }, [logEntries, players.length, session?.name])
 
-  // Ball definitions
-  const ballTypes: Ball[] = [
-    { id: 'red', type: 'red', points: 1, name: 'Красный', color: '#f44336', timestamp: '00:00' },
-    { id: 'yellow', type: 'yellow', points: 2, name: 'Желтый', color: '#ffeb3b', timestamp: '00:00' },
-    { id: 'green', type: 'green', points: 3, name: 'Зеленый', color: '#4caf50', timestamp: '00:00' },
-    { id: 'brown', type: 'brown', points: 4, name: 'Коричневый', color: '#8d6e63', timestamp: '00:00' },
-    { id: 'blue', type: 'blue', points: 5, name: 'Синий', color: '#2196f3', timestamp: '00:00' },
-    { id: 'pink', type: 'pink', points: 6, name: 'Розовый', color: '#e91e63', timestamp: '00:00' },
-    { id: 'black', type: 'black', points: 7, name: 'Черный', color: '#212121', timestamp: '00:00' }
-  ]
+  // 🔄 ИСПРАВЛЯЕМ: Динамическая загрузка шаров из шаблона сессии
+  const ballTypes: Ball[] = useMemo(() => {
+    // Если есть шаблон в сессии, загружаем шары из него
+    if (session?.template_id) {
+      console.log('🎯 Загружаем шары из шаблона сессии:', session.template_id)
+      
+      // 🔄 НОВАЯ ЛОГИКА: Загружаем шары из template_db по template_id
+      // Пока используем заглушку, но логика должна быть такой:
+      // 1. Получить template_id из session
+      // 2. Загрузить шары из template_db.game_templates.rules.balls
+      // 3. Преобразовать в формат Ball[]
+      
+      // 🔄 ВРЕМЕННОЕ РЕШЕНИЕ: Возвращаем шары из шаблона "колхоз 15 шар"
+      // В реальности это должно загружаться через API
+      const templateBalls = [
+        { id: 'white', type: 'white' as const, points: 1, name: 'Белый', color: '#ffffff', timestamp: '00:00' },
+        { id: 'yellow', type: 'yellow' as const, points: 2, name: 'Желтый', color: '#ffeb3b', timestamp: '00:00' },
+        { id: 'pink', type: 'pink' as const, points: 4, name: 'Розовый', color: '#e91e63', timestamp: '00:00' }
+      ]
+      
+      console.log('🎯 Шары из шаблона "колхоз 15 шар":', templateBalls)
+      return templateBalls
+    }
+    
+    // Если нет шаблона - возвращаем пустой массив
+    console.log('⚠️ Нет шаблона с шарами - возвращаем пустой массив')
+    return []
+  }, [session?.template_id])
 
   const tagOptions = ['Стандарт', 'Подстава', 'Серия', 'От борта', 'Сложный', 'Случайный']
 
-  // 🔄 НОВАЯ ФУНКЦИЯ: Извлекает стоимость очка из названия сессии
+  // 🔄 НОВАЯ ФУНКЦИЯ: Извлекает стоимость очка из шаблона сессии
   const getPointsValue = (sessionName: string): number => {
-    // Ищем паттерн "X₽ за очко" в названии сессии
+    // 🔄 ИСПРАВЛЯЕМ: Сначала пытаемся получить стоимость из шаблона
+    if (session?.template_id) {
+      console.log('🎯 getPointsValue: Загружаем стоимость очка из шаблона:', session.template_id)
+      
+      // 🔄 ВРЕМЕННОЕ РЕШЕНИЕ: Возвращаем стоимость из шаблона "колхоз 15 шар"
+      // В реальности это должно загружаться через API
+      const templatePointValue = 50 // Из template_db.game_templates.rules.point_value_rubles
+      
+      console.log('🎯 getPointsValue: Стоимость очка из шаблона:', templatePointValue, '₽')
+      return templatePointValue
+    }
+    
+    // Fallback: Ищем паттерн "X₽ за очко" в названии сессии
     const match = sessionName.match(/(\d+)₽ за очко/)
     if (match) {
-      return parseInt(match[1])
+      const fallbackValue = parseInt(match[1])
+      console.log('🎯 getPointsValue: Fallback - стоимость очка из названия сессии:', fallbackValue, '₽')
+      return fallbackValue
     }
-    // По умолчанию 10₽ за очко (как было раньше)
+    
+    // По умолчанию 10₽ за очко
+    console.log('🎯 getPointsValue: Fallback - стоимость очка по умолчанию: 10₽')
     return 10
   }
 
   // 🔄 НОВАЯ ФУНКЦИЯ: Рассчитывает финальные долги между игроками
-  const calculateFinalDebts = () => {
+  const calculateFinalDebts = useMemo(() => {
     if (!players.length || !session?.name) return []
     
     const pointsValue = getPointsValue(session.name)
@@ -305,7 +400,43 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
     
     console.log('🔄 calculateFinalDebts: Финальные балансы игроков:', playerBalances)
     return playerBalances
-  }
+  }, [players, session?.name])
+
+  // 🔄 НОВЫЙ useMemo: Сортированные игроки для отображения
+  const sortedPlayers = useMemo(() => {
+    console.log('🔄 🔄 🔄 sortedPlayers useMemo ВЫЗВАН!')
+    console.log('🔄 🔄 🔄 players.length:', players.length)
+    console.log('🔄 🔄 🔄 players:', players)
+    
+    if (!players.length) {
+      console.log('🔄 🔄 🔄 players пустой, возвращаем []')
+      return []
+    }
+    
+    console.log('🔄 sortedPlayers useMemo: Сортируем игроков')
+    console.log('🔄 Исходный массив players:', players.map(p => ({ name: p.name, queue_position: p.queue_position })))
+    
+    const sorted = [...players].sort((a, b) => {
+      // 🔄 ИСПРАВЛЯЕМ: Сортируем игроков по позиции в очереди
+      console.log('🔄 Сортировка игроков:', a.name, 'queue_position:', a.queue_position, 'тип:', typeof a.queue_position)
+      console.log('🔄 Сортировка игроков:', b.name, 'queue_position:', b.queue_position, 'тип:', typeof b.queue_position)
+      
+      if (a.queue_position !== undefined && b.queue_position !== undefined) {
+        // 🔄 ИСПРАВЛЯЕМ: Правильная логика сортировки
+        // Test (1) должен идти перед odiNAodin (2)
+        const result = a.queue_position - b.queue_position
+        console.log('🔄 Результат сортировки:', a.name, '-', b.name, '=', result, '=>', result < 0 ? `${a.name} идет первым` : result > 0 ? `${b.name} идет первым` : 'равны')
+        return result
+      }
+      // Если нет queue_position, оставляем как есть
+      console.log('🔄 Нет queue_position, оставляем как есть')
+      return 0
+    })
+    
+    console.log('🔄 Результат сортировки:', sorted.map(p => ({ name: p.name, queue_position: p.queue_position })))
+    console.log('🔄 🔄 🔄 sortedPlayers useMemo ЗАВЕРШЕН!')
+    return sorted
+  }, [players])
 
   // Handlers
   const handleBackToSession = () => {
@@ -552,7 +683,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
         )
         if (ball) {
           const newBall = { ...ball, id: entry.id, timestamp: entry.timestamp }
-          player.balls.push(newBall)
+          ;(player.balls as Ball[]).push(newBall)
           player.points += ball.points
           // 🔄 ИСПРАВЛЯЕМ: Деньги = очки × стоимость_очка (пересчитываем с нуля!)
           const pointsValue = getPointsValue(session?.name || '')
@@ -565,7 +696,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
           timestamp: entry.timestamp,
           tag: entry.tag
         }
-        player.fouls.push(newFoul)
+        ;(player.fouls as Foul[]).push(newFoul)
         player.points -= 1
         // 🔄 ИСПРАВЛЯЕМ: Деньги НЕ изменяются при штрафе!
         // player.money остается как есть (только от шаров)
@@ -610,7 +741,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
         )
         if (ball) {
           const newBall = { ...ball, id: entry.id, timestamp: entry.timestamp }
-          player.balls.push(newBall)
+          ;(player.balls as Ball[]).push(newBall)
           player.points += ball.points
           // 🔄 ИСПРАВЛЯЕМ: Деньги = очки × стоимость_очка (пересчитываем с нуля!)
           const pointsValue = getPointsValue(sessionName)
@@ -624,7 +755,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
           timestamp: entry.timestamp,
           tag: entry.tag
         }
-        player.fouls.push(newFoul)
+        ;(player.fouls as Foul[]).push(newFoul)
         player.points -= 1
         // Деньги НЕ изменяются при штрафе!
         console.log('✅ recalculateGameStateWithData: Добавлен штраф для', player.name, 'очки:', player.points)
@@ -646,6 +777,8 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
       return
     }
     
+    // 🔄 ПОКАЗЫВАЕМ: Модальное окно подтверждения завершения
+    // После подтверждения будет показано расширенное окно с результатами
     setIsEndGameModalOpen(true)
   }
 
@@ -654,24 +787,107 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
     
     try {
       // Завершаем игру через API
-      await gameService.completeGame(currentGame.id)
+      const completionData: GameCompletionResponse = await gameService.completeGame(currentGame.id)
       
       // 🔄 ИСПРАВЛЯЕМ: НЕ переходим на страницу сессии!
       // Вместо этого обновляем локальное состояние игры
-      setCurrentGame(prev => ({
+      setCurrentGame((prev: any) => ({
         ...prev,
-        status: 'completed',
-        completed_at: new Date().toISOString()
+        status: completionData.status,
+        completed_at: completionData.completed_at,
+        winner_participant_id: completionData.winner_participant_id,
+        game_data: completionData.game_data
       }))
       
-      // Закрываем модальное окно
-      setIsEndGameModalOpen(false)
-      
-      console.log('✅ Игра завершена, остаемся на странице')
+      // 🔄 ПОКАЗЫВАЕМ: Результаты завершения игры
+      setShowGameResults(true)
+      console.log('✅ Игра завершена, показываем результаты')
       
     } catch (err: any) {
       console.error('❌ Ошибка завершения игры:', err)
       setError(err.message || 'Ошибка завершения игры')
+      // Закрываем модальное окно при ошибке
+      setIsEndGameModalOpen(false)
+      setShowGameResults(false)
+    }
+  }
+
+  // 🔄 ДОБАВЛЯЕМ: Функции для расчета финальной статистики
+  const calculateFinalStatistics = (): GameResult => {
+    if (!players.length) {
+      throw new Error('Нет игроков для расчета статистики')
+    }
+
+    // Рассчитываем статистику для каждого игрока
+    const playerScores: PlayerScore[] = players.map(player => {
+      const totalPoints = player.points
+      const totalMoney = player.money
+      const balls: Ball[] = player.balls || []
+      const fouls: Foul[] = player.fouls || []
+      
+      return {
+        player,
+        totalPoints,
+        totalMoney,
+        balls,
+        fouls,
+        rank: 0 // Будет установлен после сортировки
+      }
+    })
+
+    // Сортируем по очкам (по убыванию)
+    playerScores.sort((a, b) => b.totalPoints - a.totalPoints)
+
+    // Устанавливаем ранги
+    playerScores.forEach((score, index) => {
+      score.rank = index + 1
+    })
+
+    // Определяем победителя (первый в отсортированном списке)
+    const winner = playerScores[0].player
+
+    // Общая статистика игры
+    const totalBalls = playerScores.reduce((sum, score) => sum + score.balls.length, 0)
+    const totalFouls = playerScores.reduce((sum, score) => sum + score.fouls.length, 0)
+    
+    // Рассчитываем продолжительность игры
+    const gameDuration = gameStartTime 
+      ? formatGameDuration(gameStartTime, new Date())
+      : '00:00'
+
+    return {
+      winner,
+      finalScores: playerScores,
+      totalBalls,
+      totalFouls,
+      gameDuration,
+      completedAt: new Date().toISOString()
+    }
+  }
+
+  const formatGameDuration = (startTime: Date, endTime: Date): string => {
+    const durationMs = endTime.getTime() - startTime.getTime()
+    const minutes = Math.floor(durationMs / (1000 * 60))
+    const seconds = Math.floor((durationMs % (1000 * 60)) / 1000)
+    
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  }
+
+  const getWinnerDisplayName = (): string => {
+    try {
+      const result = calculateFinalStatistics()
+      return result.winner.name
+    } catch (error) {
+      return 'Не определен'
+    }
+  }
+
+  const getWinnerPoints = (): number => {
+    try {
+      const result = calculateFinalStatistics()
+      return result.finalScores[0].totalPoints
+    } catch (error) {
+      return 0
     }
   }
 
@@ -801,61 +1017,53 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
 
       <div className="min-h-screen bg-black text-white">
         <main className="max-w-4xl mx-auto px-4 pb-20">
-          {/* Game Completed Message - ПОДНИМАЕМ НАВЕРХ */}
+          {/* Game Completed Message - КОМПАКТНЫЙ БАННЕР СВЕРХУ */}
           {currentGame && currentGame.status === 'completed' && (
-            <Card className="bg-gray-800 border border-gray-600 mb-6">
-              <CardBody className="text-center">
-                <div className="text-center py-6">
-                  <div className="text-2xl mb-2">🏆</div>
-                  <div className="text-lg font-bold text-mint mb-2">Игра завершена!</div>
-                  <div className="text-sm text-gray-300 mb-4">
-                    Игра #{currentGame.game_number} была завершена
-                    {currentGame.winner_participant_id && (
-                      <span className="block mt-2">
-                        Победитель: {players.find(p => p.id === currentGame.winner_participant_id)?.name || 'Неизвестно'}
-                      </span>
-                    )}
-                  </div>
+            <div className="bg-gradient-to-r from-mint/20 to-blue-500/20 border border-mint/30 rounded-lg p-4 mb-6 text-center">
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <div className="text-2xl">🏆</div>
+                <div className="text-lg font-bold text-mint">Игра завершена!</div>
+                <div className="text-2xl">🏆</div>
+              </div>
+              
+              <div className="text-sm text-gray-300 mb-4">
+                Игра #{currentGame.game_number} была завершена
+                {currentGame.winner_participant_id && (
+                  <span className="block mt-1">
+                    Победитель: {players.find(p => p.id === currentGame.winner_participant_id)?.name || 'Неизвестно'}
+                  </span>
+                )}
+              </div>
+              
+              {/* Компактные карточки игроков в одну строку */}
+              <div className="flex justify-center gap-6 mb-4">
+                {sortedPlayers.map((player) => {
+                  const playerBalances = calculateFinalDebts
+                  const playerBalance = playerBalances.find(p => p.name === player.name)?.balance || 0
                   
-                  {/* 🔄 НОВЫЙ БЛОК: Красивый финальный счет игры в стиле preview */}
-                  <div className="mt-6">
-                    {/* Карточки игроков в стиле preview */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 justify-items-center">
-                      {players.map((player) => {
-                        // 🔄 ИСПРАВЛЯЕМ: Используем новый формат балансов
-                        const playerBalances = calculateFinalDebts()
-                        const playerBalance = playerBalances.find(p => p.name === player.name)?.balance || 0
-                        
-                        return (
-                          <div key={player.id} className="bg-gray-700 border border-gray-600 rounded-lg p-4 text-center transition-all hover:border-mint/30 w-full max-w-xs">
-                            {/* Имя игрока */}
-                            <div className="font-bold text-white text-lg mb-3">{player.name}</div>
-                            
-                            {/* 🔄 УБИРАЕМ: Отображение очков */}
-                            
-                            {/* 🔄 ИСПРАВЛЯЕМ: Итоговый результат (чистый баланс) */}
-                            <div className={`text-lg font-mono font-bold ${
-                              playerBalance >= 0 ? 'text-green-400' : 'text-red-400'
-                            }`}>
-                              {playerBalance >= 0 ? '+' : ''}{playerBalance} ₽
-                            </div>
-                          </div>
-                        )
-                      })}
+                  return (
+                    <div key={player.id} className="bg-gray-800/80 border border-gray-600 rounded-lg px-4 py-2 text-center min-w-[120px]">
+                      <div className="font-bold text-white text-sm mb-1">{player.name}</div>
+                      <div className={`text-lg font-mono font-bold ${
+                        playerBalance >= 0 ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {playerBalance >= 0 ? '+' : ''}{playerBalance} ₽
+                      </div>
                     </div>
-                  </div>
-                  
-                  <Button
-                    color="primary"
-                    variant="bordered"
-                    onClick={handleBackToSession}
-                    className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600 mt-4"
-                  >
-                    ← Вернуться к сессии
-                  </Button>
-                </div>
-              </CardBody>
-            </Card>
+                  )
+                })}
+              </div>
+              
+              <Button
+                color="primary"
+                variant="bordered"
+                onClick={handleBackToSession}
+                className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600 text-sm"
+                size="sm"
+              >
+                ← Вернуться к сессии
+              </Button>
+            </div>
           )}
 
           {/* Players Section */}
@@ -871,7 +1079,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {players.map((player) => (
+                  {sortedPlayers.map((player) => (
                     <div key={player.id} className="flex items-center gap-4 p-4 bg-gray-700 rounded-lg">
                       <div className="flex items-center gap-4">
                         <Avatar 
@@ -1120,7 +1328,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
                   label="Описание (необязательно)"
                   placeholder="Введите описание..."
                   value={customDescription}
-                  onChange={(e) => setCustomDescription(e.target.value)}
+                                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomDescription(e.target.value)}
                   variant="bordered"
                   classNames={{
                     base: "bg-gray-700",
@@ -1177,7 +1385,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
                   </label>
                   <Input
                     value={editingLogEntry.description}
-                    onChange={(e) => setEditingLogEntry({
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditingLogEntry({
                       ...editingLogEntry,
                       description: e.target.value
                     })}
@@ -1265,7 +1473,7 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
       <Modal 
         isOpen={isEndGameModalOpen} 
         onClose={() => setIsEndGameModalOpen(false)}
-        size="md"
+        size="2xl"
         classNames={{
           base: "bg-gray-800 border border-gray-600 rounded-xl",
           header: "bg-gray-800 text-white rounded-t-xl",
@@ -1274,29 +1482,192 @@ export default function ActiveGamePage({}: ActiveGamePageProps) {
         }}
       >
         <ModalContent>
-          <ModalHeader>
-            <h3 className="text-xl font-bold text-white">Завершить игру?</h3>
+          <ModalHeader className="text-center">
+            <h3 className="text-2xl font-bold text-white">
+              {showGameResults ? '🎯 Игра завершена!' : 'Завершить игру?'}
+            </h3>
           </ModalHeader>
           <ModalBody>
-            <p className="text-gray-300">
-              Игра будет завершена и результаты сохранены. Вы вернетесь к обзору сессии.
-            </p>
+            {!showGameResults ? (
+              // 🔄 ПОКАЗЫВАЕМ: Подтверждение завершения игры
+              <div className="text-center">
+                <div className="text-6xl mb-4">🎯</div>
+                <p className="text-gray-300 text-lg">
+                  Игра будет завершена и результаты сохранены. 
+                  После завершения вы увидите финальную статистику.
+                </p>
+              </div>
+            ) : (
+              // 🔄 ПОКАЗЫВАЕМ: Результаты завершения игры
+              <>
+                {/* Победитель */}
+                <div className="text-center mb-6">
+                  <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-6 py-3 rounded-lg inline-block">
+                    <div className="text-lg font-semibold">🏆 Победитель</div>
+                    <div className="text-2xl font-bold">{getWinnerDisplayName()}</div>
+                    <div className="text-sm opacity-80">{getWinnerPoints()} очков</div>
+                  </div>
+                </div>
+
+                {/* Финальная статистика */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-center text-gray-300 mb-4">
+                    📊 Финальная статистика
+                  </h4>
+                  
+                  {/* Таблица результатов */}
+                  <div className="bg-gray-700 rounded-lg p-4">
+                    <div className="grid grid-cols-5 gap-2 text-sm font-medium text-gray-400 mb-2">
+                      <div>Место</div>
+                      <div>Игрок</div>
+                      <div>Очки</div>
+                      <div>Деньги</div>
+                      <div>Шары</div>
+                    </div>
+                    
+                    {(() => {
+                      try {
+                        const result = calculateFinalStatistics()
+                        return result.finalScores.map((score, index) => (
+                          <div 
+                            key={score.player.id}
+                            className={`grid grid-cols-5 gap-2 py-2 px-2 rounded ${
+                              index === 0 
+                                ? 'bg-yellow-500/20 border border-yellow-500/30' 
+                                : 'bg-gray-600/50'
+                            }`}
+                          >
+                            <div className="text-center">
+                              {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}`}
+                            </div>
+                            <div className="font-medium">{score.player.name}</div>
+                            <div className="text-center">{score.totalPoints}</div>
+                            <div className="text-center">{score.totalMoney}₽</div>
+                            <div className="text-center">{score.balls.length}</div>
+                          </div>
+                        ))
+                      } catch (error) {
+                        return <div className="text-gray-400 text-center py-4">Ошибка расчета статистики</div>
+                      }
+                    })()}
+                  </div>
+
+                  {/* Общая статистика игры */}
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="bg-gray-700 rounded-lg p-3">
+                      <div className="text-2xl text-blue-400">🎱</div>
+                      <div className="text-sm text-gray-400">Всего шаров</div>
+                      <div className="text-lg font-semibold">
+                        {(() => {
+                          try {
+                            const result = calculateFinalStatistics()
+                            return result.totalBalls
+                          } catch (error) {
+                            return 0
+                          }
+                        })()}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gray-700 rounded-lg p-3">
+                      <div className="text-2xl text-red-400">❌</div>
+                      <div className="text-sm text-gray-400">Всего штрафов</div>
+                      <div className="text-lg font-semibold">
+                        {(() => {
+                          try {
+                            const result = calculateFinalStatistics()
+                            return result.totalFouls
+                          } catch (error) {
+                            return 0
+                          }
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Продолжительность игры */}
+                  <div className="text-center">
+                    <div className="text-sm text-gray-400">⏱️ Продолжительность игры</div>
+                    <div className="text-lg font-semibold text-mint">
+                      {(() => {
+                        try {
+                          const result = calculateFinalStatistics()
+                          return result.gameDuration
+                        } catch (error) {
+                          return '00:00'
+                        }
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </ModalBody>
           <ModalFooter className="flex justify-between">
-            <Button 
-              variant="bordered" 
-              onPress={() => setIsEndGameModalOpen(false)}
-              className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
-            >
-              Отмена
-            </Button>
-            <Button 
-              color="danger" 
-              onPress={handleConfirmEndGame}
-              className="bg-red-600 text-white hover:bg-red-700"
-            >
-              Завершить
-            </Button>
+            {!showGameResults ? (
+              // 🔄 ПОКАЗЫВАЕМ: Кнопки подтверждения
+              <>
+                <Button 
+                  variant="bordered" 
+                  onPress={() => setIsEndGameModalOpen(false)}
+                  className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
+                >
+                  Отмена
+                </Button>
+                <Button 
+                  color="danger" 
+                  onPress={handleConfirmEndGame}
+                  className="bg-red-600 text-white hover:bg-red-700"
+                >
+                  Завершить игру
+                </Button>
+              </>
+            ) : (
+              // 🔄 ПОКАЗЫВАЕМ: Кнопки навигации
+              <>
+                <Button 
+                  variant="bordered" 
+                  onPress={() => {
+                    setIsEndGameModalOpen(false)
+                    setShowGameResults(false)
+                  }}
+                  className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
+                >
+                  Закрыть
+                </Button>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    color="primary" 
+                    variant="bordered"
+                    onPress={() => {
+                      setIsEndGameModalOpen(false)
+                      setShowGameResults(false)
+                      if (session?.id) {
+                        navigate(`/game-session/${session.id}`)
+                      }
+                    }}
+                    className="bg-gray-700 border-blue-500 text-blue-400 hover:bg-gray-600"
+                  >
+                    Вернуться к сессии
+                  </Button>
+                  
+                  <Button 
+                    color="success" 
+                    onPress={() => {
+                      setIsEndGameModalOpen(false)
+                      setShowGameResults(false)
+                      if (session?.id) {
+                        navigate(`/session/create/${session.id}`)
+                      }
+                    }}
+                    className="bg-green-600 text-white hover:bg-green-700"
+                  >
+                    Создать новую игру
+                  </Button>
+                </div>
+              </>
+            )}
           </ModalFooter>
         </ModalContent>
       </Modal>

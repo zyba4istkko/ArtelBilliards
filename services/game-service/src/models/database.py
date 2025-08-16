@@ -152,6 +152,7 @@ class GameEvent(Base):
     event_type = Column(String(100), nullable=False)  # 'shot', 'foul', 'combo', 'break', etc.
     event_data = Column(JSON)  # Детали события
     sequence_number = Column(Integer, nullable=False)  # Порядок событий
+    is_deleted = Column(Boolean, default=False)  # 🔄 НОВОЕ ПОЛЕ: Мягкое удаление
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships

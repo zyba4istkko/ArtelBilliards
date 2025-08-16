@@ -23,7 +23,7 @@ export function CreateTemplateCard({ onTemplateCreated }: CreateTemplateCardProp
 
   const handleSubmitTemplate = async (template: GameTemplateCreate) => {
     try {
-      await apiClient.post('/api/v1/templates/', template)
+      await apiClient.post('/api/v1/templates', template)
       onTemplateCreated()
       handleCloseModal()
     } catch (error) {

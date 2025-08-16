@@ -12,6 +12,7 @@ import {
 } from '../components/ui'
 import { SessionService } from '../api/services/sessionService'
 import { gameService } from '../api/services/gameService'
+import { TemplateService } from '../api/services/templateService' // Added import for TemplateService
 import type { GameSession, Game } from '../api/types'
 
 interface Player {
@@ -135,9 +136,30 @@ export default function GameSessionPage() {
         console.log('🎮 GameSessionPage: Создаем новую игру в сессии...')
         console.log('🎮 GameSessionPage: sessionId:', sessionId)
         
-        // Create game with default algorithm
+        // 🔄 ИСПРАВЛЯЕМ: Получаем алгоритм очередности из шаблона сессии
+        let queueAlgorithm = 'random_no_repeat' // fallback по умолчанию
+        
+        if (session?.template_id) {
+          try {
+            console.log('🎮 GameSessionPage: Загружаем шаблон для определения алгоритма очередности...')
+            const template = await TemplateService.getTemplate(session.template_id)
+            if (template?.rules?.queue_algorithm) {
+              queueAlgorithm = template.rules.queue_algorithm
+              console.log('🎮 GameSessionPage: Алгоритм из шаблона:', queueAlgorithm)
+            } else {
+              console.log('🎮 GameSessionPage: Алгоритм не найден в шаблоне, используем fallback:', queueAlgorithm)
+            }
+          } catch (templateError) {
+            console.error('❌ GameSessionPage: Ошибка загрузки шаблона:', templateError)
+            console.log('🎮 GameSessionPage: Используем fallback алгоритм:', queueAlgorithm)
+          }
+        } else {
+          console.log('🎮 GameSessionPage: Нет template_id в сессии, используем fallback:', queueAlgorithm)
+        }
+        
+        // Create game with algorithm from template
         const newGame = await gameService.createGame(sessionId, {
-          queue_algorithm: 'random_no_repeat'
+          queue_algorithm: queueAlgorithm
         })
         
         console.log('🎮 GameSessionPage: Игра создана:', newGame)

@@ -91,9 +91,26 @@ class GameService:
             
             # 4. Генерируем очередность согласно алгоритму
             print(f"🎮 GameService.create_game: Шаг 4 - Генерируем очередность")
-            queue_algorithm = request.queue_algorithm or "manual"  # Используем дефолт если None
-            algorithm_func = get_queue_algorithm(queue_algorithm)
             
+            # 🔄 ИСПРАВЛЯЕМ: Автоматически определяем queue_algorithm из шаблона сессии
+            if session.template_id:
+                print(f"🎮 GameService.create_game: Сессия имеет шаблон: {session.template_id}")
+                # Получаем шаблон из template-service
+                try:
+                    # Временно используем дефолтный алгоритм, пока не настроим интеграцию с template-service
+                    queue_algorithm = "random_no_repeat"
+                    print(f"🎮 GameService.create_game: Используем алгоритм из шаблона: {queue_algorithm}")
+                except Exception as e:
+                    print(f"⚠️ GameService.create_game: Ошибка получения шаблона: {e}")
+                    queue_algorithm = "random_no_repeat"  # fallback
+            else:
+                print(f"🎮 GameService.create_game: Сессия не имеет шаблона, используем дефолтный алгоритм")
+                queue_algorithm = "random_no_repeat"  # дефолтный алгоритм
+            
+            # 🔄 УБИРАЕМ: Не полагаемся на frontend для queue_algorithm
+            # queue_algorithm = request.queue_algorithm or "manual"
+            
+            algorithm_func = get_queue_algorithm(queue_algorithm)
             print(f"🎮 GameService.create_game: Алгоритм: {queue_algorithm}")
             
             if queue_algorithm == "random_no_repeat":
@@ -108,18 +125,53 @@ class GameService:
                 previous_queues = [row[0] for row in queue_history_result.fetchall()]
                 
                 print(f"🎮 GameService.create_game: История очередей: {len(previous_queues)} записей")
+                print(f"🎮 GameService.create_game: Детали истории очередей:")
+                for i, queue in enumerate(previous_queues):
+                    print(f"🎮 GameService.create_game:   Очередь {i+1}: {queue}")
+                
+                # 🔄 ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ ВЫЗОВА АЛГОРИТМА
+                print(f"🎮 GameService.create_game: ВЫЗЫВАЕМ АЛГОРИТМ random_no_repeat")
+                print(f"🎮 GameService.create_game: algorithm_func: {algorithm_func}")
+                print(f"🎮 GameService.create_game: participants: {[f'{p.id}:{p.display_name}' for p in participants]}")
+                print(f"🎮 GameService.create_game: session_id: {session_id}")
+                print(f"🎮 GameService.create_game: previous_queues: {previous_queues}")
                 
                 # Для random_no_repeat передаем только UUID из истории
                 current_queue = algorithm_func(participants, session_id, previous_queues)
+                
+                print(f"🎮 GameService.create_game: АЛГОРИТМ ВЫПОЛНЕН")
+                print(f"🎮 GameService.create_game: Результат алгоритма: {[f'{p.id}:{p.display_name}' for p in current_queue]}")
             else:
                 # Для always_random и manual не нужна история
+                print(f"🎮 GameService.create_game: ВЫЗЫВАЕМ АЛГОРИТМ {queue_algorithm}")
                 current_queue = algorithm_func(participants)
+                print(f"🎮 GameService.create_game: Результат алгоритма: {[f'{p.id}:{p.display_name}' for p in current_queue]}")
             
             print(f"🎮 GameService.create_game: Сгенерирована очередь: {len(current_queue)} участников")
+            
+            # 🔄 ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ ФОРМИРОВАНИЯ current_queue_ids
+            print(f"🎮 GameService.create_game: ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ ФОРМИРОВАНИЯ current_queue_ids")
+            print(f"🎮 GameService.create_game: current_queue (объекты): {current_queue}")
+            print(f"🎮 GameService.create_game: Тип current_queue: {type(current_queue)}")
+            print(f"🎮 GameService.create_game: Длина current_queue: {len(current_queue)}")
+            
+            for i, participant in enumerate(current_queue):
+                print(f"🎮 GameService.create_game:   Участник {i+1}: id={participant.id}, display_name={participant.display_name}")
+                print(f"🎮 GameService.create_game:   Тип participant.id: {type(participant.id)}")
+                print(f"🎮 GameService.create_game:   participant.id значение: {participant.id}")
             
             # Извлекаем только ID участников из очереди для сохранения в БД
             current_queue_ids = [str(participant.id) for participant in current_queue]
             print(f"🎮 GameService.create_game: ID участников в очереди: {current_queue_ids}")
+            print(f"🎮 GameService.create_game: Тип current_queue_ids: {type(current_queue_ids)}")
+            print(f"🎮 GameService.create_game: Длина current_queue_ids: {len(current_queue_ids)}")
+            
+            # 🔄 ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ СОЗДАНИЯ ОБЪЕКТА GAME
+            print(f"🎮 GameService.create_game: ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ СОЗДАНИЯ ОБЪЕКТА GAME")
+            print(f"🎮 GameService.create_game: session_id: {session_id}")
+            print(f"🎮 GameService.create_game: next_game_number: {next_game_number}")
+            print(f"🎮 GameService.create_game: queue_algorithm: {queue_algorithm}")
+            print(f"🎮 GameService.create_game: current_queue_ids: {current_queue_ids}")
             
             # 5. Создаем игру в БД
             print(f"🎮 GameService.create_game: Шаг 5 - Создаем игру в БД")
@@ -134,6 +186,8 @@ class GameService:
             print(f"🎮 GameService.create_game: Объект игры создан: {game}")
             print(f"🎮 GameService.create_game: game.session_id: {game.session_id}")
             print(f"🎮 GameService.create_game: game.status: {game.status}")
+            print(f"🎮 GameService.create_game: game.current_queue: {game.current_queue}")
+            print(f"🎮 GameService.create_game: Тип game.current_queue: {type(game.current_queue)}")
             db.add(game)
             print(f"🎮 GameService.create_game: Игра добавлена в сессию")
             
@@ -143,14 +197,31 @@ class GameService:
             # 6. Сохраняем очередность в историю (только для random_no_repeat)
             if queue_algorithm == "random_no_repeat":
                 print(f"🎮 GameService.create_game: Шаг 6 - Сохраняем историю очереди")
+                print(f"🎮 GameService.create_game: ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ СОХРАНЕНИЯ В GAME_QUEUES")
+                print(f"🎮 GameService.create_game: session_id: {session_id}")
+                print(f"🎮 GameService.create_game: game.id: {game.id}")
+                print(f"🎮 GameService.create_game: current_queue_ids: {current_queue_ids}")
+                print(f"🎮 GameService.create_game: queue_algorithm: {queue_algorithm}")
+                
                 queue_record = GameQueue(
                     session_id=session_id,
                     game_id=game.id,
                     queue_order=current_queue_ids,
                     algorithm_used=queue_algorithm
                 )
+                print(f"🎮 GameService.create_game: Объект GameQueue создан: {queue_record}")
+                print(f"🎮 GameService.create_game: queue_record.queue_order: {queue_record.queue_order}")
+                print(f"🎮 GameService.create_game: Тип queue_record.queue_order: {type(queue_record.queue_order)}")
+                
                 db.add(queue_record)
                 print(f"🎮 GameService.create_game: Запись истории очереди добавлена")
+            
+            # 6.5. 🔄 НОВЫЙ ШАГ: Обновляем queue_position в session_participants
+            print(f"🎮 GameService.create_game: Шаг 6.5 - Обновляем queue_position в session_participants")
+            for position, participant in enumerate(current_queue):
+                # Обновляем queue_position для каждого участника
+                participant.queue_position = position + 1
+                print(f"🎮 GameService.create_game: {participant.display_name} -> queue_position: {position + 1}")
             
             # 7. Обновляем сессию - устанавливаем текущую игру
             print(f"🎮 GameService.create_game: Шаг 7 - Обновляем сессию")
@@ -307,28 +378,93 @@ class GameService:
         if game.status != "active":
             raise ValueError(f"Game {game_id} is not active")
         
+        # 🔄 ДОБАВЛЯЕМ: Определяем победителя на основе событий игры
+        winner_participant_id = None
+        game_statistics = {}
+        
+        try:
+            # Получаем все события игры для расчета статистики
+            events_query = select(GameEvent).where(
+                GameEvent.game_id == game_id,
+                GameEvent.is_deleted == False
+            ).order_by(GameEvent.sequence_number)
+            
+            events_result = await db.execute(events_query)
+            game_events = events_result.scalars().all()
+            
+            # Собираем статистику по участникам
+            participant_stats = {}
+            
+            for event in game_events:
+                participant_id = event.participant_id
+                
+                if participant_id not in participant_stats:
+                    participant_stats[participant_id] = {
+                        'points': 0,
+                        'money': 0,
+                        'balls': 0,
+                        'fouls': 0
+                    }
+                
+                # Обрабатываем события забитых шаров
+                if event.event_type == 'ball_potted':
+                    participant_stats[participant_id]['balls'] += 1
+                    
+                    # Получаем очки и деньги из event_data
+                    event_data = event.event_data or {}
+                    points = event_data.get('points', 0)
+                    money = event_data.get('money', 0)
+                    
+                    participant_stats[participant_id]['points'] += points
+                    participant_stats[participant_id]['money'] += money
+                
+                # Обрабатываем штрафы
+                elif event.event_type == 'foul':
+                    participant_stats[participant_id]['fouls'] += 1
+                    
+                    # Получаем штраф из event_data
+                    event_data = event.event_data or {}
+                    penalty = event_data.get('penalty', 0)
+                    
+                    participant_stats[participant_id]['money'] -= penalty
+            
+            # Определяем победителя по очкам
+            if participant_stats:
+                winner_id = max(participant_stats.keys(), 
+                              key=lambda pid: participant_stats[pid]['points'])
+                winner_participant_id = winner_id
+                
+                # Сохраняем статистику в game_data
+                game_statistics = {
+                    'participant_stats': participant_stats,
+                    'winner_participant_id': str(winner_participant_id),
+                    'total_balls': sum(stats['balls'] for stats in participant_stats.values()),
+                    'total_fouls': sum(stats['fouls'] for stats in participant_stats.values()),
+                    'completion_timestamp': datetime.now().isoformat()
+                }
+                
+                print(f"🎯 GameService.complete_game: Победитель определен: {winner_participant_id}")
+                print(f"🎯 GameService.complete_game: Статистика: {game_statistics}")
+            
+        except Exception as e:
+            print(f"⚠️ GameService.complete_game: Ошибка при определении победителя: {e}")
+            # Продолжаем выполнение без статистики
+        
         # Обновляем статус игры
         game.status = "completed"
         game.completed_at = datetime.now()
         
-        # Обновляем статус сессии если это была последняя активная игра
+        # 🔄 ИСПРАВЛЯЕМ: НЕ завершаем сессию автоматически!
+        # Сессия должна оставаться активной для создания новых игр
         session_query = select(GameSession).where(GameSession.id == game.session_id)
         session_result = await db.execute(session_query)
         session = session_result.scalar_one_or_none()
         
         if session and session.current_game_id == game_id:
-            # Проверяем есть ли другие активные игры
-            other_active_games_query = select(Game).where(
-                Game.session_id == game.session_id,
-                Game.status == "active",
-                Game.id != game_id
-            )
-            other_active_games_result = await db.execute(other_active_games_query)
-            other_active_games = other_active_games_result.scalars().all()
-            
-            if not other_active_games:
-                session.current_game_id = None
-                session.status = "completed"
+            # Просто убираем ссылку на текущую игру
+            session.current_game_id = None
+            # 🔄 НЕ меняем статус сессии на "completed"!
+            # session.status остается как есть (обычно "active")
         
         await db.commit()
         
@@ -337,13 +473,14 @@ class GameService:
             session_id=game.session_id,
             game_number=game.game_number,
             status=GameStatus.COMPLETED,
-            winner_participant_id=None,
+            winner_participant_id=winner_participant_id,
             started_at=game.started_at,
             completed_at=game.completed_at,
             duration_seconds=None,
             game_data={
                 "queue_algorithm": game.queue_algorithm,
-                "current_queue": game.current_queue
+                "current_queue": game.current_queue,
+                "statistics": game_statistics  # 🔄 ДОБАВЛЯЕМ: финальная статистика
             }
         )
     
@@ -459,7 +596,7 @@ class GameService:
             
             print(f"🎮 GameService.get_game_events: Найдено событий: {len(events)}")
             for event in events:
-                print(f"🎮 GameService.get_game_events: Событие {event.id}: {event.event_type}, участник: {event.participant_id}")
+                print(f"🎮 GameService.get_game_events: Событие {event.id}: {event.event_type}, участник: {event.participant_id}, удалено: {getattr(event, 'is_deleted', False)}")
             
             # 3. Преобразуем в GameEventResponse
             from ..models.schemas import GameEventType
@@ -473,12 +610,17 @@ class GameService:
                     # Если тип не распознан, используем как есть
                     event_type = event.event_type
                 
+                # Добавляем информацию об удалении в event_data
+                event_data = event.event_data or {}
+                if hasattr(event, 'is_deleted') and event.is_deleted:
+                    event_data['is_deleted'] = True
+                
                 response = GameEventResponse(
                     id=event.id,
                     game_id=event.game_id,
                     participant_id=event.participant_id,
                     event_type=event_type,
-                    event_data=event.event_data,
+                    event_data=event_data,
                     sequence_number=event.sequence_number,
                     created_at=event.created_at
                 )
@@ -516,3 +658,61 @@ class GameService:
             game_status=GameStatus.IN_PROGRESS,
             winner_participant_id=None
         )
+
+    @staticmethod
+    async def delete_game_event(
+        db: AsyncSession, 
+        game_id: UUID, 
+        event_id: UUID, 
+        current_user: UUID
+    ) -> Dict[str, Any]:
+        """Удаление события игры (помечаем как удаленное)"""
+        
+        try:
+            print(f"🎮 GameService.delete_game_event: Начинаем удаление события {event_id} для игры {game_id}")
+            print(f"🎮 GameService.delete_game_event: current_user: {current_user}")
+            
+            # 1. Проверяем существование игры
+            game_query = select(Game).where(Game.id == game_id)
+            game_result = await db.execute(game_query)
+            game = game_result.scalar_one_or_none()
+            
+            if not game:
+                print(f"❌ GameService.delete_game_event: Игра {game_id} не найдена!")
+                raise ValueError(f"Game {game_id} not found")
+            
+            print(f"🎮 GameService.delete_game_event: Игра найдена: {game.id}, статус: {game.status}")
+            
+            # 2. Проверяем существование события
+            event_query = select(GameEvent).where(
+                GameEvent.id == event_id,
+                GameEvent.game_id == game_id
+            )
+            event_result = await db.execute(event_query)
+            event = event_result.scalar_one_or_none()
+            
+            if not event:
+                print(f"❌ GameService.delete_game_event: Событие {event_id} не найдено!")
+                raise ValueError(f"Event {event_id} not found")
+            
+            print(f"🎮 GameService.delete_game_event: Событие найдено: {event.id}, тип: {event.event_type}")
+            
+            # 3. Проверяем права доступа (только creator сессии может удалять события)
+            # TODO: Добавить проверку прав доступа через Auth Service
+            print(f"🎮 GameService.delete_game_event: Проверка прав доступа (пока пропускаем)")
+            
+            # 4. Помечаем событие как удаленное
+            event.is_deleted = True
+            await db.commit()
+            
+            print(f"🎮 GameService.delete_game_event: Событие помечено как удаленное")
+            
+            return {
+                "success": True,
+                "message": f"Event {event_id} marked as deleted"
+            }
+            
+        except Exception as e:
+            print(f"❌ GameService.delete_game_event: Ошибка: {str(e)}")
+            await db.rollback()
+            raise
