@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Swords } from 'lucide-react'
 
 interface SessionStatistics {
@@ -18,31 +18,18 @@ interface SessionStatisticsCardProps {
 }
 
 export default function SessionStatisticsCard({ statistics, participants }: SessionStatisticsCardProps) {
-  // 🔄 ДОБАВЛЯЕМ: Логирование для отладки сортировки
-  console.log('🔍 SessionStatisticsCard: Участники до сортировки:', participants.map(p => ({
-    name: p.display_name,
-    queue_position: p.queue_position,
-    id: p.id
-  })))
-  
-  // 🔄 НОВОЕ: Сортируем участников по позиции в очереди (queue_position)
-  const sortedParticipants = [...participants].sort((a, b) => {
-    // Если есть queue_position, сортируем по нему
-    if (a.queue_position !== undefined && b.queue_position !== undefined) {
-      const result = a.queue_position - b.queue_position
-      console.log(`🔍 SessionStatisticsCard: Сортировка ${a.display_name}(${a.queue_position}) vs ${b.display_name}(${b.queue_position}) = ${result}`)
-      return result
-    }
-    // Иначе оставляем как есть
-    console.log(`🔍 SessionStatisticsCard: Нет queue_position для ${a.display_name} или ${b.display_name}`)
-    return 0
-  })
-  
-  console.log('🔍 SessionStatisticsCard: Участники после сортировки:', sortedParticipants.map(p => ({
-    name: p.display_name,
-    queue_position: p.queue_position,
-    id: p.id
-  })))
+  // 🔄 ОПТИМИЗИРУЕМ: Сортируем участников по позиции в очереди (queue_position)
+  // Используем useMemo для предотвращения пересчета при каждом рендере
+  const sortedParticipants = useMemo(() => {
+    return [...participants].sort((a, b) => {
+      // Если есть queue_position, сортируем по нему
+      if (a.queue_position !== undefined && b.queue_position !== undefined) {
+        return a.queue_position - b.queue_position
+      }
+      // Иначе оставляем как есть
+      return 0
+    })
+  }, [participants])
 
   return (
     <div className="bg-gray-800 border border-gray-600 rounded-2xl p-6 mb-6">

@@ -89,7 +89,7 @@ export default function GameSessionPage() {
   }, [])
 
   // 🔄 НОВАЯ ФУНКЦИЯ: Загрузка данных игроков для конкретной игры
-  const loadGamePlayersData = async (gameId: string) => {
+  const loadGamePlayersData = async (gameId: string, gameData?: any) => {
     try {
       // Загружаем события игры
       const gameEvents = await gameService.getGameEvents(gameId)
@@ -171,11 +171,68 @@ export default function GameSessionPage() {
       })
       
       // 🔄 РАССЧИТЫВАЕМ: Чистый баланс для каждого игрока (netBalance)
-      // Логика как в ActiveGamePage: каждый платит следующему за его очки
-      const sortedParticipants = [...participants].sort((a, b) => {
-        // Сортируем по позиции в очереди или по ID
-        return (a.queue_position || 0) - (b.queue_position || 0)
-      })
+      // ИСПРАВЛЯЕМ: Используем current_queue из игры, а не queue_position из участников
+      
+      // Получаем данные игры, чтобы узнать current_queue
+      // Если gameData не передан, ищем в массиве games
+      let gameInfo = gameData
+      if (!gameInfo) {
+        gameInfo = games.find(g => g.id === gameId)
+      }
+      
+      if (!gameInfo) {
+        console.error(`🎮 GameSessionPage: Игра ${gameId} не найдена в списке игр`)
+        console.error(`🎮 GameSessionPage: gameData:`, gameData)
+        console.error(`🎮 GameSessionPage: games.length:`, games.length)
+        console.error(`🎮 GameSessionPage: games IDs:`, games.map(g => g.id))
+        return []
+      }
+      
+      console.log(`🎮 GameSessionPage: Данные игры ${gameId}:`, gameInfo)
+      console.log(`🎮 GameSessionPage: game_data игры:`, gameInfo.game_data)
+      
+      // 🔄 ИСПРАВЛЯЕМ: Ищем current_queue в правильном месте - game_data
+      let currentQueue = gameInfo.current_queue
+      if (!currentQueue && gameInfo.game_data) {
+        currentQueue = gameInfo.game_data.current_queue
+        console.log(`🎮 GameSessionPage: current_queue найден в game_data:`, currentQueue)
+      }
+      
+      console.log(`🎮 GameSessionPage: current_queue игры:`, currentQueue)
+      
+      let sortedParticipants = [...participants]
+      
+      if (currentQueue && currentQueue.length > 0) {
+        // Сортируем участников согласно current_queue игры
+        let queueOrder = currentQueue
+        
+        // 🔄 ИСПРАВЛЯЕМ: Проверяем, что current_queue это массив
+        if (typeof queueOrder === 'string') {
+          try {
+            queueOrder = JSON.parse(queueOrder)
+            console.log(`🎮 GameSessionPage: current_queue распарсен из JSON:`, queueOrder)
+          } catch (e) {
+            console.error(`🎮 GameSessionPage: Ошибка парсинга current_queue:`, e)
+            queueOrder = []
+          }
+        }
+        
+        console.log(`🎮 GameSessionPage: queueOrder для сортировки:`, queueOrder)
+        console.log(`🎮 GameSessionPage: participants для поиска:`, participants.map(p => ({ id: p.id, name: p.display_name })))
+        
+        sortedParticipants = queueOrder.map(participantId => {
+          const found = participants.find(p => p.id === participantId)
+          console.log(`🎮 GameSessionPage: Ищем участника ${participantId}:`, found ? found.display_name : 'НЕ НАЙДЕН')
+          return found
+        }).filter(Boolean) as any[]
+        
+        console.log(`🎮 GameSessionPage: Участники отсортированы по current_queue игры:`, 
+          sortedParticipants.map(p => `${p.display_name} (${p.id})`))
+      } else {
+        // Fallback: сортируем по queue_position если current_queue недоступен
+        sortedParticipants.sort((a, b) => (a.queue_position || 0) - (b.queue_position || 0))
+        console.log(`🎮 GameSessionPage: Используем fallback сортировку по queue_position`)
+      }
       
       for (let i = 0; i < sortedParticipants.length; i++) {
         const currentParticipant = sortedParticipants[i]
@@ -200,7 +257,9 @@ export default function GameSessionPage() {
         }
       }
       
-      return Object.values(gamePlayers)
+      // 🔄 ИСПРАВЛЯЕМ: Возвращаем игроков в правильном порядке сортировки
+      // а не в произвольном порядке Object.values()
+      return sortedParticipants.map(participant => gamePlayers[participant.id]).filter(Boolean)
     } catch (error) {
       console.error(`❌ GameSessionPage: Ошибка загрузки данных игроков для игры ${gameId}:`, error)
       return []
@@ -384,7 +443,7 @@ export default function GameSessionPage() {
           for (const game of completedGames) {
             try {
               console.log('🎮 GameSessionPage: Загружаем данные игроков для игры:', game.id)
-              const playersData = await loadGamePlayersData(game.id)
+              const playersData = await loadGamePlayersData(game.id, game)
               setGamePlayersData(prev => ({
                 ...prev,
                 [game.id]: playersData

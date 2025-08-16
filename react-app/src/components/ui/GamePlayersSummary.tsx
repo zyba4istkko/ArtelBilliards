@@ -69,15 +69,18 @@ export default function GamePlayersSummary({ players, isReadOnly = true }: GameP
     </div>
   )
 
-  // Сортируем игроков по позиции в очереди или по ID
-  const sortedPlayers = [...players].sort((a, b) => {
-    // Если есть queue_position, сортируем по нему
-    if ('queue_position' in a && 'queue_position' in b) {
-      return (a.queue_position || 0) - (b.queue_position || 0)
-    }
-    // Иначе сортируем по ID
-    return a.id.localeCompare(b.id)
-  })
+  // 🔄 ИСПРАВЛЯЕМ: НЕ сортируем игроков - они уже приходят отсортированными из GameSessionPage
+  // const sortedPlayers = [...players].sort((a, b) => {
+  //   // Если есть queue_position, сортируем по нему
+  //   if ('queue_position' in a && 'queue_position' in b) {
+  //     return (a.queue_position || 0) - (b.queue_position || 0)
+  //   }
+  //   // Иначе сортируем по ID
+  //   return a.id.localeCompare(b.id)
+  // })
+  
+  // Используем игроков в том порядке, в котором они пришли
+  const sortedPlayers = players
 
   if (players.length === 0) {
     return (
