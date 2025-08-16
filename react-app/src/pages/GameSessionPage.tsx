@@ -41,6 +41,18 @@ export default function GameSessionPage() {
   const [games, setGames] = useState<any[]>([])
   const [isLoadingGames, setIsLoadingGames] = useState(false)  // 🔄 ДОБАВЛЯЕМ: состояние загрузки игр
   
+  // 🔄 ДОБАВЛЯЕМ: Состояние для агрегированной статистики сессии
+  const [sessionStatistics, setSessionStatistics] = useState<Record<string, {
+    totalPoints: number
+    totalBalls: number
+    totalFouls: number
+    totalEarned: number
+    totalPaid: number
+    netBalance: number
+    gamesPlayed: number
+    wins: number
+  }>>({})
+  
   // Game state
   const [isPaused, setIsPaused] = useState(false)
   const [gameStartTime] = useState(Date.now())
@@ -60,6 +72,89 @@ export default function GameSessionPage() {
       loadSessionData()
     }
   }, [sessionId])
+
+  // 🔄 НОВАЯ ФУНКЦИЯ: Расчет агрегированной статистики сессии по завершенным играм
+  const calculateSessionStatistics = async (games: any[], participants: any[]) => {
+    const stats: Record<string, {
+      totalPoints: number
+      totalBalls: number
+      totalFouls: number
+      totalEarned: number
+      totalPaid: number
+      netBalance: number
+      gamesPlayed: number
+      wins: number
+    }> = {}
+
+    // Инициализируем статистику для всех участников
+    participants.forEach(participant => {
+      stats[participant.id] = {
+        totalPoints: 0,
+        totalBalls: 0,
+        totalFouls: 0,
+        totalEarned: 0,
+        totalPaid: 0,
+        netBalance: 0,
+        gamesPlayed: 0,
+        wins: 0
+      }
+    })
+
+    // Агрегируем данные по всем завершенным играм
+    for (const game of games) {
+      if (game.status === 'completed') {
+        // Увеличиваем счетчик сыгранных игр для всех участников
+        participants.forEach(participant => {
+          stats[participant.id].gamesPlayed++
+        })
+
+        // Если есть winner_participant_id, увеличиваем счетчик побед
+        if (game.winner_participant_id && stats[game.winner_participant_id]) {
+          stats[game.winner_participant_id].wins++
+        }
+
+        // 🔄 ДОБАВЛЯЕМ: Загружаем события игры для точного расчета
+        try {
+          const gameEvents = await gameService.getGameEvents(game.id)
+          console.log(`📊 GameSessionPage: События игры ${game.id}:`, gameEvents)
+          
+          // Обрабатываем события игры
+          gameEvents.forEach((event: any) => {
+            const participantId = event.participant_id
+            if (stats[participantId]) {
+              if (event.event_type === 'shot') {
+                // Забитый шар
+                const eventData = event.event_data
+                if (eventData && eventData.points) {
+                  stats[participantId].totalPoints += eventData.points
+                  stats[participantId].totalBalls++
+                  
+                  // Рассчитываем заработок (стоимость очка * количество очков)
+                  const pointValue = eventData.point_value_rubles || 50 // По умолчанию 50₽
+                  const earned = eventData.points * pointValue
+                  stats[participantId].totalEarned += earned
+                  stats[participantId].netBalance += earned
+                }
+              } else if (event.event_type === 'foul') {
+                // Штраф
+                stats[participantId].totalFouls++
+                stats[participantId].totalPoints -= 1
+                
+                // Штраф за фол (обычно 50₽)
+                const foulPenalty = 50
+                stats[participantId].totalPaid += foulPenalty
+                stats[participantId].netBalance -= foulPenalty
+              }
+            }
+          })
+        } catch (error) {
+          console.error(`❌ GameSessionPage: Ошибка загрузки событий игры ${game.id}:`, error)
+        }
+      }
+    }
+
+    return stats
+  }
 
   // Load session data from API
   const loadSessionData = async () => {
@@ -100,6 +195,11 @@ export default function GameSessionPage() {
         if (gamesData && Array.isArray(gamesData)) {
           console.log('🎮 GameSessionPage: Игры загружены успешно, количество:', gamesData.length)
           setGames(gamesData)
+          
+          // 🔄 ДОБАВЛЯЕМ: Рассчитываем агрегированную статистику
+          const sessionStats = await calculateSessionStatistics(gamesData, playersData)
+          console.log('📊 GameSessionPage: Агрегированная статистика сессии:', sessionStats)
+          setSessionStatistics(sessionStats)
         } else {
           console.log('🎮 GameSessionPage: gamesData не является массивом, устанавливаем пустой массив')
           console.log('🎮 GameSessionPage: gamesData тип:', typeof gamesData)
@@ -388,25 +488,43 @@ export default function GameSessionPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {session.participants.map((participant: any) => (
-                <div key={participant.id} className="bg-gray-700 p-4 rounded-lg text-center relative">
-                  <div className="w-8 h-8 bg-mint text-black rounded-full flex items-center justify-center font-bold text-sm mx-auto mb-2">
-                    {participant.display_name.charAt(0).toUpperCase()}
-                  </div>
-                  <h3 className="font-semibold text-sm mb-1">{participant.display_name}</h3>
-                  <div className="text-xs text-gray-400 space-y-1">
-                    <p>Очки: {participant.current_score}</p>
-                    <p>Баланс: {participant.session_balance_rubles} ₽</p>
-                    <p>Игр сыграно: {participant.total_games_played}</p>
-                    <p>Шаров забито: {participant.total_balls_potted}</p>
-                  </div>
-                  {leadingPlayer && participant.id === leadingPlayer.id && (
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
-                      <span className="text-black text-xs">👑</span>
+              {session.participants.map((participant: any) => {
+                const stats = sessionStatistics[participant.id] || {
+                  totalPoints: 0,
+                  totalBalls: 0,
+                  totalFouls: 0,
+                  totalEarned: 0,
+                  totalPaid: 0,
+                  netBalance: 0,
+                  gamesPlayed: 0,
+                  wins: 0
+                }
+                
+                return (
+                  <div key={participant.id} className="bg-gray-700 p-4 rounded-lg text-center relative">
+                    <div className="w-8 h-8 bg-mint text-black rounded-full flex items-center justify-center font-bold text-sm mx-auto mb-2">
+                      {participant.display_name.charAt(0).toUpperCase()}
                     </div>
-                  )}
-                </div>
-              ))}
+                    <h3 className="font-semibold text-sm mb-1">{participant.display_name}</h3>
+                    
+                    {/* 🔄 ОБНОВЛЯЕМ: Агрегированная статистика по завершенным играм */}
+                    <div className="text-xs text-gray-400 space-y-1">
+                      <p>Всего очков: {stats.totalPoints}</p>
+                      <p>Всего шаров: {stats.totalBalls}</p>
+                      <p>Всего штрафов: {stats.totalFouls}</p>
+                      <p>Баланс: {stats.netBalance.toFixed(2)} ₽</p>
+                      <p>Игр сыграно: {stats.gamesPlayed}</p>
+                      <p>Побед: {stats.wins}</p>
+                    </div>
+                    
+                    {leadingPlayer && participant.id === leadingPlayer.id && (
+                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                        <span className="text-black text-xs">👑</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
